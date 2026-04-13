@@ -71,6 +71,15 @@
     .card { background: white; padding: 20px; border-radius: 4px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
     .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
     .card-title { font-size: 16px; color: #333; font-weight: 500; }
+    .search-bar { display: flex; gap: 10px; margin-bottom: 15px; align-items: center; }
+    .search-input { padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+    .search-input:focus { outline: none; border-color: #1890ff; }
+    .search-results { font-size: 14px; color: #666; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+    .pagination { display: flex; gap: 5px; align-items: center; }
+    .pagination button { padding: 4px 8px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer; font-size: 14px; }
+    .pagination button:hover { border-color: #1890ff; color: #1890ff; }
+    .pagination button.active { background: #1890ff; color: white; border-color: #1890ff; }
+    .pagination button:disabled { color: #ccc; cursor: not-allowed; }
 
     .table-wrap { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; min-width: 600px; }
@@ -108,9 +117,36 @@
   <script>
     const API_BASE = 'http://localhost:3000/api';
     let token = localStorage.getItem('adminToken');
-    let tabs = [];
-    let activeTabId = '';
-    let activeMenuGroup = '';
+    let currentUsername = localStorage.getItem('adminUsername') || '';
+    let tabs = JSON.parse(localStorage.getItem('adminTabs') || '[]');
+    let activeTabId = localStorage.getItem('adminActiveTab') || '';
+    let activeMenuGroup = localStorage.getItem('adminActiveMenuGroup') || '';
+
+    function saveTabState() {
+      localStorage.setItem('adminTabs', JSON.stringify(tabs));
+      localStorage.setItem('adminActiveTab', activeTabId);
+      localStorage.setItem('adminActiveMenuGroup', activeMenuGroup);
+    }
+
+    function validateAndRestoreTabState() {
+      const storedTabs = JSON.parse(localStorage.getItem('adminTabs') || '[]');
+      const storedActiveId = localStorage.getItem('adminActiveTab') || '';
+      if (storedTabs.length > 0) {
+        const activeTabExists = storedTabs.find(t => t.id === storedActiveId);
+        if (activeTabExists) {
+          tabs = storedTabs;
+          activeTabId = storedActiveId;
+          activeMenuGroup = localStorage.getItem('adminActiveMenuGroup') || 'suppliers';
+        } else {
+          tabs = storedTabs;
+          activeMenuGroup = localStorage.getItem('adminActiveMenuGroup') || 'suppliers';
+          const closedTabIndex = storedTabs.findIndex(t => t.id === storedActiveId);
+          const adjacentIndex = Math.max(0, closedTabIndex - 1);
+          activeTabId = storedTabs[adjacentIndex].id;
+          saveTabState();
+        }
+      }
+    }
 
     function $(selector) { return document.querySelector(selector); }
     function render(html) { $('#app').innerHTML = html; }
@@ -148,8 +184,9 @@
         const data = await res.json();
         if (res.ok) {
           token = data.token;
+          currentUsername = data.username || username;
           localStorage.setItem('adminToken', token);
-          openTab('suppliers', '供应商管理');
+          localStorage.setItem('adminUsername', currentUsername);
           adminLayout();
         } else {
           $('#loginError').textContent = data.message || '登录失败';
@@ -161,11 +198,14 @@
 
     function logout() {
       token = null;
+      currentUsername = '';
       localStorage.removeItem('adminToken');
+      localStorage.removeItem('adminUsername');
       tabs = [];
       activeTabId = '';
       activeMenuGroup = '';
       closeUserDropdown();
+      saveTabState();
       loginPage();
     }
 
@@ -192,6 +232,7 @@
     });
 
     function adminLayout() {
+      validateAndRestoreTabState();
       render(`
         <div class="layout">
           <div class="sidebar">
@@ -204,6 +245,7 @@
                 <div class="menu-sub ${activeMenuGroup === 'suppliers' ? 'open' : ''}" id="menuSuppliersSub">
                   <div class="menu-sub-item ${activeTabId === 'suppliers' ? 'active' : ''}" onclick="openTab('suppliers', '供应商列表')">供应商列表</div>
                   <div class="menu-sub-item ${activeTabId === 'channels-all' ? 'active' : ''}" onclick="openTab('channels-all', '通道列表')">通道列表</div>
+                  <div class="menu-sub-item ${activeTabId === 'scripts-all' ? 'active' : ''}" onclick="openTab('scripts-all', '脚本列表')">脚本列表</div>
                 </div>
               </div>
               <div class="menu-item ${activeTabId === 'products' ? 'active' : ''}" onclick="openTab('products', '产品管理')">产品管理</div>
@@ -226,32 +268,44 @@
         </div>
       `);
       renderTabs();
-      if (!activeTabId) {
-        openTab('dashboard', '数据概览');
-      } else {
+      const validTab = tabs.find(t => t.id === activeTabId);
+      if (activeTabId && validTab) {
         switchTab(activeTabId);
+      } else if (tabs.length > 0) {
+        const lastTab = tabs[tabs.length - 1];
+        activeTabId = lastTab.id;
+        saveTabState();
+        switchTab(activeTabId);
+      } else {
+        openTab('suppliers', '供应商列表');
       }
     }
 
     function openTab(tabId, tabName) {
-      if (tabId === 'suppliers' && !tabs.find(t => t.id === 'suppliers')) {
-        tabs.push({ id: 'suppliers', name: '供应商列表' });
-        activeMenuGroup = 'suppliers';
-      } else if (tabId === 'channels-all' && !tabs.find(t => t.id === 'channels-all')) {
-        tabs.push({ id: 'channels-all', name: '通道列表' });
-        activeMenuGroup = 'suppliers';
-      } else if (tabId === 'products' && !tabs.find(t => t.id === 'products')) {
-        tabs.push({ id: 'products', name: '产品管理' });
-      } else if (tabId === 'orders' && !tabs.find(t => t.id === 'orders')) {
-        tabs.push({ id: 'orders', name: '订单审核' });
-      } else if (tabId === 'customers' && !tabs.find(t => t.id === 'customers')) {
-        tabs.push({ id: 'customers', name: '客户管理' });
-      } else if (tabId === 'dashboard' && !tabs.find(t => t.id === 'dashboard')) {
-        tabs.push({ id: 'dashboard', name: '数据概览' });
+      const tabExists = tabs.find(t => t.id === tabId);
+      if (!tabExists) {
+        if (tabId === 'suppliers') {
+          tabs.push({ id: 'suppliers', name: '供应商列表' });
+          activeMenuGroup = 'suppliers';
+        } else if (tabId === 'channels-all') {
+          tabs.push({ id: 'channels-all', name: '通道列表' });
+          activeMenuGroup = 'suppliers';
+        } else if (tabId === 'scripts-all') {
+          tabs.push({ id: 'scripts-all', name: '脚本列表' });
+          activeMenuGroup = 'suppliers';
+        } else if (tabId === 'products') {
+          tabs.push({ id: 'products', name: '产品管理' });
+        } else if (tabId === 'orders') {
+          tabs.push({ id: 'orders', name: '订单审核' });
+        } else if (tabId === 'customers') {
+          tabs.push({ id: 'customers', name: '客户管理' });
+        } else if (tabId === 'dashboard') {
+          tabs.push({ id: 'dashboard', name: '数据概览' });
+        }
       }
       activeTabId = tabId;
+      saveTabState();
       renderTabs();
-      adminLayout();
       switchTab(tabId);
     }
 
@@ -261,7 +315,15 @@
       } else {
         activeMenuGroup = group;
       }
-      adminLayout();
+      saveTabState();
+      const menuSuppliersSub = document.getElementById('menuSuppliersSub');
+      if (menuSuppliersSub) {
+        menuSuppliersSub.className = 'menu-sub ' + (activeMenuGroup === 'suppliers' ? 'open' : '');
+      }
+      const titleEl = document.querySelector('.menu-group-title');
+      if (titleEl) {
+        titleEl.className = 'menu-group-title ' + (activeMenuGroup === 'suppliers' ? 'active' : '');
+      }
     }
 
     function openChannelTab(supplierId, supplierName) {
@@ -271,6 +333,43 @@
         tabs.push({ id: tabId, name: tabName, supplierId: supplierId, supplierName: supplierName });
       }
       activeTabId = tabId;
+      saveTabState();
+      renderTabs();
+      switchTab(tabId);
+    }
+
+    function openScriptTab(supplierId, supplierName) {
+      const tabId = 'scripts-' + supplierId;
+      const tabName = '脚本-' + supplierName;
+      if (!tabs.find(t => t.id === tabId)) {
+        tabs.push({ id: tabId, name: tabName, supplierId: supplierId, supplierName: supplierName });
+      }
+      activeTabId = tabId;
+      saveTabState();
+      renderTabs();
+      switchTab(tabId);
+    }
+
+    function openScriptVersionTab(supplierId, supplierName) {
+      const tabId = 'script-version-' + supplierId;
+      const tabName = '版本管理-' + supplierName;
+      if (!tabs.find(t => t.id === tabId)) {
+        tabs.push({ id: tabId, name: tabName, supplierId: supplierId, supplierName: supplierName });
+      }
+      activeTabId = tabId;
+      saveTabState();
+      renderTabs();
+      switchTab(tabId);
+    }
+
+    function openScriptDeployTab(supplierId, supplierName) {
+      const tabId = 'script-deploy-' + supplierId;
+      const tabName = '发布管理-' + supplierName;
+      if (!tabs.find(t => t.id === tabId)) {
+        tabs.push({ id: tabId, name: tabName, supplierId: supplierId, supplierName: supplierName });
+      }
+      activeTabId = tabId;
+      saveTabState();
       renderTabs();
       switchTab(tabId);
     }
@@ -278,19 +377,32 @@
     function closeTab(tabId, e) {
       e.stopPropagation();
       const idx = tabs.findIndex(t => t.id === tabId);
-      if (idx !== -1) {
-        tabs.splice(idx, 1);
-        if (activeTabId === tabId) {
-          activeTabId = tabs.length > 0 ? tabs[Math.max(0, idx - 1)].id : '';
+      if (idx === -1) return;
+
+      const wasActive = activeTabId === tabId;
+      tabs.splice(idx, 1);
+
+      if (wasActive) {
+        if (tabs.length > 0) {
+          activeTabId = tabs[Math.min(idx, tabs.length - 1)].id;
+        } else {
+          activeTabId = '';
         }
-        renderTabs();
-        if (activeTabId) switchTab(activeTabId);
-        else $('#tabContent').innerHTML = '';
+      }
+
+      saveTabState();
+      renderTabs();
+
+      if (wasActive && activeTabId) {
+        switchTab(activeTabId);
+      } else if (!activeTabId) {
+        $('#tabContent').innerHTML = '';
       }
     }
 
     function switchTab(tabId) {
       activeTabId = tabId;
+      saveTabState();
       renderTabs();
       if (tabId === 'dashboard') loadDashboard();
       else if (tabId === 'suppliers') loadSuppliers();
@@ -298,7 +410,14 @@
       else if (tabId === 'orders') loadOrders();
       else if (tabId === 'customers') loadCustomers();
       else if (tabId === 'channels-all') loadAllChannels();
-      else if (tabId.startsWith('channels-') && !tabId.startsWith('channels-all')) {
+      else if (tabId === 'scripts-all') loadAllScripts();
+      else if (tabId.startsWith('script-version-')) {
+        const supplierId = tabId.replace('script-version-', '');
+        loadScriptVersions(supplierId);
+      } else if (tabId.startsWith('script-deploy-')) {
+        const supplierId = tabId.replace('script-deploy-', '');
+        loadScriptDeployments(supplierId);
+      } else if (tabId.startsWith('channels-')) {
         const supplierId = tabId.replace('channels-', '');
         loadChannels(supplierId);
       }
@@ -350,42 +469,92 @@
       `;
     }
 
+    let supplierPageSize = 10;
+    let supplierCurrentPage = 1;
+    let supplierAllData = [];
+
     async function loadSuppliers() {
       const data = await fetchAPI('/admin/suppliers');
       if (!data) return;
+      supplierAllData = data.suppliers || [];
       $('#tabContent').innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">搜索项</div>
+          </div>
+          <div class="search-bar">
+            <input type="text" class="search-input" id="supplierSearchInput" placeholder="供应商名称/内部名称">
+            <select class="search-input" id="supplierStatusSelect" style="min-width:120px;">
+              <option value="">全部状态</option>
+              <option value="active">启用</option>
+              <option value="inactive">禁用</option>
+            </select>
+            <button class="btn btn-small" onclick="filterSuppliers()">搜索</button>
+            <button class="btn btn-small cancel-btn" onclick="resetSupplierFilter()">重置</button>
+          </div>
+        </div>
         <div class="card">
           <div class="card-header">
             <div class="card-title">供应商列表</div>
             <button class="btn" onclick="showAddSupplierModal()">+ 添加供应商</button>
           </div>
+          <div class="search-results" id="supplierSearchResults">共 0 条</div>
           <div class="table-wrap">
             <table>
               <thead><tr><th>ID</th><th>内部供应商名称</th><th>供应商名称</th><th>联系人</th><th>联系电话</th><th>邮箱</th><th>公司地址</th><th>关联渠道</th><th>状态</th><th>操作</th></tr></thead>
-              <tbody>
-                ${data.suppliers.map(s => `
-                  <tr>
-                    <td>${s.id}</td>
-                    <td>${s.internalName || '-'}</td>
-                    <td>${s.name || '-'}</td>
-                    <td>${s.contact || '-'}</td>
-                    <td>${s.phone || '-'}</td>
-                    <td>${s.email || '-'}</td>
-                    <td>${s.address || '-'}</td>
-                    <td>${s.channelContact || '-'}</td>
-                    <td><span class="status ${s.status === 'active' ? 'status-active' : 'status-inactive'}">${s.status === 'active' ? '启用' : '禁用'}</span></td>
-                    <td>
-                      <button class="action-btn primary" onclick="openChannelTab(${s.id}, '${s.internalName || s.name}')">通道列表</button>
-                      <button class="action-btn default" onclick="showEditSupplierModal(${s.id})">编辑</button>
-                      <button class="action-btn danger" onclick="deleteSupplier(${s.id})">删除</button>
-                    </td>
-                  </tr>
-                `).join('')}
-              </tbody>
+              <tbody id="suppliersTableBody"></tbody>
             </table>
           </div>
+          <div id="supplierPagination" class="pagination" style="justify-content:flex-end;margin-top:15px;"></div>
         </div>
       `;
+      filterSuppliers();
+    }
+
+    function renderSuppliersTable(data) {
+      if (data.length === 0) {
+        return '<tr><td colspan="10" style="text-align:center;color:#999;">暂无数据</td></tr>';
+      }
+      return data.map(s => `
+        <tr>
+          <td>${s.id}</td>
+          <td>${s.internalName || '-'}</td>
+          <td>${s.name || '-'}</td>
+          <td>${s.contact || '-'}</td>
+          <td>${s.phone || '-'}</td>
+          <td>${s.email || '-'}</td>
+          <td>${s.address || '-'}</td>
+          <td>${s.channelContact || '-'}</td>
+          <td><span class="status ${s.status === 'active' ? 'status-active' : 'status-inactive'}">${s.status === 'active' ? '启用' : '禁用'}</span></td>
+          <td>
+            <button class="action-btn primary" onclick="openChannelTab(${s.id}, '${s.internalName || s.name}')">通道列表</button>
+            <button class="action-btn primary" onclick="openScriptTab(${s.id}, '${s.internalName || s.name}')">脚本管理</button>
+            <button class="action-btn default" onclick="showEditSupplierModal(${s.id})">编辑</button>
+            <button class="action-btn danger" onclick="deleteSupplier(${s.id})">删除</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function filterSuppliers() {
+      const keyword = $('#supplierSearchInput').value.toLowerCase();
+      const status = $('#supplierStatusSelect').value;
+      const filtered = supplierAllData.filter(s => {
+        const matchKeyword = !keyword || 
+          (s.name && s.name.toLowerCase().includes(keyword)) || 
+          (s.internalName && s.internalName.toLowerCase().includes(keyword));
+        const matchStatus = !status || s.status === status;
+        return matchKeyword && matchStatus;
+      });
+      $('#suppliersTableBody').innerHTML = renderSuppliersTable(filtered);
+      $('#supplierSearchResults').innerHTML = `<span>共 ${filtered.length} 条</span>`;
+    }
+
+    function resetSupplierFilter() {
+      supplierCurrentPage = 1;
+      $('#supplierSearchInput').value = '';
+      $('#supplierStatusSelect').value = '';
+      filterSuppliers();
     }
 
     async function loadChannels(supplierId) {
@@ -426,38 +595,339 @@
       `;
     }
 
+    let channelAllData = [];
+    let channelSupplierMap = {};
+
     async function loadAllChannels() {
       const channelsRes = await fetchAPI('/admin/channels');
       const suppliersRes = await fetchAPI('/admin/suppliers');
       if (!channelsRes || !suppliersRes) return;
-      const channels = channelsRes.channels || [];
+      channelAllData = channelsRes.channels || [];
       const suppliers = suppliersRes.suppliers || [];
-      const supplierMap = {};
-      suppliers.forEach(s => supplierMap[s.id] = s.name);
+      channelSupplierMap = {};
+      suppliers.forEach(s => channelSupplierMap[s.id] = s.name);
+      const supplierOptions = suppliers.map(s => `<option value="${s.id}">${s.internalName || s.name}</option>`).join('');
       $('#tabContent').innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">搜索项</div>
+          </div>
+          <div class="search-bar">
+            <input type="text" class="search-input" id="channelSearchInput" placeholder="通道名称">
+            <select class="search-input" id="channelSupplierSelect" style="min-width:120px;">
+              <option value="">全部供应商</option>
+              ${supplierOptions}
+            </select>
+            <select class="search-input" id="channelStatusSelect" style="min-width:100px;">
+              <option value="">全部状态</option>
+              <option value="active">启用</option>
+              <option value="inactive">禁用</option>
+            </select>
+            <button class="btn btn-small" onclick="filterChannels()">搜索</button>
+            <button class="btn btn-small cancel-btn" onclick="resetChannelFilter()">重置</button>
+          </div>
+        </div>
         <div class="card">
           <div class="card-header">
             <div class="card-title">通道列表</div>
             <button class="btn" onclick="showAddChannelModal(null)">+ 添加通道</button>
           </div>
+          <div class="search-results" id="channelSearchResults">共 0 条</div>
           <div class="table-wrap">
             <table>
               <thead><tr><th>ID</th><th>通道名称</th><th>供应商</th><th>API地址</th><th>认证方式</th><th>计费方式</th><th>价格</th><th>状态</th><th>操作</th></tr></thead>
+              <tbody id="channelsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      `;
+      filterChannels();
+    }
+
+    function renderChannelsTable(data) {
+      if (data.length === 0) {
+        return '<tr><td colspan="9" style="text-align:center;color:#999;">暂无通道</td></tr>';
+      }
+      return data.map(c => `
+        <tr>
+          <td>${c.id}</td>
+          <td>${c.name}</td>
+          <td>${channelSupplierMap[c.supplierId] || '-'}</td>
+          <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;">${c.apiUrl}</td>
+          <td>${c.authType === 'apiKey' ? 'API Key' : 'Bearer'}</td>
+          <td>${c.pricingType === 'per_call' ? '按次' : '包月'}</td>
+          <td>¥${c.pricingType === 'per_call' ? c.pricePerCall : c.subscriptionPrice}</td>
+          <td><span class="status ${c.status === 'active' ? 'status-active' : 'status-inactive'}">${c.status === 'active' ? '启用' : '禁用'}</span></td>
+          <td>
+            <button class="action-btn default" onclick="showEditChannelModal(${c.id})">编辑</button>
+            <button class="action-btn danger" onclick="deleteChannel(${c.id})">删除</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function filterChannels() {
+      const keyword = $('#channelSearchInput').value.toLowerCase();
+      const supplierId = $('#channelSupplierSelect').value;
+      const status = $('#channelStatusSelect').value;
+      const filtered = channelAllData.filter(c => {
+        const matchKeyword = !keyword || (c.name && c.name.toLowerCase().includes(keyword));
+        const matchSupplier = !supplierId || String(c.supplierId) === String(supplierId);
+        const matchStatus = !status || c.status === status;
+        return matchKeyword && matchSupplier && matchStatus;
+      });
+      $('#channelsTableBody').innerHTML = renderChannelsTable(filtered);
+      $('#channelSearchResults').innerHTML = `<span>共 ${filtered.length} 条</span>`;
+    }
+
+    function resetChannelFilter() {
+      $('#channelSearchInput').value = '';
+      $('#channelSupplierSelect').value = '';
+      $('#channelStatusSelect').value = '';
+      filterChannels();
+    }
+
+    const ROOM_LIST = ['测试环境', '宝山机房', '华东机房', '华北机房'];
+
+    function getScriptsData() {
+      const defaultData = [
+        {
+          id: 1,
+          supplierId: 1,
+          supplierName: '阿里云',
+          name: 'aliyun-groovy',
+          history: [
+            { version: '1.2.0', time: '2026-04-10 14:30:00', note: '优化加解密逻辑', content: '// 阿里云Groovy脚本\nclass AliyunScript {\n  def process(channel, params) {\n    // 优化加解密逻辑\n    return ["code": 0, "data": params]\n  }\n}', createdBy: '张三' },
+            { version: '1.1.0', time: '2026-03-20 14:30:00', note: '支持多通道', content: '// 阿里云Groovy脚本\nclass AliyunScript {\n  def process(channel, params) {\n    // 支持多通道\n    return ["code": 0, "data": params]\n  }\n}', createdBy: '张三' },
+            { version: '1.0.0', time: '2026-03-15 10:00:00', note: '初始版本', content: '// 阿里云Groovy脚本\nclass AliyunScript {\n  def process(channel, params) {\n    // 初始版本\n    return ["code": 0, "data": params]\n  }\n}', createdBy: '张三' }
+          ],
+          deployments: [
+            { room: '测试环境', version: '1.2.0', time: '2026-04-10 14:35:00', deployedBy: '李四' },
+            { room: '宝山机房', version: '1.1.0', time: '2026-04-09 10:00:00', deployedBy: '李四' },
+            { room: '华东机房', version: '1.0.0', time: '2026-04-08 09:00:00', deployedBy: '王五' }
+          ]
+        },
+        {
+          id: 2,
+          supplierId: 2,
+          supplierName: '腾讯云',
+          name: 'qcloud-groovy',
+          history: [
+            { version: '1.0.0', time: '2026-04-05 10:00:00', note: '初始版本', content: '// 腾讯云Groovy脚本\nclass QCloudScript {\n  def process(channel, params) {\n    // 初始版本\n    return ["code": 0, "data": params]\n  }\n}', createdBy: '张三' }
+          ],
+          deployments: [
+            { room: '测试环境', version: '1.0.0', time: '2026-04-05 10:30:00', deployedBy: '李四' }
+          ]
+        },
+        {
+          id: 3,
+          supplierId: 3,
+          supplierName: '华为云',
+          name: 'huawei-groovy',
+          history: [
+            { version: '2.1.0', time: '2026-04-08 09:15:00', note: '支持支付接口', content: '// 华为云Groovy脚本\nclass HuaweiScript {\n  def process(channel, params) {\n    // 支持支付接口\n    return ["code": 0, "data": params]\n  }\n}', createdBy: '张三' },
+            { version: '2.0.0', time: '2026-03-25 11:00:00', note: '重构核心逻辑', content: '// 华为云Groovy脚本\nclass HuaweiScript {\n  def process(channel, params) {\n    // 重构核心逻辑\n    return ["code": 0, "data": params]\n  }\n}', createdBy: '李四' }
+          ],
+          deployments: [
+            { room: '测试环境', version: '2.1.0', time: '2026-04-08 10:00:00', deployedBy: '王五' },
+            { room: '宝山机房', version: '2.1.0', time: '2026-04-08 14:00:00', deployedBy: '王五' },
+            { room: '华东机房', version: '2.0.0', time: '2026-04-01 09:00:00', deployedBy: '赵六' }
+          ]
+        }
+      ];
+      const stored = localStorage.getItem('scriptsData');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].history !== undefined && Array.isArray(parsed[0].history) && parsed[0].deployments !== undefined) {
+            return parsed;
+          }
+        } catch (e) {
+          console.error('解析脚本数据失败:', e);
+        }
+      }
+      return defaultData;
+    }
+
+    function saveScriptsData(data) {
+      localStorage.setItem('scriptsData', JSON.stringify(data));
+    }
+
+    let scriptPageSize = 10;
+    let scriptCurrentPage = 1;
+
+    async function loadAllScripts() {
+      const suppliersRes = await fetchAPI('/admin/suppliers');
+      if (!suppliersRes) return;
+      const suppliers = suppliersRes.suppliers || [];
+      const scripts = getScriptsData();
+      const scriptMap = {};
+      scripts.forEach(s => scriptMap[s.supplierId] = s);
+      const supplierOptions = suppliers.map(s => `<option value="${s.id}">${s.internalName || s.name}</option>`).join('');
+      $('#tabContent').innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">搜索项</div>
+          </div>
+          <div class="search-bar">
+            <input type="text" class="search-input" id="scriptSearchInput" placeholder="脚本名称">
+            <select class="search-input" id="scriptSupplierSelect" style="min-width:120px;">
+              <option value="">全部供应商</option>
+              ${supplierOptions}
+            </select>
+            <button class="btn btn-small" onclick="filterScripts()">搜索</button>
+            <button class="btn btn-small cancel-btn" onclick="resetScriptFilter()">重置</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">脚本列表</div>
+          </div>
+          <div class="search-results" id="scriptSearchResults">共 0 条</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>ID</th><th>脚本名称</th><th>关联供应商</th><th>操作</th></tr></thead>
+              <tbody id="scriptsTableBody"></tbody>
+            </table>
+          </div>
+          <div id="scriptPagination" class="pagination" style="justify-content:flex-end;margin-top:15px;"></div>
+        </div>
+      `;
+      filterScripts();
+    }
+
+    function renderScriptsTable(suppliers, scriptMap, page = 1, pageSize = 10) {
+      const start = (page - 1) * pageSize;
+      const end = start + pageSize;
+      const pageData = suppliers.slice(start, end);
+      if (pageData.length === 0) {
+        return '<tr><td colspan="4" style="text-align:center;color:#999;">暂无数据</td></tr>';
+      }
+      return pageData.map(s => {
+        const script = scriptMap[s.id];
+        return `
+          <tr>
+            <td>${script ? script.id : '-'}</td>
+            <td>${script ? script.name : '<span style="color:#999;">未创建</span>'}</td>
+            <td>${s.internalName || s.name}</td>
+            <td>
+              ${script ?
+                `<button class="action-btn primary btn-small" onclick="openScriptVersionTab(${s.id}, '${s.internalName || s.name}')">版本管理</button>
+                 <button class="action-btn default btn-small" onclick="openScriptDeployTab(${s.id}, '${s.internalName || s.name}')">发布管理</button>` :
+                `<button class="action-btn primary" onclick="showCreateScriptModal(${s.id}, '${s.internalName || s.name}')">创建</button>`}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderPagination(total, current, size) {
+      const totalPages = Math.ceil(total / size) || 1;
+      let html = `<button ${current <= 1 ? 'disabled' : ''} onclick="goToScriptPage(${current - 1})">上一页</button>`;
+      for (let i = 1; i <= totalPages; i++) {
+        if (totalPages > 7 && i !== 1 && i !== totalPages && Math.abs(i - current) > 1) {
+          if (i === 2 || i === totalPages - 1) {
+            html += `<span style="padding:0 5px;">...</span>`;
+          }
+          continue;
+        }
+        html += `<button class="${i === current ? 'active' : ''}" onclick="goToScriptPage(${i})">${i}</button>`;
+      }
+      html += `<button ${current >= totalPages ? 'disabled' : ''} onclick="goToScriptPage(${current + 1})">下一页</button>`;
+      html += `<span style="margin-left:10px;font-size:14px;color:#666;">每页</span>`;
+      html += `<select style="padding:4px 8px;border:1px solid #ddd;border-radius:4px;margin:0 5px;" onchange="changeScriptPageSize(this.value)">`;
+      html += `<option value="10" ${size == 10 ? 'selected' : ''}>10</option>`;
+      html += `<option value="20" ${size == 20 ? 'selected' : ''}>20</option>`;
+      html += `<option value="50" ${size == 50 ? 'selected' : ''}>50</option>`;
+      html += `</select>`;
+      html += `<span style="font-size:14px;color:#666;">条</span>`;
+      return html;
+    }
+
+    function goToScriptPage(page) {
+      scriptCurrentPage = page;
+      filterScripts();
+    }
+
+    function changeScriptPageSize(size) {
+      scriptPageSize = parseInt(size);
+      scriptCurrentPage = 1;
+      filterScripts();
+    }
+
+    async function filterScripts() {
+      const nameKeyword = $('#scriptSearchInput').value;
+      const supplierId = $('#scriptSupplierSelect').value;
+      const suppliersRes = await fetchAPI('/admin/suppliers');
+      if (!suppliersRes) return;
+      const suppliers = suppliersRes.suppliers || [];
+      const scripts = getScriptsData();
+      const scriptMap = {};
+      scripts.forEach(s => scriptMap[s.supplierId] = s);
+      const filtered = suppliers.filter(s => {
+        const script = scriptMap[s.id];
+        const matchName = !nameKeyword || (script && script.name && script.name.toLowerCase().includes(nameKeyword.toLowerCase()));
+        const matchSupplier = !supplierId || String(s.id) === String(supplierId);
+        return matchName && matchSupplier;
+      });
+      $('#scriptsTableBody').innerHTML = renderScriptsTable(filtered, scriptMap, scriptCurrentPage, scriptPageSize);
+      $('#scriptSearchResults').innerHTML = `<span>共 ${filtered.length} 条</span>`;
+      $('#scriptPagination').innerHTML = renderPagination(filtered.length, scriptCurrentPage, scriptPageSize);
+    }
+
+    function resetScriptFilter() {
+      scriptCurrentPage = 1;
+      $('#scriptSearchInput').value = '';
+      $('#scriptSupplierSelect').value = '';
+      filterScripts();
+    }
+
+    async function loadScriptVersions(supplierId) {
+      const tab = tabs.find(t => t.id === 'script-version-' + supplierId);
+      const supplierName = tab ? tab.supplierName : '';
+      const scripts = getScriptsData();
+      const script = scripts.find(s => s.supplierId == supplierId);
+
+      if (!script) {
+        $('#tabContent').innerHTML = `
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">${supplierName} - 版本管理</div>
+            </div>
+            <div style="text-align:center;padding:50px;color:#999;">
+              <p style="margin-bottom:20px;">该供应商尚未创建脚本</p>
+              <button class="btn" onclick="showCreateScriptModal(${supplierId}, '${supplierName}')">创建脚本</button>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      $('#tabContent').innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">${supplierName} - 版本管理</div>
+            <div>
+              <button class="btn btn-small" onclick="showEditScriptModal(${script.id})">编辑脚本</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">版本历史</div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>版本</th><th>备注</th><th>创建时间</th><th>创建人</th><th>操作</th></tr></thead>
               <tbody>
-                ${channels.length === 0 ? '<tr><td colspan="9" style="text-align:center;color:#999;">暂无通道</td></tr>' : 
-                  channels.map(c => `
+                ${script.history.map(h => `
                   <tr>
-                    <td>${c.id}</td>
-                    <td>${c.name}</td>
-                    <td>${supplierMap[c.supplierId] || '-'}</td>
-                    <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;">${c.apiUrl}</td>
-                    <td>${c.authType === 'apiKey' ? 'API Key' : 'Bearer'}</td>
-                    <td>${c.pricingType === 'per_call' ? '按次' : '包月'}</td>
-                    <td>¥${c.pricingType === 'per_call' ? c.pricePerCall : c.subscriptionPrice}</td>
-                    <td><span class="status ${c.status === 'active' ? 'status-active' : 'status-inactive'}">${c.status === 'active' ? '启用' : '禁用'}</span></td>
+                    <td>v${h.version}</td>
+                    <td>${h.note}</td>
+                    <td>${h.time}</td>
+                    <td>${h.createdBy || '-'}</td>
                     <td>
-                      <button class="action-btn default" onclick="showEditChannelModal(${c.id})">编辑</button>
-                      <button class="action-btn danger" onclick="deleteChannel(${c.id})">删除</button>
+                      <button class="action-btn primary btn-small" onclick="showScriptContentModal(${script.id}, '${h.version}')">查看</button>
                     </td>
                   </tr>
                 `).join('')}
@@ -468,75 +938,450 @@
       `;
     }
 
-    async function loadProducts() {
-      const data = await fetchAPI('/admin/products');
-      if (!data) return;
+    function showScriptContentModal(scriptId, version) {
+      const scripts = getScriptsData();
+      const script = scripts.find(s => s.id === scriptId);
+      if (!script) return;
+      const historyItem = script.history.find(h => h.version === version);
+      if (!historyItem) return;
+      document.body.insertAdjacentHTML('beforeend', `
+        <div class="modal show" id="contentModal">
+          <div class="modal-content">
+            <h3>脚本内容 - v${version}</h3>
+            <div style="background:#f5f5f5;padding:15px;border-radius:4px;font-family:monospace;font-size:13px;white-space:pre-wrap;max-height:400px;overflow-y:auto;">${escapeHtml(historyItem.content || script.content)}</div>
+            <div class="btn-group" style="margin-top:20px;">
+              <button class="btn cancel-btn" onclick="closeModal()">关闭</button>
+            </div>
+          </div>
+        </div>
+      `);
+    }
+
+    async function loadScriptDeployments(supplierId) {
+      const tab = tabs.find(t => t.id === 'script-deploy-' + supplierId);
+      const supplierName = tab ? tab.supplierName : '';
+      const scripts = getScriptsData();
+      const script = scripts.find(s => s.supplierId == supplierId);
+
+      if (!script) {
+        $('#tabContent').innerHTML = `
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">${supplierName} - 发布管理</div>
+            </div>
+            <div style="text-align:center;padding:50px;color:#999;">
+              <p>该供应商尚未创建脚本</p>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      const deployments = script.deployments || [];
+      const deploymentMap = {};
+      deployments.forEach(d => deploymentMap[d.room] = d);
+
       $('#tabContent').innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">${supplierName} - 发布管理</div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>机房</th><th>当前版本</th><th>发布时间</th><th>发布人</th><th>操作</th></tr></thead>
+              <tbody>
+                ${ROOM_LIST.map(room => {
+                  const dep = deploymentMap[room];
+                  return `
+                    <tr>
+                      <td>${room}</td>
+                      <td>${dep ? 'v' + dep.version : '-'}</td>
+                      <td>${dep ? dep.time : '-'}</td>
+                      <td>${dep ? (dep.deployedBy || '-') : '-'}</td>
+                      <td>
+                        <button class="action-btn primary btn-small" onclick="showDeployModal(${script.id}, '${room}')">发布</button>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function showDeployModal(scriptId, room) {
+      const scripts = getScriptsData();
+      const script = scripts.find(s => s.id === scriptId);
+      if (!script) return;
+
+      const versionOptions = script.history.map(h => `<option value="${h.version}">v${h.version} - ${h.note}</option>`).join('');
+
+      document.body.insertAdjacentHTML('beforeend', `
+        <div class="modal show" id="deployModal">
+          <div class="modal-content">
+            <h3>发布脚本到 ${room}</h3>
+            <div class="form-group">
+              <label>选择版本</label>
+              <select id="deployVersion" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:4px;">
+                ${versionOptions}
+              </select>
+            </div>
+            <div class="btn-group">
+              <button class="btn cancel-btn" onclick="closeModal()">取消</button>
+              <button class="btn" onclick="deployToRoom(${scriptId}, '${room}')">确认发布</button>
+            </div>
+          </div>
+        </div>
+      `);
+    }
+
+    function deployToRoom(scriptId, room) {
+      const version = $('#deployVersion').value;
+      if (!version) { alert('请选择版本'); return; }
+      const scripts = getScriptsData();
+      const script = scripts.find(s => s.id === scriptId);
+      if (!script) return;
+      if (!script.deployments) script.deployments = [];
+      const existingIndex = script.deployments.findIndex(d => d.room === room);
+      const deployRecord = { room, version, time: getCurrentTime(), deployedBy: currentUsername || '未知' };
+      if (existingIndex >= 0) {
+        script.deployments.splice(existingIndex, 1, deployRecord);
+      } else {
+        script.deployments.push(deployRecord);
+      }
+      saveScriptsData(scripts);
+      closeModal();
+      loadScriptDeployments(script.supplierId);
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function showCreateScriptModal(supplierId, supplierName) {
+      const defaultContent = `// ${supplierName} Groovy脚本
+class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
+  def process(channel, params) {
+    // 在这里编写处理逻辑
+    // channel 包含通道配置信息（API地址、认证方式等）
+    // params 包含请求参数
+    return ["code": 0, "data": params]
+  }
+}`;
+      document.body.insertAdjacentHTML('beforeend', `
+        <div class="modal show" id="scriptModal">
+          <div class="modal-content">
+            <h3>创建脚本 - ${supplierName}</h3>
+            <div class="form-group"><label>脚本名称</label><input type="text" id="sName" placeholder="如：aliyun-groovy"></div>
+            <div class="form-row">
+              <div class="form-group"><label>版本号</label><input type="text" id="sVersion" value="1.0.0" style="width:100px;"></div>
+              <div class="form-group"><label>版本备注</label><input type="text" id="sNote" placeholder="如：初始版本"></div>
+            </div>
+            <div class="form-group"><label>脚本内容</label><textarea id="sContent" style="width:100%;height:200px;padding:10px;border:1px solid #ddd;border-radius:4px;font-family:monospace;font-size:13px;">${defaultContent}</textarea></div>
+            <div class="btn-group">
+              <button class="btn cancel-btn" onclick="closeModal()">取消</button>
+              <button class="btn" onclick="createScript(${supplierId}, '${supplierName}')">创建</button>
+            </div>
+          </div>
+        </div>
+      `);
+    }
+
+    function createScript(supplierId, supplierName) {
+      const name = $('#sName').value.trim();
+      const version = $('#sVersion').value.trim();
+      const note = $('#sNote').value.trim() || '初始版本';
+      const content = $('#sContent').value;
+      if (!name) { alert('请输入脚本名称'); return; }
+      const scripts = getScriptsData();
+      const newId = scripts.length > 0 ? Math.max(...scripts.map(s => s.id)) + 1 : 1;
+      const newScript = {
+        id: newId,
+        supplierId: parseInt(supplierId),
+        supplierName: supplierName,
+        name: name,
+        content: content,
+        history: [{ version: version, time: getCurrentTime(), note: note, content: content, createdBy: currentUsername || '未知' }],
+        deployments: []
+      };
+      scripts.push(newScript);
+      saveScriptsData(scripts);
+      closeModal();
+      loadScriptVersions(supplierId);
+    }
+
+    function showEditScriptModal(scriptId) {
+      const scripts = getScriptsData();
+      const script = scripts.find(s => s.id === scriptId);
+      if (!script) return;
+
+      const latestVersion = script.history[0];
+      const suggestVersion = incrementVersion(latestVersion ? latestVersion.version : '1.0.0');
+
+      document.body.insertAdjacentHTML('beforeend', `
+        <div class="modal show" id="scriptModal">
+          <div class="modal-content">
+            <h3>编辑脚本</h3>
+            <div class="form-row">
+              <div class="form-group"><label>脚本名称</label><input type="text" id="sName" value="${script.name}"></div>
+              <div class="form-group"><label>版本号</label><input type="text" id="sVersion" value="${suggestVersion}" style="width:100px;"></div>
+            </div>
+            <div class="form-group"><label>版本备注</label><input type="text" id="sNote" placeholder="如：优化加解密逻辑"></div>
+            <div class="form-group"><label>脚本内容</label><textarea id="sContent" style="width:100%;height:300px;padding:10px;border:1px solid #ddd;border-radius:4px;font-family:monospace;font-size:13px;">${latestVersion ? latestVersion.content : ''}</textarea></div>
+            <div class="btn-group">
+              <button class="btn cancel-btn" onclick="closeModal()">取消</button>
+              <button class="btn" onclick="updateScript(${scriptId})">保存</button>
+            </div>
+          </div>
+        </div>
+      `);
+    }
+
+    function incrementVersion(version) {
+      const parts = version.split('.');
+      const lastPart = parseInt(parts[parts.length - 1]) + 1;
+      parts[parts.length - 1] = lastPart;
+      return parts.join('.');
+    }
+
+    function updateScript(scriptId) {
+      const scripts = getScriptsData();
+      const script = scripts.find(s => s.id === scriptId);
+      if (!script) return;
+
+      const newName = $('#sName').value.trim();
+      const newVersion = $('#sVersion').value.trim();
+      const newNote = $('#sNote').value.trim() || '版本更新';
+      const newContent = $('#sContent').value;
+      if (!newName) { alert('请输入脚本名称'); return; }
+
+      script.name = newName;
+      script.history.unshift({
+        version: newVersion,
+        time: getCurrentTime(),
+        note: newNote,
+        content: newContent,
+        createdBy: currentUsername || '未知'
+      });
+
+      saveScriptsData(scripts);
+      closeModal();
+      loadScriptVersions(script.supplierId);
+    }
+
+    function showScriptLogs(scriptName) {
+      const logs = [
+        `[${getCurrentTime()}] [INFO] 开始执行脚本: ${scriptName}`,
+        `[${getCurrentTime()}] [INFO] 加载通道配置...`,
+        `[${getCurrentTime()}] [INFO] 通道1: https://api.example.com/v1/verify`,
+        `[${getCurrentTime()}] [INFO] 通道2: https://api.example.com/v2/verify`,
+        `[${getCurrentTime()}] [INFO] 开始处理请求...`,
+        `[${getCurrentTime()}] [INFO] 请求参数: {"name":"test","phone":"13800138000"}`,
+        `[${getCurrentTime()}] [INFO] 加密请求数据...`,
+        `[${getCurrentTime()}] [INFO] 发送请求到: https://api.example.com/v1/verify`,
+        `[${getCurrentTime()}] [INFO] 接收响应: {"code":0,"message":"success"}`,
+        `[${getCurrentTime()}] [INFO] 解密响应数据...`,
+        `[${getCurrentTime()}] [INFO] 脚本执行完成，耗时: 125ms`
+      ];
+      $('#scriptLogsCard').style.display = 'block';
+      $('#scriptLogsContent').innerHTML = logs.join('\n');
+    }
+
+    function getCurrentTime() {
+      const now = new Date();
+      return now.getFullYear() + '-' + 
+        String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+        String(now.getDate()).padStart(2, '0') + ' ' +
+        String(now.getHours()).padStart(2, '0') + ':' +
+        String(now.getMinutes()).padStart(2, '0') + ':' +
+        String(now.getSeconds()).padStart(2, '0');
+    }
+
+    let productAllData = [];
+    let productSupplierMap = {};
+
+    async function loadProducts() {
+      const productsRes = await fetchAPI('/admin/products');
+      const suppliersRes = await fetchAPI('/admin/suppliers');
+      if (!productsRes || !suppliersRes) return;
+      productAllData = productsRes.products || [];
+      const suppliers = suppliersRes.suppliers || [];
+      productSupplierMap = {};
+      suppliers.forEach(s => productSupplierMap[s.id] = s.name);
+      const supplierOptions = suppliers.map(s => `<option value="${s.id}">${s.internalName || s.name}</option>`).join('');
+      $('#tabContent').innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">搜索项</div>
+          </div>
+          <div class="search-bar">
+            <input type="text" class="search-input" id="productSearchInput" placeholder="产品名称/编码">
+            <select class="search-input" id="productSupplierSelect" style="min-width:120px;">
+              <option value="">全部供应商</option>
+              ${supplierOptions}
+            </select>
+            <select class="search-input" id="productStatusSelect" style="min-width:100px;">
+              <option value="">全部状态</option>
+              <option value="online">已上线</option>
+              <option value="offline">已下线</option>
+            </select>
+            <button class="btn btn-small" onclick="filterProducts()">搜索</button>
+            <button class="btn btn-small cancel-btn" onclick="resetProductFilter()">重置</button>
+          </div>
+        </div>
         <div class="card">
           <div class="card-header">
             <div class="card-title">产品列表</div>
             <button class="btn">+ 添加产品</button>
           </div>
+          <div class="search-results" id="productSearchResults">共 0 条</div>
           <div class="table-wrap">
             <table>
               <thead><tr><th>ID</th><th>编码</th><th>名称</th><th>供应商</th><th>计费方式</th><th>价格</th><th>状态</th><th>操作</th></tr></thead>
-              <tbody>
-                ${data.products.map(p => `
-                  <tr>
-                    <td>${p.id}</td>
-                    <td>${p.code}</td>
-                    <td>${p.name}</td>
-                    <td>${p.supplierName || '-'}</td>
-                    <td>${p.pricingType === 'per_call' ? '按次' : '包月'}</td>
-                    <td>¥${p.pricePerCall || p.subscriptionPrice}</td>
-                    <td><span class="status ${p.status === 'online' ? 'status-active' : 'status-inactive'}">${p.status === 'online' ? '已上线' : '已下线'}</span></td>
-                    <td>
-                      <button class="action-btn default">编辑</button>
-                      <button class="action-btn danger">删除</button>
-                    </td>
-                  </tr>
-                `).join('')}
-              </tbody>
+              <tbody id="productsTableBody"></tbody>
             </table>
           </div>
         </div>
       `;
+      filterProducts();
     }
+
+    function renderProductsTable(data) {
+      if (data.length === 0) {
+        return '<tr><td colspan="8" style="text-align:center;color:#999;">暂无数据</td></tr>';
+      }
+      return data.map(p => `
+        <tr>
+          <td>${p.id}</td>
+          <td>${p.code}</td>
+          <td>${p.name}</td>
+          <td>${productSupplierMap[p.supplierId] || '-'}</td>
+          <td>${p.pricingType === 'per_call' ? '按次' : '包月'}</td>
+          <td>¥${p.pricePerCall || p.subscriptionPrice}</td>
+          <td><span class="status ${p.status === 'online' ? 'status-active' : 'status-inactive'}">${p.status === 'online' ? '已上线' : '已下线'}</span></td>
+          <td>
+            <button class="action-btn default">编辑</button>
+            <button class="action-btn danger">删除</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function filterProducts() {
+      const keyword = $('#productSearchInput').value.toLowerCase();
+      const supplierId = $('#productSupplierSelect').value;
+      const status = $('#productStatusSelect').value;
+      const filtered = productAllData.filter(p => {
+        const matchKeyword = !keyword || 
+          (p.name && p.name.toLowerCase().includes(keyword)) || 
+          (p.code && p.code.toLowerCase().includes(keyword));
+        const matchSupplier = !supplierId || String(p.supplierId) === String(supplierId);
+        const matchStatus = !status || p.status === status;
+        return matchKeyword && matchSupplier && matchStatus;
+      });
+      $('#productsTableBody').innerHTML = renderProductsTable(filtered);
+      $('#productSearchResults').innerHTML = `<span>共 ${filtered.length} 条</span>`;
+    }
+
+    function resetProductFilter() {
+      $('#productSearchInput').value = '';
+      $('#productSupplierSelect').value = '';
+      $('#productStatusSelect').value = '';
+      filterProducts();
+    }
+
+    let orderAllData = [];
 
     async function loadOrders() {
       const data = await fetchAPI('/orders/all');
       if (!data) return;
+      orderAllData = data.orders || [];
       $('#tabContent').innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">搜索项</div>
+          </div>
+          <div class="search-bar">
+            <input type="text" class="search-input" id="orderSearchInput" placeholder="订单号/客户名称">
+            <select class="search-input" id="orderReviewStatusSelect" style="min-width:100px;">
+              <option value="">审核状态</option>
+              <option value="pending">待审核</option>
+              <option value="approved">已通过</option>
+              <option value="rejected">已拒绝</option>
+            </select>
+            <select class="search-input" id="orderPaymentStatusSelect" style="min-width:100px;">
+              <option value="">支付状态</option>
+              <option value="paid">paid</option>
+              <option value="unpaid">unpaid</option>
+            </select>
+            <button class="btn btn-small" onclick="filterOrders()">搜索</button>
+            <button class="btn btn-small cancel-btn" onclick="resetOrderFilter()">重置</button>
+          </div>
+        </div>
         <div class="card">
           <div class="card-header">
             <div class="card-title">订单列表</div>
           </div>
+          <div class="search-results" id="orderSearchResults">共 0 条</div>
           <div class="table-wrap">
             <table>
               <thead><tr><th>订单号</th><th>客户</th><th>产品</th><th>类型</th><th>金额</th><th>审核状态</th><th>支付状态</th><th>操作</th></tr></thead>
-              <tbody>
-                ${data.orders.map(o => `
-                  <tr>
-                    <td>${o.orderNo}</td>
-                    <td>${o.customer?.companyName || '-'}</td>
-                    <td>${o.product?.name || '-'}</td>
-                    <td>${o.orderType === 'per_call' ? '按次' : '包月'}</td>
-                    <td>¥${o.amount}</td>
-                    <td><span class="status status-${o.reviewStatus}">${o.reviewStatus === 'pending' ? '待审核' : o.reviewStatus === 'approved' ? '已通过' : '已拒绝'}</span></td>
-                    <td><span class="status status-${o.paymentStatus}">${o.paymentStatus}</span></td>
-                    <td>
-                      ${o.reviewStatus === 'pending' ? `
-                        <button class="action-btn primary" onclick="approveOrder(${o.id})">通过</button>
-                        <button class="action-btn danger" onclick="rejectOrder(${o.id})">拒绝</button>
-                      ` : '-'}
-                    </td>
-                  </tr>
-                `).join('')}
-              </tbody>
+              <tbody id="ordersTableBody"></tbody>
             </table>
           </div>
         </div>
       `;
+      filterOrders();
+    }
+
+    function renderOrdersTable(data) {
+      if (data.length === 0) {
+        return '<tr><td colspan="8" style="text-align:center;color:#999;">暂无数据</td></tr>';
+      }
+      return data.map(o => `
+        <tr>
+          <td>${o.orderNo}</td>
+          <td>${o.customer?.companyName || '-'}</td>
+          <td>${o.product?.name || '-'}</td>
+          <td>${o.orderType === 'per_call' ? '按次' : '包月'}</td>
+          <td>¥${o.amount}</td>
+          <td><span class="status status-${o.reviewStatus}">${o.reviewStatus === 'pending' ? '待审核' : o.reviewStatus === 'approved' ? '已通过' : '已拒绝'}</span></td>
+          <td><span class="status status-${o.paymentStatus}">${o.paymentStatus}</span></td>
+          <td>
+            ${o.reviewStatus === 'pending' ? `
+              <button class="action-btn primary" onclick="approveOrder(${o.id})">通过</button>
+              <button class="action-btn danger" onclick="rejectOrder(${o.id})">拒绝</button>
+            ` : '-'}
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function filterOrders() {
+      const keyword = $('#orderSearchInput').value.toLowerCase();
+      const reviewStatus = $('#orderReviewStatusSelect').value;
+      const paymentStatus = $('#orderPaymentStatusSelect').value;
+      const filtered = orderAllData.filter(o => {
+        const matchKeyword = !keyword || 
+          (o.orderNo && o.orderNo.toLowerCase().includes(keyword)) || 
+          (o.customer?.companyName && o.customer.companyName.toLowerCase().includes(keyword));
+        const matchReview = !reviewStatus || o.reviewStatus === reviewStatus;
+        const matchPayment = !paymentStatus || o.paymentStatus === paymentStatus;
+        return matchKeyword && matchReview && matchPayment;
+      });
+      $('#ordersTableBody').innerHTML = renderOrdersTable(filtered);
+      $('#orderSearchResults').innerHTML = `<span>共 ${filtered.length} 条</span>`;
+    }
+
+    function resetOrderFilter() {
+      $('#orderSearchInput').value = '';
+      $('#orderReviewStatusSelect').value = '';
+      $('#orderPaymentStatusSelect').value = '';
+      filterOrders();
     }
 
     async function loadCustomers() {
