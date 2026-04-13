@@ -19,13 +19,33 @@
     .menu-item:hover { color: #fff; background: #ffffff10; }
     .menu-item.active { color: #fff; background: #1890ff; }
 
+    .menu-group { }
+    .menu-group-title { padding: 12px 20px; color: #ffffffa6; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: all 0.3s; }
+    .menu-group-title:hover { color: #fff; background: #ffffff10; }
+    .menu-group-title.active { color: #fff; }
+    .menu-group-title .arrow { transition: transform 0.3s; font-size: 10px; }
+    .menu-group-title.active .arrow { transform: rotate(90deg); }
+    .menu-sub { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; background: #00020a; }
+    .menu-sub.open { max-height: 200px; }
+    .menu-sub-item { padding: 10px 20px 10px 40px; color: #ffffffa6; cursor: pointer; display: flex; align-items: center; transition: all 0.3s; font-size: 14px; }
+    .menu-sub-item:hover { color: #fff; background: #ffffff10; }
+    .menu-sub-item.active { color: #fff; background: #1890ff; }
+
     .main { margin-left: 200px; flex: 1; display: flex; flex-direction: column; height: 100vh; }
     
-    .header { height: 64px; background: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); z-index: 99; }
+    .header { height: 64px; background: #fff; display: flex; align-items: center; justify-content: flex-end; padding: 0 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); z-index: 99; position: fixed; top: 0; right: 0; left: 200px; }
     .header-title { font-size: 16px; color: #333; }
     .logout-btn { padding: 8px 20px; background: #ff4d4f; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
+    .logout-btn:hover { background: #ff7875; }
+    .header-right { position: fixed; top: 14px; right: 24px; z-index: 1001; }
+    .user-avatar { width: 36px; height: 36px; border-radius: 50%; background: #1890ff; color: white; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; font-weight: 500; }
+    .user-dropdown { position: absolute; top: 100%; right: 0; margin-top: 8px; background: white; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.15); min-width: 120px; display: none; z-index: 1000; }
+    .user-dropdown.show { display: block; }
+    .user-dropdown-item { padding: 10px 16px; color: #333; cursor: pointer; font-size: 14px; transition: background 0.2s; }
+    .user-dropdown-item:hover { background: #f5f5f5; }
+    .user-dropdown-item.danger { color: #ff4d4f; }
 
-    .tabs-bar { height: 40px; background: #fff; display: flex; align-items: center; padding: 0 16px; border-bottom: 1px solid #eee; overflow-x: auto; }
+    .tabs-bar { height: 40px; background: #fff; display: flex; align-items: center; padding: 0 16px; border-bottom: 1px solid #eee; overflow-x: auto; margin-top: 64px; }
     .tabs-bar::-webkit-scrollbar { height: 4px; }
     .tabs-bar::-webkit-scrollbar-thumb { background: #ccc; border-radius: 2px; }
     .tab { padding: 8px 16px; color: #666; cursor: pointer; display: flex; align-items: center; border-right: 1px solid #eee; white-space: nowrap; font-size: 14px; transition: all 0.2s; }
@@ -90,6 +110,7 @@
     let token = localStorage.getItem('adminToken');
     let tabs = [];
     let activeTabId = '';
+    let activeMenuGroup = '';
 
     function $(selector) { return document.querySelector(selector); }
     function render(html) { $('#app').innerHTML = html; }
@@ -143,8 +164,32 @@
       localStorage.removeItem('adminToken');
       tabs = [];
       activeTabId = '';
+      activeMenuGroup = '';
+      closeUserDropdown();
       loginPage();
     }
+
+    function toggleUserDropdown() {
+      const dropdown = $('#userDropdown');
+      if (dropdown.classList.contains('show')) {
+        closeUserDropdown();
+      } else {
+        dropdown.classList.add('show');
+      }
+    }
+
+    function closeUserDropdown() {
+      const dropdown = $('#userDropdown');
+      if (dropdown) dropdown.classList.remove('show');
+    }
+
+    document.addEventListener('click', function(e) {
+      const avatar = $('.user-avatar');
+      const dropdown = $('#userDropdown');
+      if (avatar && dropdown && !avatar.contains(e.target) && !dropdown.contains(e.target)) {
+        closeUserDropdown();
+      }
+    });
 
     function adminLayout() {
       render(`
@@ -152,17 +197,28 @@
           <div class="sidebar">
             <div class="logo"><h1>API管理后台</h1></div>
             <div class="menu">
-              <div class="menu-item" onclick="openTab('suppliers', '供应商管理')">供应商管理</div>
-              <div class="menu-item" onclick="openTab('products', '产品管理')">产品管理</div>
-              <div class="menu-item" onclick="openTab('orders', '订单审核')">订单审核</div>
-              <div class="menu-item" onclick="openTab('customers', '客户管理')">客户管理</div>
-              <div class="menu-item" onclick="openTab('dashboard', '数据概览')">数据概览</div>
+              <div class="menu-group">
+                <div class="menu-group-title ${activeMenuGroup === 'suppliers' ? 'active' : ''}" onclick="toggleMenuGroup('suppliers')">
+                  供应商管理 <span class="arrow">▶</span>
+                </div>
+                <div class="menu-sub ${activeMenuGroup === 'suppliers' ? 'open' : ''}" id="menuSuppliersSub">
+                  <div class="menu-sub-item ${activeTabId === 'suppliers' ? 'active' : ''}" onclick="openTab('suppliers', '供应商列表')">供应商列表</div>
+                  <div class="menu-sub-item ${activeTabId === 'channels-all' ? 'active' : ''}" onclick="openTab('channels-all', '通道列表')">通道列表</div>
+                </div>
+              </div>
+              <div class="menu-item ${activeTabId === 'products' ? 'active' : ''}" onclick="openTab('products', '产品管理')">产品管理</div>
+              <div class="menu-item ${activeTabId === 'orders' ? 'active' : ''}" onclick="openTab('orders', '订单审核')">订单审核</div>
+              <div class="menu-item ${activeTabId === 'customers' ? 'active' : ''}" onclick="openTab('customers', '客户管理')">客户管理</div>
+              <div class="menu-item ${activeTabId === 'dashboard' ? 'active' : ''}" onclick="openTab('dashboard', '数据概览')">数据概览</div>
             </div>
           </div>
           <div class="main">
-            <div class="header">
-              <div class="header-title">API商业化平台 - 管理后台</div>
-              <button class="logout-btn" onclick="logout()">退出登录</button>
+            <div class="header"></div>
+            <div class="header-right">
+              <div class="user-avatar" onclick="toggleUserDropdown()">管</div>
+              <div class="user-dropdown" id="userDropdown">
+                <div class="user-dropdown-item danger" onclick="logout()">退出登录</div>
+              </div>
             </div>
             <div class="tabs-bar" id="tabsBar"></div>
             <div class="content" id="tabContent"></div>
@@ -179,7 +235,11 @@
 
     function openTab(tabId, tabName) {
       if (tabId === 'suppliers' && !tabs.find(t => t.id === 'suppliers')) {
-        tabs.push({ id: 'suppliers', name: '供应商管理' });
+        tabs.push({ id: 'suppliers', name: '供应商列表' });
+        activeMenuGroup = 'suppliers';
+      } else if (tabId === 'channels-all' && !tabs.find(t => t.id === 'channels-all')) {
+        tabs.push({ id: 'channels-all', name: '通道列表' });
+        activeMenuGroup = 'suppliers';
       } else if (tabId === 'products' && !tabs.find(t => t.id === 'products')) {
         tabs.push({ id: 'products', name: '产品管理' });
       } else if (tabId === 'orders' && !tabs.find(t => t.id === 'orders')) {
@@ -191,7 +251,17 @@
       }
       activeTabId = tabId;
       renderTabs();
+      adminLayout();
       switchTab(tabId);
+    }
+
+    function toggleMenuGroup(group) {
+      if (activeMenuGroup === group) {
+        activeMenuGroup = '';
+      } else {
+        activeMenuGroup = group;
+      }
+      adminLayout();
     }
 
     function openChannelTab(supplierId, supplierName) {
@@ -227,7 +297,8 @@
       else if (tabId === 'products') loadProducts();
       else if (tabId === 'orders') loadOrders();
       else if (tabId === 'customers') loadCustomers();
-      else if (tabId.startsWith('channels-')) {
+      else if (tabId === 'channels-all') loadAllChannels();
+      else if (tabId.startsWith('channels-') && !tabId.startsWith('channels-all')) {
         const supplierId = tabId.replace('channels-', '');
         loadChannels(supplierId);
       }
@@ -338,6 +409,48 @@
                     <td>${c.id}</td>
                     <td>${c.name}</td>
                     <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;">${c.apiUrl}</td>
+                    <td>${c.authType === 'apiKey' ? 'API Key' : 'Bearer'}</td>
+                    <td>${c.pricingType === 'per_call' ? '按次' : '包月'}</td>
+                    <td>¥${c.pricingType === 'per_call' ? c.pricePerCall : c.subscriptionPrice}</td>
+                    <td><span class="status ${c.status === 'active' ? 'status-active' : 'status-inactive'}">${c.status === 'active' ? '启用' : '禁用'}</span></td>
+                    <td>
+                      <button class="action-btn default" onclick="showEditChannelModal(${c.id})">编辑</button>
+                      <button class="action-btn danger" onclick="deleteChannel(${c.id})">删除</button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    async function loadAllChannels() {
+      const channelsRes = await fetchAPI('/admin/channels');
+      const suppliersRes = await fetchAPI('/admin/suppliers');
+      if (!channelsRes || !suppliersRes) return;
+      const channels = channelsRes.channels || [];
+      const suppliers = suppliersRes.suppliers || [];
+      const supplierMap = {};
+      suppliers.forEach(s => supplierMap[s.id] = s.name);
+      $('#tabContent').innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">通道列表</div>
+            <button class="btn" onclick="showAddChannelModal(null)">+ 添加通道</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>ID</th><th>通道名称</th><th>供应商</th><th>API地址</th><th>认证方式</th><th>计费方式</th><th>价格</th><th>状态</th><th>操作</th></tr></thead>
+              <tbody>
+                ${channels.length === 0 ? '<tr><td colspan="9" style="text-align:center;color:#999;">暂无通道</td></tr>' : 
+                  channels.map(c => `
+                  <tr>
+                    <td>${c.id}</td>
+                    <td>${c.name}</td>
+                    <td>${supplierMap[c.supplierId] || '-'}</td>
+                    <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;">${c.apiUrl}</td>
                     <td>${c.authType === 'apiKey' ? 'API Key' : 'Bearer'}</td>
                     <td>${c.pricingType === 'per_call' ? '按次' : '包月'}</td>
                     <td>¥${c.pricingType === 'per_call' ? c.pricePerCall : c.subscriptionPrice}</td>
@@ -570,11 +683,16 @@
       loadSuppliers();
     }
 
-    function showAddChannelModal(supplierId) {
+    async function showAddChannelModal(supplierId) {
+      const suppliersRes = await fetchAPI('/admin/suppliers');
+      const suppliers = suppliersRes ? suppliersRes.suppliers || [] : [];
+      const supplierOptions = suppliers.map(s => `<option value="${s.id}">${s.internalName || s.name}</option>`).join('');
+      const isFromAllChannels = supplierId === null;
       document.body.insertAdjacentHTML('beforeend', `
         <div class="modal show" id="channelModal">
           <div class="modal-content">
             <h3>添加通道</h3>
+            ${isFromAllChannels ? `<div class="form-group"><label>所属供应商</label><select id="cSupplier">${supplierOptions}</select></div>` : ''}
             <div class="form-group"><label>通道名称</label><input type="text" id="cName" placeholder="如：阿里云-实名认证-v1"></div>
             <div class="form-group"><label>API地址</label><input type="text" id="cUrl" placeholder="https://api.example.com/verify"></div>
             <div class="form-row">
@@ -606,9 +724,10 @@
 
     async function addChannel(supplierId) {
       const pricingType = $('#cPricing').value;
+      const actualSupplierId = supplierId === null ? parseInt($('#cSupplier').value) : supplierId;
       const data = {
         name: $('#cName').value,
-        supplierId: supplierId,
+        supplierId: actualSupplierId,
         apiUrl: $('#cUrl').value,
         authType: $('#cAuth').value,
         authConfig: $('#cAuthConfig').value,
@@ -617,11 +736,15 @@
         subscriptionPrice: pricingType === 'subscription' ? parseFloat($('#cPrice').value) : 0,
         status: 'active'
       };
-      if (!data.name || !data.apiUrl) { alert('请填写必填项'); return; }
+      if (!data.name || !data.apiUrl || !data.supplierId) { alert('请填写必填项'); return; }
       const result = await fetchAPI('/admin/channels', { method: 'POST', body: JSON.stringify(data) });
       if (result) {
         closeModal();
-        loadChannels(supplierId);
+        if (supplierId === null) {
+          loadAllChannels();
+        } else {
+          loadChannels(supplierId);
+        }
       }
     }
 

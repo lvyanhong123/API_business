@@ -35,6 +35,19 @@
       "status": "active",
       "createdAt": "2026-04-13T08:05:06.726Z",
       "updatedAt": "2026-04-13T08:05:06.726Z"
+    },
+    {
+      "id": 3,
+      "internalName": "JDyun",
+      "name": "京东云",
+      "contact": "张经理",
+      "phone": "13800138001",
+      "email": "JDyun@example.com",
+      "address": "杭州市余杭区",
+      "channelContact": "李小姐",
+      "status": "active",
+      "createdAt": "2026-04-13T10:55:43.834Z",
+      "updatedAt": "2026-04-13T10:55:43.834Z"
     }
   ],
   "channels": [
@@ -50,7 +63,8 @@
       "subscriptionPrice": 0,
       "status": "active",
       "createdAt": "2026-04-13T06:32:51.440Z",
-      "updatedAt": "2026-04-13T06:32:51.440Z"
+      "updatedAt": "2026-04-13T06:32:51.440Z",
+      "supplierName": "阿里云"
     },
     {
       "id": 2,
@@ -64,7 +78,22 @@
       "subscriptionPrice": 0,
       "status": "active",
       "createdAt": "2026-04-13T06:32:51.440Z",
-      "updatedAt": "2026-04-13T06:32:51.440Z"
+      "updatedAt": "2026-04-13T06:32:51.440Z",
+      "supplierName": "阿里云"
+    },
+    {
+      "id": 3,
+      "name": "腾讯云人像识别",
+      "supplierId": 2,
+      "apiUrl": "https://api.tencent.com/identity/verify",
+      "authType": "apiKey",
+      "authConfig": "ali-key-xxx",
+      "pricingType": "per_call",
+      "pricePerCall": 0.1,
+      "subscriptionPrice": 0,
+      "status": "active",
+      "createdAt": "2026-04-13T11:08:29.383Z",
+      "updatedAt": "2026-04-13T11:08:29.383Z"
     }
   ],
   "products": [
