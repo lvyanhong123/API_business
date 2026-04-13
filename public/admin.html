@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API商业化平台 - 管理后台</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f2f5; }
+
+    .layout { display: flex; min-height: 100vh; }
+    
+    .sidebar { width: 200px; background: #001529; position: fixed; height: 100vh; display: flex; flex-direction: column; z-index: 100; }
+    .logo { height: 64px; background: #001529; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #ffffff10; }
+    .logo h1 { color: #fff; font-size: 16px; }
+    
+    .menu { flex: 1; padding: 10px 0; }
+    .menu-item { padding: 12px 20px; color: #ffffffa6; cursor: pointer; display: flex; align-items: center; transition: all 0.3s; }
+    .menu-item:hover { color: #fff; background: #ffffff10; }
+    .menu-item.active { color: #fff; background: #1890ff; }
+
+    .main { margin-left: 200px; flex: 1; display: flex; flex-direction: column; height: 100vh; }
+    
+    .header { height: 64px; background: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); z-index: 99; }
+    .header-title { font-size: 16px; color: #333; }
+    .logout-btn { padding: 8px 20px; background: #ff4d4f; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
+
+    .tabs-bar { height: 40px; background: #fff; display: flex; align-items: center; padding: 0 16px; border-bottom: 1px solid #eee; overflow-x: auto; }
+    .tabs-bar::-webkit-scrollbar { height: 4px; }
+    .tabs-bar::-webkit-scrollbar-thumb { background: #ccc; border-radius: 2px; }
+    .tab { padding: 8px 16px; color: #666; cursor: pointer; display: flex; align-items: center; border-right: 1px solid #eee; white-space: nowrap; font-size: 14px; transition: all 0.2s; }
+    .tab:hover { color: #1890ff; background: #e6f7ff; }
+    .tab.active { color: #1890ff; background: #e6f7ff; border-bottom: 2px solid #1890ff; }
+    .tab-close { margin-left: 8px; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+    .tab-close:hover { background: #ff4d4f; color: #fff; }
+
+    .content { flex: 1; padding: 20px; overflow-y: auto; }
+
+    .login-box { max-width: 400px; margin: 100px auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .login-box h1 { text-align: center; margin-bottom: 30px; color: #333; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; margin-bottom: 5px; color: #666; font-size: 14px; }
+    .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+    .btn { padding: 10px 20px; background: #1890ff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
+    .btn:hover { background: #40a9ff; }
+    .btn-small { padding: 6px 12px; font-size: 12px; }
+    .btn-danger { background: #ff4d4f; }
+    .btn-danger:hover { background: #ff7875; }
+    .error { color: #ff4d4f; margin-top: 10px; text-align: center; }
+
+    .card { background: white; padding: 20px; border-radius: 4px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
+    .card-title { font-size: 16px; color: #333; font-weight: 500; }
+
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 600px; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+    th { background: #fafafa; color: #666; font-weight: 500; font-size: 14px; }
+    td { font-size: 14px; }
+    tr:hover { background: #fafafa; }
+    .status { padding: 4px 8px; border-radius: 4px; font-size: 12px; display: inline-block; }
+    .status-active { background: #f6ffed; color: #52c41a; }
+    .status-inactive { background: #f5f5f5; color: #999; }
+    .status-pending { background: #fffbe6; color: #faad14; }
+    .status-approved { background: #f6ffed; color: #52c41a; }
+    .status-rejected { background: #fff1f0; color: #ff4d4f; }
+    .status-paid { background: #e6f7ff; color: #1890ff; }
+
+    .action-btn { padding: 4px 8px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin-right: 4px; }
+    .action-btn.primary { background: #1890ff; color: white; }
+    .action-btn.danger { background: #ff4d4f; color: white; }
+    .action-btn.default { background: #999; color: white; }
+
+    .form-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+    .modal.show { display: flex; }
+    .modal-content { background: white; padding: 30px; border-radius: 8px; width: 600px; max-width: 90%; max-height: 80vh; overflow-y: auto; }
+    .modal h3 { margin-bottom: 20px; font-size: 18px; }
+    .modal .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+    .modal .btn-group .btn { flex: 1; }
+    .cancel-btn { background: #999; }
+    .form-group.full { grid-column: 1 / -1; }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script>
+    const API_BASE = 'http://localhost:3000/api';
+    let token = localStorage.getItem('adminToken');
+    let tabs = [];
+    let activeTabId = '';
+
+    function $(selector) { return document.querySelector(selector); }
+    function render(html) { $('#app').innerHTML = html; }
+
+    function loginPage() {
+      render(`
+        <div class="login-box">
+          <h1>API商业化平台</h1>
+          <form onsubmit="handleLogin(event)">
+            <div class="form-group">
+              <label>用户名</label>
+              <input type="text" id="username" placeholder="请输入用户名" required>
+            </div>
+            <div class="form-group">
+              <label>密码</label>
+              <input type="password" id="password" placeholder="请输入密码" required>
+            </div>
+            <button type="submit" class="btn" style="width:100%">登录</button>
+            <p class="error" id="loginError"></p>
+          </form>
+        </div>
+      `);
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const username = $('#username').value;
+      const password = $('#password').value;
+      try {
+        const res = await fetch(`${API_BASE}/admin/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          token = data.token;
+          localStorage.setItem('adminToken', token);
+          openTab('suppliers', '供应商管理');
+          adminLayout();
+        } else {
+          $('#loginError').textContent = data.message || '登录失败';
+        }
+      } catch (err) {
+        $('#loginError').textContent = '网络错误';
+      }
+    }
+
+    function logout() {
+      token = null;
+      localStorage.removeItem('adminToken');
+      tabs = [];
+      activeTabId = '';
+      loginPage();
+    }
+
+    function adminLayout() {
+      render(`
+        <div class="layout">
+          <div class="sidebar">
+            <div class="logo"><h1>API管理后台</h1></div>
+            <div class="menu">
+              <div class="menu-item" onclick="openTab('suppliers', '供应商管理')">供应商管理</div>
+              <div class="menu-item" onclick="openTab('products', '产品管理')">产品管理</div>
+              <div class="menu-item" onclick="openTab('orders', '订单审核')">订单审核</div>
+              <div class="menu-item" onclick="openTab('customers', '客户管理')">客户管理</div>
+              <div class="menu-item" onclick="openTab('dashboard', '数据概览')">数据概览</div>
+            </div>
+          </div>
+          <div class="main">
+            <div class="header">
+              <div class="header-title">API商业化平台 - 管理后台</div>
+              <button class="logout-btn" onclick="logout()">退出登录</button>
+            </div>
+            <div class="tabs-bar" id="tabsBar"></div>
+            <div class="content" id="tabContent"></div>
+          </div>
+        </div>
+      `);
+      renderTabs();
+      if (!activeTabId) {
+        openTab('dashboard', '数据概览');
+      } else {
+        switchTab(activeTabId);
+      }
+    }
+
+    function openTab(tabId, tabName) {
+      if (tabId === 'suppliers' && !tabs.find(t => t.id === 'suppliers')) {
+        tabs.push({ id: 'suppliers', name: '供应商管理' });
+      } else if (tabId === 'products' && !tabs.find(t => t.id === 'products')) {
+        tabs.push({ id: 'products', name: '产品管理' });
+      } else if (tabId === 'orders' && !tabs.find(t => t.id === 'orders')) {
+        tabs.push({ id: 'orders', name: '订单审核' });
+      } else if (tabId === 'customers' && !tabs.find(t => t.id === 'customers')) {
+        tabs.push({ id: 'customers', name: '客户管理' });
+      } else if (tabId === 'dashboard' && !tabs.find(t => t.id === 'dashboard')) {
+        tabs.push({ id: 'dashboard', name: '数据概览' });
+      }
+      activeTabId = tabId;
+      renderTabs();
+      switchTab(tabId);
+    }
+
+    function openChannelTab(supplierId, supplierName) {
+      const tabId = 'channels-' + supplierId;
+      const tabName = '通道-' + supplierName;
+      if (!tabs.find(t => t.id === tabId)) {
+        tabs.push({ id: tabId, name: tabName, supplierId: supplierId, supplierName: supplierName });
+      }
+      activeTabId = tabId;
+      renderTabs();
+      switchTab(tabId);
+    }
+
+    function closeTab(tabId, e) {
+      e.stopPropagation();
+      const idx = tabs.findIndex(t => t.id === tabId);
+      if (idx !== -1) {
+        tabs.splice(idx, 1);
+        if (activeTabId === tabId) {
+          activeTabId = tabs.length > 0 ? tabs[Math.max(0, idx - 1)].id : '';
+        }
+        renderTabs();
+        if (activeTabId) switchTab(activeTabId);
+        else $('#tabContent').innerHTML = '';
+      }
+    }
+
+    function switchTab(tabId) {
+      activeTabId = tabId;
+      renderTabs();
+      if (tabId === 'dashboard') loadDashboard();
+      else if (tabId === 'suppliers') loadSuppliers();
+      else if (tabId === 'products') loadProducts();
+      else if (tabId === 'orders') loadOrders();
+      else if (tabId === 'customers') loadCustomers();
+      else if (tabId.startsWith('channels-')) {
+        const supplierId = tabId.replace('channels-', '');
+        loadChannels(supplierId);
+      }
+    }
+
+    function renderTabs() {
+      const bar = $('#tabsBar');
+      if (!bar) return;
+      bar.innerHTML = tabs.map(tab => `
+        <div class="tab ${tab.id === activeTabId ? 'active' : ''}" onclick="switchTab('${tab.id}')">
+          ${tab.name}
+          ${tab.id !== 'dashboard' ? `<span class="tab-close" onclick="closeTab('${tab.id}', event)">×</span>` : ''}
+        </div>
+      `).join('');
+    }
+
+    async function loadDashboard() {
+      const data = await fetchAPI('/stats/overview');
+      if (!data) return;
+      $('#tabContent').innerHTML = `
+        <div class="card">
+          <div class="card-header"><div class="card-title">数据概览</div></div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:15px;">
+            <div style="text-align:center;padding:20px;background:#f5f5f5;border-radius:4px;">
+              <div style="font-size:28px;font-weight:bold;color:#1890ff;">${data.totalCustomers || 0}</div>
+              <div style="color:#666;margin-top:5px;">客户总数</div>
+            </div>
+            <div style="text-align:center;padding:20px;background:#f5f5f5;border-radius:4px;">
+              <div style="font-size:28px;font-weight:bold;color:#1890ff;">${data.totalProducts || 0}</div>
+              <div style="color:#666;margin-top:5px;">产品总数</div>
+            </div>
+            <div style="text-align:center;padding:20px;background:#f5f5f5;border-radius:4px;">
+              <div style="font-size:28px;font-weight:bold;color:#1890ff;">${data.totalOrders || 0}</div>
+              <div style="color:#666;margin-top:5px;">订单总数</div>
+            </div>
+            <div style="text-align:center;padding:20px;background:#f5f5f5;border-radius:4px;">
+              <div style="font-size:28px;font-weight:bold;color:#1890ff;">¥${data.totalRevenue || 0}</div>
+              <div style="color:#666;margin-top:5px;">总收入</div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">今日调用量</div></div>
+          <div style="text-align:center;padding:30px;">
+            <div style="font-size:48px;font-weight:bold;color:#1890ff;">${data.todayCalls || 0}</div>
+            <div style="color:#666;margin-top:10px;">今日API调用次数</div>
+          </div>
+        </div>
+      `;
+    }
+
+    async function loadSuppliers() {
+      const data = await fetchAPI('/admin/suppliers');
+      if (!data) return;
+      $('#tabContent').innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">供应商列表</div>
+            <button class="btn" onclick="showAddSupplierModal()">+ 添加供应商</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>ID</th><th>内部供应商名称</th><th>供应商名称</th><th>联系人</th><th>联系电话</th><th>邮箱</th><th>公司地址</th><th>关联渠道</th><th>状态</th><th>操作</th></tr></thead>
+              <tbody>
+                ${data.suppliers.map(s => `
+                  <tr>
+                    <td>${s.id}</td>
+                    <td>${s.internalName || '-'}</td>
+                    <td>${s.name || '-'}</td>
+                    <td>${s.contact || '-'}</td>
+                    <td>${s.phone || '-'}</td>
+                    <td>${s.email || '-'}</td>
+                    <td>${s.address || '-'}</td>
+                    <td>${s.channelContact || '-'}</td>
+                    <td><span class="status ${s.status === 'active' ? 'status-active' : 'status-inactive'}">${s.status === 'active' ? '启用' : '禁用'}</span></td>
+                    <td>
+                      <button class="action-btn primary" onclick="openChannelTab(${s.id}, '${s.internalName || s.name}')">通道列表</button>
+                      <button class="action-btn default" onclick="showEditSupplierModal(${s.id})">编辑</button>
+                      <button class="action-btn danger" onclick="deleteSupplier(${s.id})">删除</button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    async function loadChannels(supplierId) {
+      const tab = tabs.find(t => t.id === 'channels-' + supplierId);
+      const supplierName = tab ? tab.supplierName : '';
+      const res = await fetchAPI('/admin/channels/supplier/' + supplierId);
+      if (!res) return;
+      $('#tabContent').innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">${supplierName} - 通道列表</div>
+            <button class="btn" onclick="showAddChannelModal(${supplierId})">+ 添加通道</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>ID</th><th>通道名称</th><th>API地址</th><th>认证方式</th><th>计费方式</th><th>价格</th><th>状态</th><th>操作</th></tr></thead>
+              <tbody>
+                ${res.channels.length === 0 ? '<tr><td colspan="8" style="text-align:center;color:#999;">暂无通道</td></tr>' : 
+                  res.channels.map(c => `
+                  <tr>
+                    <td>${c.id}</td>
+                    <td>${c.name}</td>
+                    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;">${c.apiUrl}</td>
+                    <td>${c.authType === 'apiKey' ? 'API Key' : 'Bearer'}</td>
+                    <td>${c.pricingType === 'per_call' ? '按次' : '包月'}</td>
+                    <td>¥${c.pricingType === 'per_call' ? c.pricePerCall : c.subscriptionPrice}</td>
+                    <td><span class="status ${c.status === 'active' ? 'status-active' : 'status-inactive'}">${c.status === 'active' ? '启用' : '禁用'}</span></td>
+                    <td>
+                      <button class="action-btn default" onclick="showEditChannelModal(${c.id})">编辑</button>
+                      <button class="action-btn danger" onclick="deleteChannel(${c.id})">删除</button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    async function loadProducts() {
+      const data = await fetchAPI('/admin/products');
+      if (!data) return;
+      $('#tabContent').innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">产品列表</div>
+            <button class="btn">+ 添加产品</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>ID</th><th>编码</th><th>名称</th><th>供应商</th><th>计费方式</th><th>价格</th><th>状态</th><th>操作</th></tr></thead>
+              <tbody>
+                ${data.products.map(p => `
+                  <tr>
+                    <td>${p.id}</td>
+                    <td>${p.code}</td>
+                    <td>${p.name}</td>
+                    <td>${p.supplierName || '-'}</td>
+                    <td>${p.pricingType === 'per_call' ? '按次' : '包月'}</td>
+                    <td>¥${p.pricePerCall || p.subscriptionPrice}</td>
+                    <td><span class="status ${p.status === 'online' ? 'status-active' : 'status-inactive'}">${p.status === 'online' ? '已上线' : '已下线'}</span></td>
+                    <td>
+                      <button class="action-btn default">编辑</button>
+                      <button class="action-btn danger">删除</button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    async function loadOrders() {
+      const data = await fetchAPI('/orders/all');
+      if (!data) return;
+      $('#tabContent').innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">订单列表</div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>订单号</th><th>客户</th><th>产品</th><th>类型</th><th>金额</th><th>审核状态</th><th>支付状态</th><th>操作</th></tr></thead>
+              <tbody>
+                ${data.orders.map(o => `
+                  <tr>
+                    <td>${o.orderNo}</td>
+                    <td>${o.customer?.companyName || '-'}</td>
+                    <td>${o.product?.name || '-'}</td>
+                    <td>${o.orderType === 'per_call' ? '按次' : '包月'}</td>
+                    <td>¥${o.amount}</td>
+                    <td><span class="status status-${o.reviewStatus}">${o.reviewStatus === 'pending' ? '待审核' : o.reviewStatus === 'approved' ? '已通过' : '已拒绝'}</span></td>
+                    <td><span class="status status-${o.paymentStatus}">${o.paymentStatus}</span></td>
+                    <td>
+                      ${o.reviewStatus === 'pending' ? `
+                        <button class="action-btn primary" onclick="approveOrder(${o.id})">通过</button>
+                        <button class="action-btn danger" onclick="rejectOrder(${o.id})">拒绝</button>
+                      ` : '-'}
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    async function loadCustomers() {
+      const data = await fetchAPI('/stats/customers');
+      if (!data) return;
+      $('#tabContent').innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">客户统计</div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>公司名称</th><th>总调用次数</th><th>总消费</th></tr></thead>
+              <tbody>
+                ${data.map(c => `
+                  <tr>
+                    <td>${c.companyName || '-'}</td>
+                    <td>${c.totalCalls}</td>
+                    <td>¥${c.totalSpent || 0}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    async function approveOrder(id) {
+      await fetchAPI('/orders/' + id + '/approve', { method: 'PUT' });
+      loadOrders();
+    }
+
+    async function rejectOrder(id) {
+      await fetchAPI('/orders/' + id + '/reject', { method: 'PUT', body: JSON.stringify({}) });
+      loadOrders();
+    }
+
+    async function deleteSupplier(id) {
+      if (!confirm('确定要删除该供应商吗？')) return;
+      await fetchAPI('/admin/suppliers/' + id, { method: 'DELETE' });
+      loadSuppliers();
+    }
+
+    async function deleteChannel(id) {
+      if (!confirm('确定要删除该通道吗？')) return;
+      await fetchAPI('/admin/channels/' + id, { method: 'DELETE' });
+      switchTab(activeTabId);
+    }
+
+    let supplierCache = null;
+    function showAddSupplierModal() {
+      document.body.insertAdjacentHTML('beforeend', `
+        <div class="modal show" id="supplierModal">
+          <div class="modal-content">
+            <h3>添加供应商</h3>
+            <div class="form-group"><label>内部供应商名称</label><input type="text" id="sInternalName"></div>
+            <div class="form-group"><label>供应商名称</label><input type="text" id="sName"></div>
+            <div class="form-row">
+              <div class="form-group"><label>联系人</label><input type="text" id="sContact"></div>
+              <div class="form-group"><label>联系电话</label><input type="text" id="sPhone"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>邮箱</label><input type="email" id="sEmail"></div>
+              <div class="form-group"><label>公司地址</label><input type="text" id="sAddress"></div>
+            </div>
+            <div class="form-group"><label>关联渠道</label><input type="text" id="sChannelContact"></div>
+            <div class="btn-group">
+              <button class="btn cancel-btn" onclick="closeModal()">取消</button>
+              <button class="btn" onclick="addSupplier()">添加</button>
+            </div>
+          </div>
+        </div>
+      `);
+    }
+
+    async function addSupplier() {
+      const data = {
+        internalName: $('#sInternalName').value,
+        name: $('#sName').value,
+        contact: $('#sContact').value,
+        phone: $('#sPhone').value,
+        email: $('#sEmail').value,
+        address: $('#sAddress').value,
+        channelContact: $('#sChannelContact').value
+      };
+      if (!data.internalName) { alert('请输入内部供应商名称'); return; }
+      const result = await fetchAPI('/admin/suppliers', { method: 'POST', body: JSON.stringify(data) });
+      if (result) {
+        closeModal();
+        loadSuppliers();
+      }
+    }
+
+    async function showEditSupplierModal(id) {
+      const res = await fetchAPI('/admin/suppliers/' + id);
+      if (!res) return;
+      const s = res;
+      document.body.insertAdjacentHTML('beforeend', `
+        <div class="modal show" id="supplierModal">
+          <div class="modal-content">
+            <h3>编辑供应商</h3>
+            <div class="form-group"><label>内部供应商名称</label><input type="text" id="sInternalName" value="${s.internalName || ''}"></div>
+            <div class="form-group"><label>供应商名称</label><input type="text" id="sName" value="${s.name || ''}"></div>
+            <div class="form-row">
+              <div class="form-group"><label>联系人</label><input type="text" id="sContact" value="${s.contact || ''}"></div>
+              <div class="form-group"><label>联系电话</label><input type="text" id="sPhone" value="${s.phone || ''}"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>邮箱</label><input type="email" id="sEmail" value="${s.email || ''}"></div>
+              <div class="form-group"><label>公司地址</label><input type="text" id="sAddress" value="${s.address || ''}"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>关联渠道</label><input type="text" id="sChannelContact" value="${s.channelContact || ''}"></div>
+              <div class="form-group"><label>状态</label>
+                <select id="sStatus">
+                  <option value="active" ${s.status === 'active' ? 'selected' : ''}>启用</option>
+                  <option value="inactive" ${s.status === 'inactive' ? 'selected' : ''}>禁用</option>
+                </select>
+              </div>
+            </div>
+            <div class="btn-group">
+              <button class="btn cancel-btn" onclick="closeModal()">取消</button>
+              <button class="btn" onclick="updateSupplier(${id})">保存</button>
+            </div>
+          </div>
+        </div>
+      `);
+    }
+
+    async function updateSupplier(id) {
+      const data = {
+        internalName: $('#sInternalName').value,
+        name: $('#sName').value,
+        contact: $('#sContact').value,
+        phone: $('#sPhone').value,
+        email: $('#sEmail').value,
+        address: $('#sAddress').value,
+        channelContact: $('#sChannelContact').value,
+        status: $('#sStatus').value
+      };
+      await fetchAPI('/admin/suppliers/' + id, { method: 'PUT', body: JSON.stringify(data) });
+      closeModal();
+      loadSuppliers();
+    }
+
+    function showAddChannelModal(supplierId) {
+      document.body.insertAdjacentHTML('beforeend', `
+        <div class="modal show" id="channelModal">
+          <div class="modal-content">
+            <h3>添加通道</h3>
+            <div class="form-group"><label>通道名称</label><input type="text" id="cName" placeholder="如：阿里云-实名认证-v1"></div>
+            <div class="form-group"><label>API地址</label><input type="text" id="cUrl" placeholder="https://api.example.com/verify"></div>
+            <div class="form-row">
+              <div class="form-group"><label>认证方式</label>
+                <select id="cAuth">
+                  <option value="apiKey">API Key</option>
+                  <option value="bearer">Bearer Token</option>
+                </select>
+              </div>
+              <div class="form-group"><label>认证配置</label><input type="text" id="cAuthConfig" placeholder="密钥或Token"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>计费方式</label>
+                <select id="cPricing">
+                  <option value="per_call">按次计费</option>
+                  <option value="subscription">包月订阅</option>
+                </select>
+              </div>
+              <div class="form-group"><label>单价(元)</label><input type="number" id="cPrice" value="0.1" step="0.01"></div>
+            </div>
+            <div class="btn-group">
+              <button class="btn cancel-btn" onclick="closeModal()">取消</button>
+              <button class="btn" onclick="addChannel(${supplierId})">添加</button>
+            </div>
+          </div>
+        </div>
+      `);
+    }
+
+    async function addChannel(supplierId) {
+      const pricingType = $('#cPricing').value;
+      const data = {
+        name: $('#cName').value,
+        supplierId: supplierId,
+        apiUrl: $('#cUrl').value,
+        authType: $('#cAuth').value,
+        authConfig: $('#cAuthConfig').value,
+        pricingType: pricingType,
+        pricePerCall: pricingType === 'per_call' ? parseFloat($('#cPrice').value) : 0,
+        subscriptionPrice: pricingType === 'subscription' ? parseFloat($('#cPrice').value) : 0,
+        status: 'active'
+      };
+      if (!data.name || !data.apiUrl) { alert('请填写必填项'); return; }
+      const result = await fetchAPI('/admin/channels', { method: 'POST', body: JSON.stringify(data) });
+      if (result) {
+        closeModal();
+        loadChannels(supplierId);
+      }
+    }
+
+    async function showEditChannelModal(id) {
+      const res = await fetchAPI('/admin/channels/' + id);
+      if (!res) return;
+      const c = res;
+      document.body.insertAdjacentHTML('beforeend', `
+        <div class="modal show" id="channelModal">
+          <div class="modal-content">
+            <h3>编辑通道</h3>
+            <div class="form-group"><label>通道名称</label><input type="text" id="cName" value="${c.name}"></div>
+            <div class="form-group"><label>API地址</label><input type="text" id="cUrl" value="${c.apiUrl}"></div>
+            <div class="form-row">
+              <div class="form-group"><label>认证方式</label>
+                <select id="cAuth">
+                  <option value="apiKey" ${c.authType === 'apiKey' ? 'selected' : ''}>API Key</option>
+                  <option value="bearer" ${c.authType === 'bearer' ? 'selected' : ''}>Bearer Token</option>
+                </select>
+              </div>
+              <div class="form-group"><label>认证配置</label><input type="text" id="cAuthConfig" value="${c.authConfig || ''}"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>计费方式</label>
+                <select id="cPricing">
+                  <option value="per_call" ${c.pricingType === 'per_call' ? 'selected' : ''}>按次计费</option>
+                  <option value="subscription" ${c.pricingType === 'subscription' ? 'selected' : ''}>包月订阅</option>
+                </select>
+              </div>
+              <div class="form-group"><label>单价(元)</label><input type="number" id="cPrice" value="${c.pricingType === 'per_call' ? c.pricePerCall : c.subscriptionPrice}" step="0.01"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>状态</label>
+                <select id="cStatus">
+                  <option value="active" ${c.status === 'active' ? 'selected' : ''}>启用</option>
+                  <option value="inactive" ${c.status === 'inactive' ? 'selected' : ''}>禁用</option>
+                </select>
+              </div>
+            </div>
+            <div class="btn-group">
+              <button class="btn cancel-btn" onclick="closeModal()">取消</button>
+              <button class="btn" onclick="updateChannel(${id})">保存</button>
+            </div>
+          </div>
+        </div>
+      `);
+    }
+
+    async function updateChannel(id) {
+      const pricingType = $('#cPricing').value;
+      const data = {
+        name: $('#cName').value,
+        apiUrl: $('#cUrl').value,
+        authType: $('#cAuth').value,
+        authConfig: $('#cAuthConfig').value,
+        pricingType: pricingType,
+        pricePerCall: pricingType === 'per_call' ? parseFloat($('#cPrice').value) : 0,
+        subscriptionPrice: pricingType === 'subscription' ? parseFloat($('#cPrice').value) : 0,
+        status: $('#cStatus').value
+      };
+      await fetchAPI('/admin/channels/' + id, { method: 'PUT', body: JSON.stringify(data) });
+      closeModal();
+      switchTab(activeTabId);
+    }
+
+    function closeModal() {
+      const modal = $('.modal');
+      if (modal) modal.remove();
+    }
+
+    async function fetchAPI(path, options = {}) {
+      try {
+        const res = await fetch(`${API_BASE}${path}`, {
+          method: options.method || 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            ...(options.headers || {})
+          },
+          body: options.body || undefined
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.message || '操作失败');
+          return null;
+        }
+        return data;
+      } catch (err) {
+        console.error(err);
+        alert('网络错误');
+        return null;
+      }
+    }
+
+    if (token) {
+      adminLayout();
+    } else {
+      loginPage();
+    }
+  </script>
+</body>
+</html>

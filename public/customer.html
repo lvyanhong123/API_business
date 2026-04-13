@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API商业化平台 - 客户中心</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+    .login-box { max-width: 400px; margin: 100px auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .login-box h1 { text-align: center; margin-bottom: 30px; color: #333; font-size: 24px; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; margin-bottom: 5px; color: #666; }
+    .form-group input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+    .btn { width: 100%; padding: 12px; background: #1890ff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+    .btn:hover { background: #40a9ff; }
+    .btn-small { width: auto; padding: 8px 16px; font-size: 14px; }
+
+    .header { background: white; padding: 15px 20px; margin-bottom: 20px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
+    .header h2 { color: #333; font-size: 20px; }
+    .logout-btn { padding: 8px 20px; background: #ff4d4f; color: white; border: none; border-radius: 4px; cursor: pointer; }
+
+    .card { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+    .card h3 { margin-bottom: 15px; color: #333; border-bottom: 1px solid #eee; padding-bottom: 10px; font-size: 16px; }
+
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
+    .stat-box { background: white; padding: 20px; border-radius: 8px; text-align: center; }
+    .stat-box .num { font-size: 28px; font-weight: bold; color: #1890ff; }
+    .stat-box .label { color: #666; margin-top: 5px; font-size: 14px; }
+
+    .api-key-box { background: #fafafa; padding: 15px; border-radius: 4px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+    .api-key-box .key { font-family: monospace; color: #333; }
+    .api-key-box .copy-btn { padding: 6px 12px; background: #1890ff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+
+    .product-item { border: 1px solid #eee; padding: 15px; border-radius: 4px; margin-bottom: 10px; }
+    .product-item h4 { color: #333; margin-bottom: 8px; }
+    .product-item p { color: #666; font-size: 14px; margin-bottom: 5px; }
+    .product-item .badge { display: inline-block; padding: 4px 8px; background: #e6f7ff; color: #1890ff; border-radius: 4px; font-size: 12px; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+    th { background: #fafafa; color: #666; font-weight: 500; }
+
+    .error { color: #ff4d4f; margin-top: 10px; text-align: center; }
+    .success { color: #52c41a; margin-top: 10px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script>
+    const API_BASE = 'http://localhost:3000/api';
+    let token = localStorage.getItem('customerToken');
+    let customerData = null;
+
+    function $(selector) { return document.querySelector(selector); }
+    function render(html) { $('#app').innerHTML = html; }
+
+    function loginPage() {
+      render(`
+        <div class="login-box">
+          <h1>API商业化平台 - 客户登录</h1>
+          <form onsubmit="handleLogin(event)">
+            <div class="form-group">
+              <label>统一社会信用代码</label>
+              <input type="text" id="license" placeholder="请输入统一社会信用代码" required>
+            </div>
+            <div class="form-group">
+              <label>密码</label>
+              <input type="password" id="password" placeholder="请输入密码" required>
+            </div>
+            <button type="submit" class="btn">登录</button>
+            <p class="error" id="loginError"></p>
+          </form>
+        </div>
+      `);
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const businessLicense = $('#license').value;
+      const password = $('#password').value;
+      try {
+        const res = await fetch(`${API_BASE}/customers/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ businessLicense, password })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          token = data.token;
+          customerData = data.customer;
+          localStorage.setItem('customerToken', token);
+          customerPage();
+        } else {
+          $('#loginError').textContent = data.message || '登录失败';
+        }
+      } catch (err) {
+        $('#loginError').textContent = '网络错误';
+      }
+    }
+
+    function logout() {
+      token = null;
+      customerData = null;
+      localStorage.removeItem('customerToken');
+      loginPage();
+    }
+
+    async function customerPage() {
+      if (!customerData) {
+        const res = await fetchAPI('/customers/me');
+        if (res && res.customer) customerData = res.customer;
+      }
+
+      render(`
+        <div class="container">
+          <div class="header">
+            <h2>欢迎，${customerData?.companyName || '客户'}</h2>
+            <button class="logout-btn" onclick="logout()">退出登录</button>
+          </div>
+
+          <div class="stats">
+            <div class="stat-box">
+              <div class="num">${customerData?.totalCalls || 0}</div>
+              <div class="label">API总调用次数</div>
+            </div>
+            <div class="stat-box">
+              <div class="num">¥${customerData?.totalSpent || 0}</div>
+              <div class="label">总消费金额</div>
+            </div>
+            <div class="stat-box">
+              <div class="num">${customerData?.apiKeys?.length || 0}</div>
+              <div class="label">API密钥数量</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>我的API密钥</h3>
+            ${(customerData?.apiKeys || []).map((key, i) => `
+              <div class="api-key-box">
+                <div>
+                  <div class="key">App ID: ${key.appId}</div>
+                  <div class="key">App Secret: ${key.appSecret}</div>
+                  <div style="margin-top:8px;font-size:12px;color:#666;">
+                    产品: ${key.productName || '-'} | 创建: ${new Date(key.createdAt).toLocaleDateString()}
+                  </div>
+                </div>
+                <button class="copy-btn" onclick="copyKey('${key.appId}', '${key.appSecret}')">复制密钥</button>
+              </div>
+            `).join('') || '<p style="color:#666;">暂无API密钥</p>'}
+          </div>
+
+          <div class="card">
+            <h3>我的产品订阅</h3>
+            ${(customerData?.subscriptions || []).map(sub => `
+              <div class="product-item">
+                <h4>${sub.productName || '产品' + sub.productId}</h4>
+                <p>计费方式: ${sub.pricingType === 'per_call' ? '按次计费' : '包月订阅'}</p>
+                <p>有效期: ${new Date(sub.startDate).toLocaleDateString()} - ${new Date(sub.endDate).toLocaleDateString()}</p>
+                <span class="badge">${sub.status === 'active' ? '生效中' : '已过期'}</span>
+              </div>
+            `).join('') || '<p style="color:#666;">暂无订阅产品</p>'}
+          </div>
+
+          <div class="card">
+            <h3>调用记录</h3>
+            <table>
+              <thead><tr><th>日期</th><th>产品</th><th>调用次数</th><th>消费</th></tr></thead>
+              <tbody id="usageTable">
+                <tr><td colspan="4" style="text-align:center;color:#999;">加载中...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `);
+
+      loadUsageHistory();
+    }
+
+    async function loadUsageHistory() {
+      const data = await fetchAPI('/customers/usage');
+      const tbody = $('#usageTable');
+      if (data && data.usage && data.usage.length > 0) {
+        tbody.innerHTML = data.usage.map(u => `
+          <tr>
+            <td>${u.date}</td>
+            <td>${u.productName || '-'}</td>
+            <td>${u.calls}</td>
+            <td>¥${u.cost}</td>
+          </tr>
+        `).join('');
+      } else {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#999;">暂无调用记录</td></tr>';
+      }
+    }
+
+    function copyKey(appId, appSecret) {
+      const text = `App ID: ${appId}\nApp Secret: ${appSecret}`;
+      navigator.clipboard.writeText(text).then(() => {
+        alert('已复制到剪贴板');
+      });
+    }
+
+    async function fetchAPI(path, options = {}) {
+      try {
+        const res = await fetch(`${API_BASE}${path}`, {
+          ...options,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            ...(options.headers || {})
+          },
+          body: options.body ? JSON.stringify(options.body) : undefined
+        });
+        return await res.json();
+      } catch (err) {
+        console.error(err);
+        return null;
+      }
+    }
+
+    if (token) customerPage();
+    else loginPage();
+  </script>
+</body>
+</html>

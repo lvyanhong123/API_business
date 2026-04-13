@@ -1,0 +1,126 @@
+{
+  "admins": [
+    {
+      "id": 1,
+      "username": "admin",
+      "password": "$2a$10$Ue33SLUC9/6UfYhjz94/juT8OEX6yU2t3Si5jk54puHNL5FCQX3hG",
+      "role": "admin",
+      "createdAt": "2026-04-13T06:32:17.530Z",
+      "updatedAt": "2026-04-13T06:32:17.530Z"
+    }
+  ],
+  "suppliers": [
+    {
+      "id": 1,
+      "internalName": "aliyun",
+      "name": "阿里云",
+      "contact": "张经理",
+      "phone": "13800138001",
+      "email": "aliyun@example.com",
+      "address": "杭州市余杭区",
+      "channelContact": "李小姐",
+      "status": "active",
+      "createdAt": "2026-04-13T06:32:51.440Z",
+      "updatedAt": "2026-04-13T06:32:51.440Z"
+    },
+    {
+      "id": 2,
+      "internalName": "tencent",
+      "name": "腾讯云",
+      "contact": "王经理",
+      "phone": "13800138002",
+      "email": "qcloud@example.com",
+      "address": "深圳市南山区",
+      "channelContact": "赵小姐",
+      "status": "active",
+      "createdAt": "2026-04-13T08:05:06.726Z",
+      "updatedAt": "2026-04-13T08:05:06.726Z"
+    }
+  ],
+  "channels": [
+    {
+      "id": 1,
+      "name": "阿里云-实名认证-v1",
+      "supplierId": 1,
+      "apiUrl": "https://api.aliyun.com/identity/verify",
+      "authType": "apiKey",
+      "authConfig": "ali-key-xxx",
+      "pricingType": "per_call",
+      "pricePerCall": 0.05,
+      "subscriptionPrice": 0,
+      "status": "active",
+      "createdAt": "2026-04-13T06:32:51.440Z",
+      "updatedAt": "2026-04-13T06:32:51.440Z"
+    },
+    {
+      "id": 2,
+      "name": "阿里云-人脸识别-v1",
+      "supplierId": 1,
+      "apiUrl": "https://api.aliyun.com/face/verify",
+      "authType": "apiKey",
+      "authConfig": "ali-face-key",
+      "pricingType": "per_call",
+      "pricePerCall": 0.1,
+      "subscriptionPrice": 0,
+      "status": "active",
+      "createdAt": "2026-04-13T06:32:51.440Z",
+      "updatedAt": "2026-04-13T06:32:51.440Z"
+    }
+  ],
+  "products": [
+    {
+      "id": 1,
+      "code": "identity_verify",
+      "name": "实名认证API",
+      "supplierId": 1,
+      "pricingType": "per_call",
+      "pricePerCall": 0.1,
+      "subscriptionPrice": 0,
+      "dailyLimit": 0,
+      "monthlyLimit": 0,
+      "status": "online",
+      "createdAt": "2026-04-13T06:33:05.768Z",
+      "updatedAt": "2026-04-13T06:33:33.051Z"
+    }
+  ],
+  "customers": [
+    {
+      "id": 1,
+      "companyName": "测试公司",
+      "businessLicense": "91110000XXXXXXXX",
+      "contact": {
+        "name": "李先生",
+        "phone": "13800138000",
+        "email": "test@example.com"
+      },
+      "password": "$2a$10$ds.1NrBjN3QF7PrYqsbr6unozs/WAhcZ2Wos1EEDSq1LKeJDjcgfO",
+      "quota": 100,
+      "status": "active",
+      "createdAt": "2026-04-13T06:33:19.074Z",
+      "updatedAt": "2026-04-13T06:34:02.806Z",
+      "appId": "APP17760620428050hcna9hdv",
+      "appSecret": "SKlh4yfqatwf"
+    }
+  ],
+  "orders": [
+    {
+      "id": 1,
+      "orderNo": "ORD17760620276570115",
+      "customerId": 1,
+      "productId": 1,
+      "orderType": "per_call",
+      "quantity": 100,
+      "amount": 10,
+      "validFrom": null,
+      "validTo": null,
+      "reviewStatus": "approved",
+      "paymentStatus": "paid",
+      "createdAt": "2026-04-13T06:33:47.657Z",
+      "updatedAt": "2026-04-13T06:34:02.805Z",
+      "reviewedAt": "2026-04-13T06:34:02.805Z",
+      "reviewedBy": 1,
+      "paidAt": "2026-04-13T06:34:02.805Z"
+    }
+  ],
+  "apiLogs": []
+}
