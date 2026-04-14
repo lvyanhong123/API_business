@@ -625,17 +625,15 @@
           </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>ID</th><th>通道名称</th><th>API地址</th><th>认证方式</th><th>计费方式</th><th>价格</th><th>状态</th><th>操作</th></tr></thead>
+              <thead><tr><th>ID</th><th>通道名称</th><th>API地址</th><th>日调用量限制</th><th>状态</th><th>操作</th></tr></thead>
               <tbody>
-                ${res.channels.length === 0 ? '<tr><td colspan="8" style="text-align:center;color:#999;">暂无通道</td></tr>' : 
+                ${res.channels.length === 0 ? '<tr><td colspan="6" style="text-align:center;color:#999;">暂无通道</td></tr>' : 
                   res.channels.map(c => `
                   <tr>
                     <td>${c.id}</td>
                     <td>${c.name}</td>
-                    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;">${c.apiUrl}</td>
-                    <td>${c.authType === 'apiKey' ? 'API Key' : 'Bearer'}</td>
-                    <td>${c.pricingType === 'per_call' ? '按次' : '包月'}</td>
-                    <td>¥${c.pricingType === 'per_call' ? c.pricePerCall : c.subscriptionPrice}</td>
+                    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;">${c.apiUrl || '-'}</td>
+                    <td>${c.dailyLimit > 0 ? c.dailyLimit : '-'}</td>
                     <td><span class="status ${c.status === 'active' ? 'status-active' : 'status-inactive'}">${c.status === 'active' ? '启用' : '禁用'}</span></td>
                     <td>
                       <button class="action-btn default" onclick="showEditChannelModal(${c.id})">编辑</button>
@@ -690,7 +688,7 @@
           <div class="search-results" id="channelSearchResults">共 0 条</div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>ID</th><th>通道名称</th><th>供应商</th><th>API地址</th><th>认证方式</th><th>计费方式</th><th>价格</th><th>状态</th><th>操作</th></tr></thead>
+              <thead><tr><th>ID</th><th>通道名称</th><th>供应商</th><th>API地址</th><th>日调用量限制</th><th>状态</th><th>操作</th></tr></thead>
               <tbody id="channelsTableBody"></tbody>
             </table>
           </div>
@@ -701,17 +699,15 @@
 
     function renderChannelsTable(data) {
       if (data.length === 0) {
-        return '<tr><td colspan="9" style="text-align:center;color:#999;">暂无通道</td></tr>';
+        return '<tr><td colspan="7" style="text-align:center;color:#999;">暂无通道</td></tr>';
       }
       return data.map(c => `
         <tr>
           <td>${c.id}</td>
           <td>${c.name}</td>
           <td>${channelSupplierMap[c.supplierId] || '-'}</td>
-          <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;">${c.apiUrl}</td>
-          <td>${c.authType === 'apiKey' ? 'API Key' : 'Bearer'}</td>
-          <td>${c.pricingType === 'per_call' ? '按次' : '包月'}</td>
-          <td>¥${c.pricingType === 'per_call' ? c.pricePerCall : c.subscriptionPrice}</td>
+          <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;">${c.apiUrl || '-'}</td>
+          <td>${c.dailyLimit > 0 ? c.dailyLimit : '-'}</td>
           <td><span class="status ${c.status === 'active' ? 'status-active' : 'status-inactive'}">${c.status === 'active' ? '启用' : '禁用'}</span></td>
           <td>
             <button class="action-btn default" onclick="showEditChannelModal(${c.id})">编辑</button>
@@ -1590,29 +1586,72 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
       const isFromAllChannels = supplierId === null;
       document.body.insertAdjacentHTML('beforeend', `
         <div class="modal show" id="channelModal">
-          <div class="modal-content">
+          <div class="modal-content" style="width:900px;">
             <h3>添加通道</h3>
-            ${isFromAllChannels ? `<div class="form-group"><label>所属供应商</label><select id="cSupplier">${supplierOptions}</select></div>` : ''}
-            <div class="form-group"><label>通道名称</label><input type="text" id="cName" placeholder="如：阿里云-实名认证-v1"></div>
-            <div class="form-group"><label>API地址</label><input type="text" id="cUrl" placeholder="https://api.example.com/verify"></div>
             <div class="form-row">
-              <div class="form-group"><label>认证方式</label>
-                <select id="cAuth">
-                  <option value="apiKey">API Key</option>
-                  <option value="bearer">Bearer Token</option>
-                </select>
-              </div>
-              <div class="form-group"><label>认证配置</label><input type="text" id="cAuthConfig" placeholder="密钥或Token"></div>
+              ${isFromAllChannels ? `<div class="form-group"><label>所属供应商</label><select id="cSupplier">${supplierOptions}</select></div>` : ''}
+              <div class="form-group"><label>通道名称</label><input type="text" id="cName" placeholder="如：阿里云-实名认证-v1"></div>
             </div>
             <div class="form-row">
-              <div class="form-group"><label>计费方式</label>
-                <select id="cPricing">
-                  <option value="per_call">按次计费</option>
-                  <option value="subscription">包月订阅</option>
-                </select>
-              </div>
-              <div class="form-group"><label>单价(元)</label><input type="number" id="cPrice" value="0.1" step="0.01"></div>
+              <div class="form-group"><label>API地址</label><input type="text" id="cUrl" placeholder="https://api.example.com/verify"></div>
+              <div class="form-group"><label>日调用量限制</label><input type="number" id="cDailyLimit" placeholder="0表示不限"></div>
             </div>
+            <div class="form-group"><label>备注</label><textarea id="cRemark" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:4px;resize:vertical;height:60px;" placeholder="备注信息"></textarea></div>
+            
+            <div style="margin:15px 0;border-top:1px solid #eee;padding-top:15px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <h4 style="margin:0;">入参字段</h4>
+                <button type="button" class="btn btn-small" onclick="addRequestParam()">+ 添加字段</button>
+              </div>
+              <div id="requestParamsContainer">
+                <div class="param-row" style="display:grid;grid-template-columns:1fr 1fr 80px 1fr 40px;gap:10px;margin-bottom:10px;align-items:center;">
+                  <input type="text" placeholder="参数名称" class="param-name" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+                  <select class="param-type" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+                    <option value="string">string</option>
+                    <option value="number">number</option>
+                    <option value="boolean">boolean</option>
+                  </select>
+                  <select class="param-required" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+                    <option value="true">必填</option>
+                    <option value="false">可选</option>
+                  </select>
+                  <input type="text" placeholder="说明" class="param-desc" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+                  <button type="button" onclick="removeParamRow(this)" style="background:#ff4d4f;color:white;border:none;padding:8px;border-radius:4px;cursor:pointer;">×</button>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin:15px 0;border-top:1px solid #eee;padding-top:15px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <h4 style="margin:0;">出参字段</h4>
+                <button type="button" class="btn btn-small" onclick="addResponseParam()">+ 添加字段</button>
+              </div>
+              <div id="responseParamsContainer">
+                <div class="param-row" style="display:grid;grid-template-columns:1fr 1fr 80px 1fr 40px;gap:10px;margin-bottom:10px;align-items:center;">
+                  <input type="text" placeholder="参数名称" class="param-name" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+                  <select class="param-type" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+                    <option value="string">string</option>
+                    <option value="number">number</option>
+                    <option value="boolean">boolean</option>
+                  </select>
+                  <select class="param-required" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+                    <option value="true">必填</option>
+                    <option value="false">可选</option>
+                  </select>
+                  <input type="text" placeholder="说明" class="param-desc" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+                  <button type="button" onclick="removeParamRow(this)" style="background:#ff4d4f;color:white;border:none;padding:8px;border-radius:4px;cursor:pointer;">×</button>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin:15px 0;border-top:1px solid #eee;padding-top:15px;">
+              <h4 style="margin:0 0 10px 0;">出参映射</h4>
+              <div class="form-row">
+                <div class="form-group"><label>Code值</label><input type="text" id="cResponseCode" placeholder="如：0"></div>
+                <div class="form-group"><label>Message值</label><input type="text" id="cResponseMessage" placeholder="如：成功"></div>
+              </div>
+            </div>
+
             <div class="btn-group">
               <button class="btn cancel-btn" onclick="closeModal()">取消</button>
               <button class="btn" onclick="addChannel(${supplierId})">添加</button>
@@ -1622,18 +1661,91 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
       `);
     }
 
+    function addRequestParam() {
+      const container = document.getElementById('requestParamsContainer');
+      const row = document.createElement('div');
+      row.className = 'param-row';
+      row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 80px 1fr 40px;gap:10px;margin-bottom:10px;align-items:center;';
+      row.innerHTML = `
+        <input type="text" placeholder="参数名称" class="param-name" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+        <select class="param-type" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+          <option value="string">string</option>
+          <option value="number">number</option>
+          <option value="boolean">boolean</option>
+        </select>
+        <select class="param-required" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+          <option value="true">必填</option>
+          <option value="false">可选</option>
+        </select>
+        <input type="text" placeholder="说明" class="param-desc" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+        <button type="button" onclick="removeParamRow(this)" style="background:#ff4d4f;color:white;border:none;padding:8px;border-radius:4px;cursor:pointer;">×</button>
+      `;
+      container.appendChild(row);
+    }
+
+    function addResponseParam() {
+      const container = document.getElementById('responseParamsContainer');
+      const row = document.createElement('div');
+      row.className = 'param-row';
+      row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 80px 1fr 40px;gap:10px;margin-bottom:10px;align-items:center;';
+      row.innerHTML = `
+        <input type="text" placeholder="参数名称" class="param-name" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+        <select class="param-type" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+          <option value="string">string</option>
+          <option value="number">number</option>
+          <option value="boolean">boolean</option>
+        </select>
+        <select class="param-required" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+          <option value="true">必填</option>
+          <option value="false">可选</option>
+        </select>
+        <input type="text" placeholder="说明" class="param-desc" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+        <button type="button" onclick="removeParamRow(this)" style="background:#ff4d4f;color:white;border:none;padding:8px;border-radius:4px;cursor:pointer;">×</button>
+      `;
+      container.appendChild(row);
+    }
+
+    function removeParamRow(btn) {
+      const row = btn.closest('.param-row');
+      const container = row.parentElement;
+      if (container.querySelectorAll('.param-row').length > 1) {
+        row.remove();
+      } else {
+        row.querySelectorAll('input').forEach(input => input.value = '');
+        row.querySelectorAll('select').forEach(select => select.selectedIndex = 0);
+      }
+    }
+
+    function collectParams(containerId) {
+      const params = [];
+      const container = document.getElementById(containerId);
+      if (!container) return params;
+      container.querySelectorAll('.param-row').forEach(row => {
+        const name = row.querySelector('.param-name').value.trim();
+        if (name) {
+          params.push({
+            name: name,
+            type: row.querySelector('.param-type').value,
+            required: row.querySelector('.param-required').value === 'true',
+            description: row.querySelector('.param-desc').value.trim()
+          });
+        }
+      });
+      return params;
+    }
+
     async function addChannel(supplierId) {
-      const pricingType = $('#cPricing').value;
       const actualSupplierId = supplierId === null ? parseInt($('#cSupplier').value) : supplierId;
       const data = {
         name: $('#cName').value,
         supplierId: actualSupplierId,
         apiUrl: $('#cUrl').value,
-        authType: $('#cAuth').value,
-        authConfig: $('#cAuthConfig').value,
-        pricingType: pricingType,
-        pricePerCall: pricingType === 'per_call' ? parseFloat($('#cPrice').value) : 0,
-        subscriptionPrice: pricingType === 'subscription' ? parseFloat($('#cPrice').value) : 0,
+        dailyLimit: parseInt($('#cDailyLimit').value) || 0,
+        remark: $('#cRemark').value,
+        requestParams: collectParams('requestParamsContainer'),
+        responseParams: collectParams('responseParamsContainer'),
+        responseCode: $('#cResponseCode').value,
+        responseMessage: $('#cResponseMessage').value,
         status: 'active'
       };
       if (!data.name || !data.apiUrl || !data.supplierId) { alert('请填写必填项'); return; }
@@ -1652,31 +1764,50 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
       const res = await fetchAPI('/admin/channels/' + id);
       if (!res) return;
       const c = res;
+      const requestParamsRows = (c.requestParams || []).map(p => `
+        <div class="param-row" style="display:grid;grid-template-columns:1fr 1fr 80px 1fr 40px;gap:10px;margin-bottom:10px;align-items:center;">
+          <input type="text" placeholder="参数名称" class="param-name" value="${escapeHtml(p.name || '')}" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+          <select class="param-type" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+            <option value="string" ${p.type === 'string' ? 'selected' : ''}>string</option>
+            <option value="number" ${p.type === 'number' ? 'selected' : ''}>number</option>
+            <option value="boolean" ${p.type === 'boolean' ? 'selected' : ''}>boolean</option>
+          </select>
+          <select class="param-required" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+            <option value="true" ${p.required === true ? 'selected' : ''}>必填</option>
+            <option value="false" ${p.required === false ? 'selected' : ''}>可选</option>
+          </select>
+          <input type="text" placeholder="说明" class="param-desc" value="${escapeHtml(p.description || '')}" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+          <button type="button" onclick="removeParamRow(this)" style="background:#ff4d4f;color:white;border:none;padding:8px;border-radius:4px;cursor:pointer;">×</button>
+        </div>
+      `).join('');
+      
+      const responseParamsRows = (c.responseParams || []).map(p => `
+        <div class="param-row" style="display:grid;grid-template-columns:1fr 1fr 80px 1fr 40px;gap:10px;margin-bottom:10px;align-items:center;">
+          <input type="text" placeholder="参数名称" class="param-name" value="${escapeHtml(p.name || '')}" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+          <select class="param-type" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+            <option value="string" ${p.type === 'string' ? 'selected' : ''}>string</option>
+            <option value="number" ${p.type === 'number' ? 'selected' : ''}>number</option>
+            <option value="boolean" ${p.type === 'boolean' ? 'selected' : ''}>boolean</option>
+          </select>
+          <select class="param-required" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+            <option value="true" ${p.required === true ? 'selected' : ''}>必填</option>
+            <option value="false" ${p.required === false ? 'selected' : ''}>可选</option>
+          </select>
+          <input type="text" placeholder="说明" class="param-desc" value="${escapeHtml(p.description || '')}" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+          <button type="button" onclick="removeParamRow(this)" style="background:#ff4d4f;color:white;border:none;padding:8px;border-radius:4px;cursor:pointer;">×</button>
+        </div>
+      `).join('');
+      
       document.body.insertAdjacentHTML('beforeend', `
         <div class="modal show" id="channelModal">
-          <div class="modal-content">
+          <div class="modal-content" style="width:900px;">
             <h3>编辑通道</h3>
-            <div class="form-group"><label>通道名称</label><input type="text" id="cName" value="${c.name}"></div>
-            <div class="form-group"><label>API地址</label><input type="text" id="cUrl" value="${c.apiUrl}"></div>
             <div class="form-row">
-              <div class="form-group"><label>认证方式</label>
-                <select id="cAuth">
-                  <option value="apiKey" ${c.authType === 'apiKey' ? 'selected' : ''}>API Key</option>
-                  <option value="bearer" ${c.authType === 'bearer' ? 'selected' : ''}>Bearer Token</option>
-                </select>
-              </div>
-              <div class="form-group"><label>认证配置</label><input type="text" id="cAuthConfig" value="${c.authConfig || ''}"></div>
+              <div class="form-group"><label>通道名称</label><input type="text" id="cName" value="${escapeHtml(c.name || '')}"></div>
+              <div class="form-group"><label>API地址</label><input type="text" id="cUrl" value="${escapeHtml(c.apiUrl || '')}"></div>
             </div>
             <div class="form-row">
-              <div class="form-group"><label>计费方式</label>
-                <select id="cPricing">
-                  <option value="per_call" ${c.pricingType === 'per_call' ? 'selected' : ''}>按次计费</option>
-                  <option value="subscription" ${c.pricingType === 'subscription' ? 'selected' : ''}>包月订阅</option>
-                </select>
-              </div>
-              <div class="form-group"><label>单价(元)</label><input type="number" id="cPrice" value="${c.pricingType === 'per_call' ? c.pricePerCall : c.subscriptionPrice}" step="0.01"></div>
-            </div>
-            <div class="form-row">
+              <div class="form-group"><label>日调用量限制</label><input type="number" id="cDailyLimit" value="${c.dailyLimit || 0}"></div>
               <div class="form-group"><label>状态</label>
                 <select id="cStatus">
                   <option value="active" ${c.status === 'active' ? 'selected' : ''}>启用</option>
@@ -1684,6 +1815,48 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
                 </select>
               </div>
             </div>
+            <div class="form-group"><label>备注</label><textarea id="cRemark" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:4px;resize:vertical;height:60px;">${escapeHtml(c.remark || '')}</textarea></div>
+            
+            <div style="margin:15px 0;border-top:1px solid #eee;padding-top:15px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <h4 style="margin:0;">入参字段</h4>
+                <button type="button" class="btn btn-small" onclick="addRequestParam()">+ 添加字段</button>
+              </div>
+              <div id="requestParamsContainer">
+                ${requestParamsRows || `<div class="param-row" style="display:grid;grid-template-columns:1fr 1fr 80px 1fr 40px;gap:10px;margin-bottom:10px;align-items:center;">
+                  <input type="text" placeholder="参数名称" class="param-name" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+                  <select class="param-type" style="padding:8px;border:1px solid #ddd;border-radius:4px;"><option value="string">string</option><option value="number">number</option><option value="boolean">boolean</option></select>
+                  <select class="param-required" style="padding:8px;border:1px solid #ddd;border-radius:4px;"><option value="true">必填</option><option value="false">可选</option></select>
+                  <input type="text" placeholder="说明" class="param-desc" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+                  <button type="button" onclick="removeParamRow(this)" style="background:#ff4d4f;color:white;border:none;padding:8px;border-radius:4px;cursor:pointer;">×</button>
+                </div>`}
+              </div>
+            </div>
+
+            <div style="margin:15px 0;border-top:1px solid #eee;padding-top:15px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <h4 style="margin:0;">出参字段</h4>
+                <button type="button" class="btn btn-small" onclick="addResponseParam()">+ 添加字段</button>
+              </div>
+              <div id="responseParamsContainer">
+                ${responseParamsRows || `<div class="param-row" style="display:grid;grid-template-columns:1fr 1fr 80px 1fr 40px;gap:10px;margin-bottom:10px;align-items:center;">
+                  <input type="text" placeholder="参数名称" class="param-name" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+                  <select class="param-type" style="padding:8px;border:1px solid #ddd;border-radius:4px;"><option value="string">string</option><option value="number">number</option><option value="boolean">boolean</option></select>
+                  <select class="param-required" style="padding:8px;border:1px solid #ddd;border-radius:4px;"><option value="true">必填</option><option value="false">可选</option></select>
+                  <input type="text" placeholder="说明" class="param-desc" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+                  <button type="button" onclick="removeParamRow(this)" style="background:#ff4d4f;color:white;border:none;padding:8px;border-radius:4px;cursor:pointer;">×</button>
+                </div>`}
+              </div>
+            </div>
+
+            <div style="margin:15px 0;border-top:1px solid #eee;padding-top:15px;">
+              <h4 style="margin:0 0 10px 0;">出参映射</h4>
+              <div class="form-row">
+                <div class="form-group"><label>Code值</label><input type="text" id="cResponseCode" value="${escapeHtml(c.responseCode || '')}" placeholder="如：0"></div>
+                <div class="form-group"><label>Message值</label><input type="text" id="cResponseMessage" value="${escapeHtml(c.responseMessage || '')}" placeholder="如：成功"></div>
+              </div>
+            </div>
+
             <div class="btn-group">
               <button class="btn cancel-btn" onclick="closeModal()">取消</button>
               <button class="btn" onclick="updateChannel(${id})">保存</button>
@@ -1694,15 +1867,15 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
     }
 
     async function updateChannel(id) {
-      const pricingType = $('#cPricing').value;
       const data = {
         name: $('#cName').value,
         apiUrl: $('#cUrl').value,
-        authType: $('#cAuth').value,
-        authConfig: $('#cAuthConfig').value,
-        pricingType: pricingType,
-        pricePerCall: pricingType === 'per_call' ? parseFloat($('#cPrice').value) : 0,
-        subscriptionPrice: pricingType === 'subscription' ? parseFloat($('#cPrice').value) : 0,
+        dailyLimit: parseInt($('#cDailyLimit').value) || 0,
+        remark: $('#cRemark').value,
+        requestParams: collectParams('requestParamsContainer'),
+        responseParams: collectParams('responseParamsContainer'),
+        responseCode: $('#cResponseCode').value,
+        responseMessage: $('#cResponseMessage').value,
         status: $('#cStatus').value
       };
       await fetchAPI('/admin/channels/' + id, { method: 'PUT', body: JSON.stringify(data) });

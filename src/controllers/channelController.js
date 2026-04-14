@@ -7,7 +7,7 @@ exports.createChannel = async (req, res) => {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { name, supplierId, apiUrl, authType, authConfig, pricingType, pricePerCall, subscriptionPrice, status } = req.body;
+  const { name, supplierId, apiUrl, status, dailyLimit, remark, requestParams, responseParams, responseCode, responseMessage } = req.body;
 
   try {
     const supplier = db.suppliers.findById(parseInt(supplierId));
@@ -19,12 +19,13 @@ exports.createChannel = async (req, res) => {
       name,
       supplierId: parseInt(supplierId),
       apiUrl,
-      authType,
-      authConfig,
-      pricingType: pricingType || 'per_call',
-      pricePerCall: pricePerCall ? parseFloat(pricePerCall) : 0,
-      subscriptionPrice: subscriptionPrice ? parseFloat(subscriptionPrice) : 0,
-      status: status || 'active'
+      status: status || 'active',
+      dailyLimit: dailyLimit ? parseInt(dailyLimit) : 0,
+      remark: remark || '',
+      requestParams: requestParams || [],
+      responseParams: responseParams || [],
+      responseCode: responseCode || '',
+      responseMessage: responseMessage || ''
     });
 
     res.status(201).json({ message: '通道创建成功', channel });
@@ -106,7 +107,7 @@ exports.getChannel = async (req, res) => {
 
 exports.updateChannel = async (req, res) => {
   const { id } = req.params;
-  const { name, apiUrl, authType, authConfig, pricingType, pricePerCall, subscriptionPrice, status } = req.body;
+  const { name, apiUrl, status, dailyLimit, remark, requestParams, responseParams, responseCode, responseMessage } = req.body;
 
   try {
     const channel = db.channels.findById(parseInt(id));
@@ -117,12 +118,13 @@ exports.updateChannel = async (req, res) => {
     const updated = db.channels.update(parseInt(id), {
       name: name || channel.name,
       apiUrl: apiUrl || channel.apiUrl,
-      authType: authType || channel.authType,
-      authConfig: authConfig !== undefined ? authConfig : channel.authConfig,
-      pricingType: pricingType || channel.pricingType,
-      pricePerCall: pricePerCall !== undefined ? parseFloat(pricePerCall) : channel.pricePerCall,
-      subscriptionPrice: subscriptionPrice !== undefined ? parseFloat(subscriptionPrice) : channel.subscriptionPrice,
-      status: status || channel.status
+      status: status || channel.status,
+      dailyLimit: dailyLimit !== undefined ? parseInt(dailyLimit) : channel.dailyLimit,
+      remark: remark !== undefined ? remark : channel.remark,
+      requestParams: requestParams !== undefined ? requestParams : channel.requestParams,
+      responseParams: responseParams !== undefined ? responseParams : channel.responseParams,
+      responseCode: responseCode !== undefined ? responseCode : channel.responseCode,
+      responseMessage: responseMessage !== undefined ? responseMessage : channel.responseMessage
     });
 
     res.status(200).json({ message: '通道更新成功', channel: updated });
