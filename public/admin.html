@@ -136,10 +136,10 @@
         if (activeTabExists) {
           tabs = storedTabs;
           activeTabId = storedActiveId;
-          activeMenuGroup = localStorage.getItem('adminActiveMenuGroup') || 'suppliers';
+          activeMenuGroup = localStorage.getItem('adminActiveMenuGroup') || '';
         } else {
           tabs = storedTabs;
-          activeMenuGroup = localStorage.getItem('adminActiveMenuGroup') || 'suppliers';
+          activeMenuGroup = localStorage.getItem('adminActiveMenuGroup') || '';
           const closedTabIndex = storedTabs.findIndex(t => t.id === storedActiveId);
           const adjacentIndex = Math.max(0, closedTabIndex - 1);
           activeTabId = storedTabs[adjacentIndex].id;
@@ -201,8 +201,8 @@
       currentUsername = '';
       localStorage.removeItem('adminToken');
       localStorage.removeItem('adminUsername');
-      tabs = [];
-      activeTabId = '';
+      tabs = [{ id: 'dashboard', name: '数据概览' }];
+      activeTabId = 'dashboard';
       activeMenuGroup = '';
       closeUserDropdown();
       saveTabState();
@@ -238,20 +238,20 @@
           <div class="sidebar">
             <div class="logo"><h1>API管理后台</h1></div>
             <div class="menu">
+              <div class="menu-item ${activeTabId === 'dashboard' ? 'active' : ''}" data-tab-id="dashboard" onclick="openTab('dashboard', '数据概览')">数据概览</div>
               <div class="menu-group">
                 <div class="menu-group-title ${activeMenuGroup === 'suppliers' ? 'active' : ''}" onclick="toggleMenuGroup('suppliers')">
                   供应商管理 <span class="arrow">▶</span>
                 </div>
                 <div class="menu-sub ${activeMenuGroup === 'suppliers' ? 'open' : ''}" id="menuSuppliersSub">
-                  <div class="menu-sub-item ${activeTabId === 'suppliers' ? 'active' : ''}" onclick="openTab('suppliers', '供应商列表')">供应商列表</div>
-                  <div class="menu-sub-item ${activeTabId === 'channels-all' ? 'active' : ''}" onclick="openTab('channels-all', '通道列表')">通道列表</div>
-                  <div class="menu-sub-item ${activeTabId === 'scripts-all' ? 'active' : ''}" onclick="openTab('scripts-all', '脚本列表')">脚本列表</div>
+                  <div class="menu-sub-item ${activeTabId === 'suppliers' ? 'active' : ''}" data-tab-id="suppliers" onclick="openTab('suppliers', '供应商列表')">供应商列表</div>
+                  <div class="menu-sub-item ${activeTabId === 'channels-all' ? 'active' : ''}" data-tab-id="channels-all" onclick="openTab('channels-all', '通道列表')">通道列表</div>
+                  <div class="menu-sub-item ${activeTabId === 'scripts-all' ? 'active' : ''}" data-tab-id="scripts-all" onclick="openTab('scripts-all', '脚本列表')">脚本列表</div>
                 </div>
               </div>
-              <div class="menu-item ${activeTabId === 'products' ? 'active' : ''}" onclick="openTab('products', '产品管理')">产品管理</div>
-              <div class="menu-item ${activeTabId === 'orders' ? 'active' : ''}" onclick="openTab('orders', '订单审核')">订单审核</div>
-              <div class="menu-item ${activeTabId === 'customers' ? 'active' : ''}" onclick="openTab('customers', '客户管理')">客户管理</div>
-              <div class="menu-item ${activeTabId === 'dashboard' ? 'active' : ''}" onclick="openTab('dashboard', '数据概览')">数据概览</div>
+              <div class="menu-item ${activeTabId === 'products' ? 'active' : ''}" data-tab-id="products" onclick="openTab('products', '产品管理')">产品管理</div>
+              <div class="menu-item ${activeTabId === 'orders' ? 'active' : ''}" data-tab-id="orders" onclick="openTab('orders', '订单审核')">订单审核</div>
+              <div class="menu-item ${activeTabId === 'customers' ? 'active' : ''}" data-tab-id="customers" onclick="openTab('customers', '客户管理')">客户管理</div>
             </div>
           </div>
           <div class="main">
@@ -277,7 +277,7 @@
         saveTabState();
         switchTab(activeTabId);
       } else {
-        openTab('suppliers', '供应商列表');
+        openTab('dashboard', '数据概览');
       }
     }
 
@@ -295,12 +295,22 @@
           activeMenuGroup = 'suppliers';
         } else if (tabId === 'products') {
           tabs.push({ id: 'products', name: '产品管理' });
+          activeMenuGroup = '';
         } else if (tabId === 'orders') {
           tabs.push({ id: 'orders', name: '订单审核' });
+          activeMenuGroup = '';
         } else if (tabId === 'customers') {
           tabs.push({ id: 'customers', name: '客户管理' });
+          activeMenuGroup = '';
         } else if (tabId === 'dashboard') {
-          tabs.push({ id: 'dashboard', name: '数据概览' });
+          tabs.unshift({ id: 'dashboard', name: '数据概览' });
+          activeMenuGroup = '';
+        }
+      } else {
+        if (tabId === 'suppliers' || tabId === 'channels-all' || tabId === 'scripts-all') {
+          activeMenuGroup = 'suppliers';
+        } else {
+          activeMenuGroup = '';
         }
       }
       activeTabId = tabId;
@@ -339,15 +349,21 @@
     }
 
     function openScriptTab(supplierId, supplierName) {
-      const tabId = 'scripts-' + supplierId;
-      const tabName = '脚本-' + supplierName;
-      if (!tabs.find(t => t.id === tabId)) {
-        tabs.push({ id: tabId, name: tabName, supplierId: supplierId, supplierName: supplierName });
+      if (!tabs.find(t => t.id === 'scripts-all')) {
+        tabs.push({ id: 'scripts-all', name: '脚本列表' });
       }
-      activeTabId = tabId;
+      activeTabId = 'scripts-all';
+      activeMenuGroup = 'suppliers';
       saveTabState();
       renderTabs();
-      switchTab(tabId);
+      switchTab('scripts-all');
+      setTimeout(() => {
+        const supplierSelect = document.getElementById('scriptSupplierSelect');
+        if (supplierSelect) {
+          supplierSelect.value = supplierId;
+          filterScripts();
+        }
+      }, 100);
     }
 
     function openScriptVersionTab(supplierId, supplierName) {
@@ -390,6 +406,16 @@
         }
       }
 
+      if (activeTabId) {
+        if (activeTabId === 'suppliers' || activeTabId === 'channels-all' || activeTabId === 'scripts-all') {
+          activeMenuGroup = 'suppliers';
+        } else {
+          activeMenuGroup = '';
+        }
+      } else {
+        activeMenuGroup = '';
+      }
+
       saveTabState();
       renderTabs();
 
@@ -404,6 +430,7 @@
       activeTabId = tabId;
       saveTabState();
       renderTabs();
+      renderMenu();
       if (tabId === 'dashboard') loadDashboard();
       else if (tabId === 'suppliers') loadSuppliers();
       else if (tabId === 'products') loadProducts();
@@ -423,10 +450,38 @@
       }
     }
 
+    function renderMenu() {
+      const menuGroupTitle = document.querySelector('.menu-group-title');
+      if (menuGroupTitle) {
+        menuGroupTitle.className = 'menu-group-title ' + (activeMenuGroup === 'suppliers' ? 'active' : '');
+      }
+      const menuSuppliersSub = document.getElementById('menuSuppliersSub');
+      if (menuSuppliersSub) {
+        menuSuppliersSub.className = 'menu-sub ' + (activeMenuGroup === 'suppliers' ? 'open' : '');
+      }
+      const menuItems = document.querySelectorAll('.menu-item');
+      menuItems.forEach(item => {
+        const itemTabId = item.getAttribute('data-tab-id');
+        if (itemTabId) {
+          item.className = 'menu-item ' + (activeTabId === itemTabId ? 'active' : '');
+        }
+      });
+      const subItems = document.querySelectorAll('.menu-sub-item');
+      subItems.forEach(item => {
+        const itemTabId = item.getAttribute('data-tab-id');
+        if (itemTabId) {
+          item.className = 'menu-sub-item ' + (activeTabId === itemTabId ? 'active' : '');
+        }
+      });
+    }
+
     function renderTabs() {
       const bar = $('#tabsBar');
       if (!bar) return;
-      bar.innerHTML = tabs.map(tab => `
+      const dashboardTab = tabs.find(t => t.id === 'dashboard');
+      const otherTabs = tabs.filter(t => t.id !== 'dashboard');
+      const sortedTabs = dashboardTab ? [dashboardTab, ...otherTabs] : otherTabs;
+      bar.innerHTML = sortedTabs.map(tab => `
         <div class="tab ${tab.id === activeTabId ? 'active' : ''}" onclick="switchTab('${tab.id}')">
           ${tab.name}
           ${tab.id !== 'dashboard' ? `<span class="tab-close" onclick="closeTab('${tab.id}', event)">×</span>` : ''}
