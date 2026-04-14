@@ -18,6 +18,8 @@ router.get('/supplier/:supplierId', auth, channelController.getChannelsBySupplie
 
 router.get('/:id', auth, channelController.getChannel);
 
+router.put('/:channelId/cost', auth, channelController.updateChannelCost);
+
 router.put('/:id', auth, channelController.updateChannel);
 
 router.delete('/:id', auth, channelController.deleteChannel);

@@ -76,8 +76,18 @@
       "subscriptionPrice": 0,
       "status": "active",
       "createdAt": "2026-04-13T06:32:51.440Z",
-      "updatedAt": "2026-04-13T06:32:51.440Z",
-      "supplierName": "阿里云"
+      "updatedAt": "2026-04-14T16:09:35.653Z",
+      "supplierName": "阿里云",
+      "costRule": {
+        "rule_type": "per_call",
+        "rule_config": {
+          "price": 0.5
+        }
+      },
+      "dailyLimit": 0,
+      "remark": "",
+      "requestParams": [],
+      "responseParams": []
     },
     {
       "id": 2,
@@ -91,8 +101,18 @@
       "subscriptionPrice": 0,
       "status": "active",
       "createdAt": "2026-04-13T06:32:51.440Z",
-      "updatedAt": "2026-04-13T06:32:51.440Z",
-      "supplierName": "阿里云"
+      "updatedAt": "2026-04-14T16:00:40.511Z",
+      "supplierName": "阿里云",
+      "costRule": {
+        "rule_type": "per_key",
+        "rule_config": {
+          "key": "车",
+          "per_time": 0.6,
+          "daily_cap": 3,
+          "monthly_cap": 20,
+          "yearly_cap": 50
+        }
+      }
     },
     {
       "id": 3,

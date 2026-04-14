@@ -147,3 +147,26 @@ exports.deleteChannel = async (req, res) => {
     res.status(500).json({ message: '服务器错误' });
   }
 };
+
+exports.updateChannelCost = async (req, res) => {
+  const { channelId } = req.params;
+  const { rule_type, rule_config } = req.body;
+
+  try {
+    const channel = db.channels.findById(parseInt(channelId));
+    if (!channel) {
+      return res.status(404).json({ message: '通道不存在' });
+    }
+
+    const costRule = {
+      rule_type: rule_type || 'per_call',
+      rule_config: rule_config || {}
+    };
+
+    const updated = db.channels.update(parseInt(channelId), { costRule });
+
+    res.status(200).json({ message: '成本价格更新成功', costRule: updated.costRule });
+  } catch (error) {
+    res.status(500).json({ message: '服务器错误' });
+  }
+};

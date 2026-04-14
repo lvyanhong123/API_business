@@ -109,6 +109,23 @@
     .modal .btn-group .btn { flex: 1; }
     .cancel-btn { background: #999; }
     .form-group.full { grid-column: 1 / -1; }
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+    .modal-overlay.show { display: flex; }
+    .modal-overlay .modal-content { background: white; padding: 30px; border-radius: 8px; width: 600px; max-width: 90%; max-height: 80vh; overflow-y: auto; }
+    .modal-overlay .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .modal-overlay .modal-title { font-size: 18px; font-weight: bold; }
+    .modal-overlay .modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: #999; }
+    .modal-overlay .modal-close:hover { color: #333; }
+    .modal-overlay .modal-footer { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+    .modal-overlay .modal-body .form-group { margin-bottom: 15px; }
+    .modal-overlay .modal-body .form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
+    .modal-overlay .modal-body .form-group input,
+    .modal-overlay .modal-body .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+
+    .channel-form-tabs { display: flex; border-bottom: 1px solid #eee; margin-bottom: 20px; }
+    .channel-form-tab { padding: 10px 20px; color: #666; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; font-size: 14px; }
+    .channel-form-tab:hover { color: #1890ff; }
+    .channel-form-tab.active { color: #1890ff; border-bottom-color: #1890ff; }
   </style>
 </head>
 <body>
@@ -305,6 +322,12 @@
         } else if (tabId === 'dashboard') {
           tabs.unshift({ id: 'dashboard', name: '数据概览' });
           activeMenuGroup = '';
+        } else if (tabId.startsWith('channel-edit-')) {
+          tabs.push({ id: tabId, name: '编辑通道' });
+          activeMenuGroup = '';
+        } else if (tabId.startsWith('channel-add')) {
+          tabs.push({ id: tabId, name: '添加通道' });
+          activeMenuGroup = '';
         }
       } else {
         if (tabId === 'suppliers' || tabId === 'channels-all' || tabId === 'scripts-all') {
@@ -390,6 +413,29 @@
       switchTab(tabId);
     }
 
+    function openChannelEditTab(channelId) {
+      const tabId = 'channel-edit-' + channelId;
+      if (!tabs.find(t => t.id === tabId)) {
+        tabs.push({ id: tabId, name: '编辑通道' });
+      }
+      activeTabId = tabId;
+      saveTabState();
+      renderTabs();
+      switchTab(tabId);
+    }
+
+    function openChannelAddTab(supplierId) {
+      const tabId = 'channel-add' + (supplierId ? '-' + supplierId : '');
+      const tabName = '添加通道';
+      if (!tabs.find(t => t.id === tabId)) {
+        tabs.push({ id: tabId, name: tabName, supplierId: supplierId });
+      }
+      activeTabId = tabId;
+      saveTabState();
+      renderTabs();
+      switchTab(tabId);
+    }
+
     function closeTab(tabId, e) {
       e.stopPropagation();
       const idx = tabs.findIndex(t => t.id === tabId);
@@ -447,6 +493,13 @@
       } else if (tabId.startsWith('channels-')) {
         const supplierId = tabId.replace('channels-', '');
         loadChannels(supplierId);
+      } else if (tabId.startsWith('channel-edit-')) {
+        const channelId = tabId.replace('channel-edit-', '');
+        loadChannelEdit(channelId);
+      } else if (tabId.startsWith('channel-add')) {
+        const supplierIdStr = tabId.replace('channel-add', '');
+        const supplierId = supplierIdStr ? supplierIdStr.replace('-', '') : null;
+        loadChannelAdd(supplierId ? parseInt(supplierId) : null);
       }
     }
 
@@ -621,26 +674,29 @@
         <div class="card">
           <div class="card-header">
             <div class="card-title">${supplierName} - 通道列表</div>
-            <button class="btn" onclick="showAddChannelModal(${supplierId})">+ 添加通道</button>
+            <button class="btn" onclick="openChannelAddTab(${supplierId})">+ 添加通道</button>
           </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>ID</th><th>通道名称</th><th>API地址</th><th>日调用量限制</th><th>状态</th><th>操作</th></tr></thead>
+              <thead><tr><th>ID</th><th>通道名称</th><th>API地址</th><th>日调用量限制</th><th>成本价格</th><th>状态</th><th>操作</th></tr></thead>
               <tbody>
-                ${res.channels.length === 0 ? '<tr><td colspan="6" style="text-align:center;color:#999;">暂无通道</td></tr>' : 
-                  res.channels.map(c => `
-                  <tr>
-                    <td>${c.id}</td>
-                    <td>${c.name}</td>
-                    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;">${c.apiUrl || '-'}</td>
-                    <td>${c.dailyLimit > 0 ? c.dailyLimit : '-'}</td>
-                    <td><span class="status ${c.status === 'active' ? 'status-active' : 'status-inactive'}">${c.status === 'active' ? '启用' : '禁用'}</span></td>
-                    <td>
-                      <button class="action-btn default" onclick="showEditChannelModal(${c.id})">编辑</button>
-                      <button class="action-btn danger" onclick="deleteChannel(${c.id})">删除</button>
-                    </td>
-                  </tr>
-                `).join('')}
+                ${res.channels.length === 0 ? '<tr><td colspan="7" style="text-align:center;color:#999;">暂无通道</td></tr>' : 
+                  res.channels.map(c => {
+                    const costDisplay = c.costRule ? formatCostRule(c) : '<span style="color:#ff4d4f;">未录入</span>';
+                    return `
+                    <tr>
+                      <td>${c.id}</td>
+                      <td>${c.name}</td>
+                      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;">${c.apiUrl || '-'}</td>
+                      <td>${c.dailyLimit > 0 ? c.dailyLimit : '-'}</td>
+                      <td>${costDisplay}</td>
+                      <td><span class="status ${c.status === 'active' ? 'status-active' : 'status-inactive'}">${c.status === 'active' ? '启用' : '禁用'}</span></td>
+                      <td>
+                        <button class="action-btn default" onclick="openChannelEditTab(${c.id})">编辑</button>
+                        <button class="action-btn primary" onclick="showChannelCostModal(${c.id})">价格</button>
+                        <button class="action-btn danger" onclick="deleteChannel(${c.id})">删除</button>
+                      </td>
+                    </tr>`;}).join('')}
               </tbody>
             </table>
           </div>
@@ -683,12 +739,12 @@
         <div class="card">
           <div class="card-header">
             <div class="card-title">通道列表</div>
-            <button class="btn" onclick="showAddChannelModal(null)">+ 添加通道</button>
+            <button class="btn" onclick="openChannelAddTab(null)">+ 添加通道</button>
           </div>
           <div class="search-results" id="channelSearchResults">共 0 条</div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>ID</th><th>通道名称</th><th>供应商</th><th>API地址</th><th>日调用量限制</th><th>状态</th><th>操作</th></tr></thead>
+              <thead><tr><th>ID</th><th>通道名称</th><th>供应商</th><th>API地址</th><th>日调用量限制</th><th>成本价格</th><th>状态</th><th>操作</th></tr></thead>
               <tbody id="channelsTableBody"></tbody>
             </table>
           </div>
@@ -699,22 +755,48 @@
 
     function renderChannelsTable(data) {
       if (data.length === 0) {
-        return '<tr><td colspan="7" style="text-align:center;color:#999;">暂无通道</td></tr>';
+        return '<tr><td colspan="8" style="text-align:center;color:#999;">暂无通道</td></tr>';
       }
-      return data.map(c => `
+      return data.map(c => {
+        const costDisplay = c.costRule ? formatCostRule(c) : '<span style="color:#ff4d4f;">未录入</span>';
+        return `
         <tr>
           <td>${c.id}</td>
           <td>${c.name}</td>
           <td>${channelSupplierMap[c.supplierId] || '-'}</td>
           <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;">${c.apiUrl || '-'}</td>
           <td>${c.dailyLimit > 0 ? c.dailyLimit : '-'}</td>
+          <td>${costDisplay}</td>
           <td><span class="status ${c.status === 'active' ? 'status-active' : 'status-inactive'}">${c.status === 'active' ? '启用' : '禁用'}</span></td>
           <td>
-            <button class="action-btn default" onclick="showEditChannelModal(${c.id})">编辑</button>
+            <button class="action-btn default" onclick="openChannelEditTab(${c.id})">编辑</button>
+            <button class="action-btn primary" onclick="showChannelCostModal(${c.id})">价格</button>
             <button class="action-btn danger" onclick="deleteChannel(${c.id})">删除</button>
           </td>
         </tr>
-      `).join('');
+      `}).join('');
+    }
+
+    function formatCostRule(channel) {
+      if (!channel.costRule) return '-';
+      const rule = channel.costRule;
+      const ruleType = rule.rule_type;
+      const cfg = rule.rule_config || {};
+      if (ruleType === 'per_call') {
+        return cfg.price + '元/次';
+      } else if (ruleType === 'per_key') {
+        let parts = [];
+        if (cfg.per_time) parts.push(cfg.per_time + '元/' + cfg.key + '/次');
+        if (cfg.daily_cap) parts.push(cfg.daily_cap + '元/' + cfg.key + '/天');
+        if (cfg.monthly_cap) parts.push(cfg.monthly_cap + '元/' + cfg.key + '/月');
+        if (cfg.yearly_cap) parts.push(cfg.yearly_cap + '元/' + cfg.key + '/年');
+        return parts.join('; ') || '-';
+      } else if (ruleType === 'tiered') {
+        return '阶梯计费';
+      } else if (ruleType === 'buy_give') {
+        return '买赠规则';
+      }
+      return '-';
     }
 
     function filterChannels() {
@@ -1477,6 +1559,205 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
       loadSuppliers();
     }
 
+    async function showChannelCostModal(channelId) {
+      const channelRes = await fetchAPI('/admin/channels/' + channelId);
+      if (!channelRes) return;
+      const channel = channelRes;
+      const rule = channel.costRule || { rule_type: 'per_call', rule_config: {} };
+      const ruleConfig = rule.rule_config || {};
+      const ruleTypeOptions = `
+        <option value="per_call" ${rule.rule_type === 'per_call' ? 'selected' : ''}>按次计费</option>
+        <option value="per_key" ${rule.rule_type === 'per_key' ? 'selected' : ''}>按计费键计费</option>
+        <option value="tiered" ${rule.rule_type === 'tiered' ? 'selected' : ''}>阶梯计费</option>
+        <option value="buy_give" ${rule.rule_type === 'buy_give' ? 'selected' : ''}>买赠规则</option>
+      `;
+      const tiersHtml = (ruleConfig.tiers || []).map((t, i) => `
+        <div class="tier-row" style="display:grid;grid-template-columns:1fr 1fr 40px;gap:10px;margin-bottom:10px;align-items:center;">
+          <input type="text" placeholder="区间，如：1-1000" class="tier-range" value="${escapeHtml(t.range || '')}" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+          <input type="number" placeholder="单价(元)" class="tier-price" value="${t.price || ''}" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+          <button type="button" onclick="removeTierRow(this)" style="background:#ff4d4f;color:white;border:none;padding:8px;border-radius:4px;cursor:pointer;">×</button>
+        </div>
+      `).join('') || `<div class="tier-row" style="display:grid;grid-template-columns:1fr 1fr 40px;gap:10px;margin-bottom:10px;align-items:center;">
+        <input type="text" placeholder="区间，如：1-1000" class="tier-range" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+        <input type="number" placeholder="单价(元)" class="tier-price" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+        <button type="button" onclick="removeTierRow(this)" style="background:#ff4d4f;color:white;border:none;padding:8px;border-radius:4px;cursor:pointer;">×</button>
+      </div>`;
+      document.body.insertAdjacentHTML('beforeend', `
+        <div id="modalOverlay" class="modal-overlay show" onclick="if(event.target===this)closeModal()">
+          <div style="background:white;padding:30px;border-radius:8px;width:600px;max-width:90%;max-height:80vh;overflow-y:auto;">
+            <div class="modal-header">
+              <div class="modal-title">成本价格配置</div>
+              <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-body">
+              <div class="form-group">
+                <label>通道名称</label>
+                <input type="text" value="${escapeHtml(channel.name)}" disabled style="background:#f5f5f5;">
+              </div>
+              <div class="form-group">
+                <label>规则类型</label>
+                <select id="costRuleType" onchange="switchCostRuleType(this.value)" style="padding:10px;border:1px solid #ddd;border-radius:4px;">
+                  ${ruleTypeOptions}
+                </select>
+              </div>
+              <div id="costSectionPerCall" class="cost-section" style="display:${rule.rule_type === 'per_call' ? 'block' : 'none'};">
+                <div class="form-group">
+                  <label>单价（元/次）</label>
+                  <input type="number" id="costPerCallPrice" value="${ruleConfig.price || ''}" step="0.0001" style="padding:10px;border:1px solid #ddd;border-radius:4px;">
+                </div>
+              </div>
+              <div id="costSectionPerKey" class="cost-section" style="display:${rule.rule_type === 'per_key' ? 'block' : 'none'};">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>计费键</label>
+                    <input type="text" id="costKey" value="${escapeHtml(ruleConfig.key || '')}" placeholder="如：车" style="padding:10px;border:1px solid #ddd;border-radius:4px;">
+                  </div>
+                  <div class="form-group">
+                    <label>按次单价（元/${ruleConfig.key || 'key'}/次）</label>
+                    <input type="number" id="costPerTime" value="${ruleConfig.per_time || ''}" step="0.0001" style="padding:10px;border:1px solid #ddd;border-radius:4px;">
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>按天封顶（元/${ruleConfig.key || 'key'}/天）</label>
+                    <input type="number" id="costDailyCap" value="${ruleConfig.daily_cap || ''}" step="0.0001" style="padding:10px;border:1px solid #ddd;border-radius:4px;">
+                  </div>
+                  <div class="form-group">
+                    <label>按月封顶（元/${ruleConfig.key || 'key'}/月）</label>
+                    <input type="number" id="costMonthlyCap" value="${ruleConfig.monthly_cap || ''}" step="0.0001" style="padding:10px;border:1px solid #ddd;border-radius:4px;">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>按年封顶（元/${ruleConfig.key || 'key'}/年）</label>
+                  <input type="number" id="costYearlyCap" value="${ruleConfig.yearly_cap || ''}" step="0.0001" style="padding:10px;border:1px solid #ddd;border-radius:4px;">
+                </div>
+              </div>
+              <div id="costSectionTiered" class="cost-section" style="display:${rule.rule_type === 'tiered' ? 'block' : 'none'};">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>结算周期</label>
+                    <select id="costTieredCycle" style="padding:10px;border:1px solid #ddd;border-radius:4px;">
+                      <option value="day" ${ruleConfig.cycle === 'day' ? 'selected' : ''}>每天</option>
+                      <option value="month" ${ruleConfig.cycle === 'month' ? 'selected' : ''}>每月</option>
+                      <option value="year" ${ruleConfig.cycle === 'year' ? 'selected' : ''}>每年</option>
+                    </select>
+                  </div>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin:15px 0 10px;">
+                  <h4 style="margin:0;">计费区间</h4>
+                  <button type="button" class="btn btn-small" onclick="addTierRow()">+ 添加区间</button>
+                </div>
+                <div id="tiersContainer">${tiersHtml}</div>
+              </div>
+              <div id="costSectionBuyGive" class="cost-section" style="display:${rule.rule_type === 'buy_give' ? 'block' : 'none'};">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>买赠类型</label>
+                    <select id="costBuyGiveType" style="padding:10px;border:1px solid #ddd;border-radius:4px;">
+                      <option value="buy_give_count" ${ruleConfig.type === 'buy_give_count' ? 'selected' : ''}>买量送量</option>
+                      <option value="buy_give_channel" ${ruleConfig.type === 'buy_give_channel' ? 'selected' : ''}>买通道送通道</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>条件（满X次）</label>
+                    <input type="number" id="costBuyGiveCondition" value="${ruleConfig.condition || ''}" style="padding:10px;border:1px solid #ddd;border-radius:4px;">
+                  </div>
+                  <div class="form-group">
+                    <label>赠送（送Y次/送通道）</label>
+                    <input type="number" id="costBuyGiveGift" value="${ruleConfig.gift || ''}" style="padding:10px;border:1px solid #ddd;border-radius:4px;">
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn cancel-btn" onclick="closeModal()">取消</button>
+              <button class="btn" onclick="saveChannelCost(${channelId})">保存</button>
+            </div>
+          </div>
+        </div>
+      `);
+    }
+
+    function switchCostRuleType(ruleType) {
+      document.querySelectorAll('.cost-section').forEach(el => el.style.display = 'none');
+      if (ruleType === 'per_call') {
+        document.getElementById('costSectionPerCall').style.display = 'block';
+      } else if (ruleType === 'per_key') {
+        document.getElementById('costSectionPerKey').style.display = 'block';
+      } else if (ruleType === 'tiered') {
+        document.getElementById('costSectionTiered').style.display = 'block';
+      } else if (ruleType === 'buy_give') {
+        document.getElementById('costSectionBuyGive').style.display = 'block';
+      }
+    }
+
+    function addTierRow() {
+      const container = document.getElementById('tiersContainer');
+      if (!container) return;
+      const row = document.createElement('div');
+      row.className = 'tier-row';
+      row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 40px;gap:10px;margin-bottom:10px;align-items:center;';
+      row.innerHTML = `
+        <input type="text" placeholder="区间，如：1-1000" class="tier-range" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+        <input type="number" placeholder="单价(元)" class="tier-price" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+        <button type="button" onclick="removeTierRow(this)" style="background:#ff4d4f;color:white;border:none;padding:8px;border-radius:4px;cursor:pointer;">×</button>
+      `;
+      container.appendChild(row);
+    }
+
+    function removeTierRow(btn) {
+      const row = btn.closest('.tier-row');
+      const container = row.parentElement;
+      if (container.querySelectorAll('.tier-row').length > 1) {
+        row.remove();
+      } else {
+        row.querySelectorAll('input').forEach(input => input.value = '');
+      }
+    }
+
+    async function saveChannelCost(channelId) {
+      const ruleType = document.getElementById('costRuleType').value;
+      let ruleConfig = {};
+      if (ruleType === 'per_call') {
+        ruleConfig = { price: parseFloat(document.getElementById('costPerCallPrice').value) || 0 };
+      } else if (ruleType === 'per_key') {
+        ruleConfig = {
+          key: document.getElementById('costKey').value,
+          per_time: parseFloat(document.getElementById('costPerTime').value) || 0,
+          daily_cap: parseFloat(document.getElementById('costDailyCap').value) || 0,
+          monthly_cap: parseFloat(document.getElementById('costMonthlyCap').value) || 0,
+          yearly_cap: parseFloat(document.getElementById('costYearlyCap').value) || 0
+        };
+      } else if (ruleType === 'tiered') {
+        const tiers = [];
+        document.querySelectorAll('#tiersContainer .tier-row').forEach(row => {
+          const range = row.querySelector('.tier-range').value.trim();
+          const price = parseFloat(row.querySelector('.tier-price').value) || 0;
+          if (range && price) {
+            tiers.push({ range, price });
+          }
+        });
+        ruleConfig = {
+          cycle: document.getElementById('costTieredCycle').value,
+          tiers: tiers
+        };
+      } else if (ruleType === 'buy_give') {
+        ruleConfig = {
+          type: document.getElementById('costBuyGiveType').value,
+          condition: parseInt(document.getElementById('costBuyGiveCondition').value) || 0,
+          gift: parseFloat(document.getElementById('costBuyGiveGift').value) || 0
+        };
+      }
+      const data = { rule_type: ruleType, rule_config: ruleConfig };
+      const result = await fetchAPI('/admin/channels/' + channelId + '/cost', { method: 'PUT', body: JSON.stringify(data) });
+      if (result) {
+        closeModal();
+        switchTab(activeTabId);
+      }
+    }
+
     async function deleteChannel(id) {
       if (!confirm('确定要删除该通道吗？')) return;
       await fetchAPI('/admin/channels/' + id, { method: 'DELETE' });
@@ -1645,7 +1926,7 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
             </div>
 
             <div style="margin:15px 0;border-top:1px solid #eee;padding-top:15px;">
-              <h4 style="margin:0 0 10px 0;">出参映射</h4>
+              <h4 style="margin:0 0 10px 0;">响应码</h4>
               <div class="form-row">
                 <div class="form-group"><label>Code值</label><input type="text" id="cResponseCode" placeholder="如：0"></div>
                 <div class="form-group"><label>Message值</label><input type="text" id="cResponseMessage" placeholder="如：成功"></div>
@@ -1732,6 +2013,44 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
         }
       });
       return params;
+    }
+
+    function addResponseMapping() {
+      const container = document.getElementById('responseMappingContainer');
+      if (!container) return;
+      const row = document.createElement('div');
+      row.className = 'mapping-row';
+      row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 40px;gap:10px;margin-bottom:10px;align-items:center;';
+      row.innerHTML = `
+        <input type="text" placeholder="Code值" class="mapping-code" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+        <input type="text" placeholder="Message值" class="mapping-message" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+        <button type="button" onclick="removeMappingRow(this)" style="background:#ff4d4f;color:white;border:none;padding:8px;border-radius:4px;cursor:pointer;">×</button>
+      `;
+      container.appendChild(row);
+    }
+
+    function removeMappingRow(btn) {
+      const row = btn.closest('.mapping-row');
+      const container = row.parentElement;
+      if (container.querySelectorAll('.mapping-row').length > 1) {
+        row.remove();
+      } else {
+        row.querySelectorAll('input').forEach(input => input.value = '');
+      }
+    }
+
+    function collectMappings() {
+      const mappings = [];
+      const container = document.getElementById('responseMappingContainer');
+      if (!container) return mappings;
+      container.querySelectorAll('.mapping-row').forEach(row => {
+        const code = row.querySelector('.mapping-code').value.trim();
+        const message = row.querySelector('.mapping-message').value.trim();
+        if (code) {
+          mappings.push({ code, message });
+        }
+      });
+      return mappings;
     }
 
     async function addChannel(supplierId) {
@@ -1850,7 +2169,7 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
             </div>
 
             <div style="margin:15px 0;border-top:1px solid #eee;padding-top:15px;">
-              <h4 style="margin:0 0 10px 0;">出参映射</h4>
+              <h4 style="margin:0 0 10px 0;">响应码</h4>
               <div class="form-row">
                 <div class="form-group"><label>Code值</label><input type="text" id="cResponseCode" value="${escapeHtml(c.responseCode || '')}" placeholder="如：0"></div>
                 <div class="form-group"><label>Message值</label><input type="text" id="cResponseMessage" value="${escapeHtml(c.responseMessage || '')}" placeholder="如：成功"></div>
@@ -1883,9 +2202,271 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
       switchTab(activeTabId);
     }
 
+    async function loadChannelEdit(channelId) {
+      const res = await fetchAPI('/admin/channels/' + channelId);
+      if (!res) return;
+      const c = res;
+      const suppliersRes = await fetchAPI('/admin/suppliers');
+      const suppliers = suppliersRes ? suppliersRes.suppliers || [] : [];
+      const supplierOptions = suppliers.map(s => `<option value="${s.id}" ${s.id === c.supplierId ? 'selected' : ''}>${s.internalName || s.name}</option>`).join('');
+      const requestParamsRows = (c.requestParams || []).map(p => `
+        <div class="param-row" style="display:grid;grid-template-columns:1fr 1fr 80px 1fr 40px;gap:10px;margin-bottom:10px;align-items:center;">
+          <input type="text" placeholder="参数名称" class="param-name" value="${escapeHtml(p.name || '')}" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+          <select class="param-type" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+            <option value="string" ${p.type === 'string' ? 'selected' : ''}>string</option>
+            <option value="number" ${p.type === 'number' ? 'selected' : ''}>number</option>
+            <option value="boolean" ${p.type === 'boolean' ? 'selected' : ''}>boolean</option>
+          </select>
+          <select class="param-required" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+            <option value="true" ${p.required === true ? 'selected' : ''}>必填</option>
+            <option value="false" ${p.required === false ? 'selected' : ''}>可选</option>
+          </select>
+          <input type="text" placeholder="说明" class="param-desc" value="${escapeHtml(p.description || '')}" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+          <button type="button" onclick="removeParamRow(this)" style="background:#ff4d4f;color:white;border:none;padding:8px;border-radius:4px;cursor:pointer;">×</button>
+        </div>
+      `).join('');
+      const responseParamsRows = (c.responseParams || []).map(p => `
+        <div class="param-row" style="display:grid;grid-template-columns:1fr 1fr 80px 1fr 40px;gap:10px;margin-bottom:10px;align-items:center;">
+          <input type="text" placeholder="参数名称" class="param-name" value="${escapeHtml(p.name || '')}" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+          <select class="param-type" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+            <option value="string" ${p.type === 'string' ? 'selected' : ''}>string</option>
+            <option value="number" ${p.type === 'number' ? 'selected' : ''}>number</option>
+            <option value="boolean" ${p.type === 'boolean' ? 'selected' : ''}>boolean</option>
+          </select>
+          <select class="param-required" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+            <option value="true" ${p.required === true ? 'selected' : ''}>必填</option>
+            <option value="false" ${p.required === false ? 'selected' : ''}>可选</option>
+          </select>
+          <input type="text" placeholder="说明" class="param-desc" value="${escapeHtml(p.description || '')}" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+          <button type="button" onclick="removeParamRow(this)" style="background:#ff4d4f;color:white;border:none;padding:8px;border-radius:4px;cursor:pointer;">×</button>
+        </div>
+      `).join('');
+      const responseCodesRows = (c.responseCodes && c.responseCodes.length > 0 ? c.responseCodes.map(m => `
+        <div class="mapping-row" style="display:grid;grid-template-columns:1fr 1fr 40px;gap:10px;margin-bottom:10px;align-items:center;">
+          <input type="text" placeholder="Code值" class="mapping-code" value="${escapeHtml(m.code || '')}" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+          <input type="text" placeholder="Message值" class="mapping-message" value="${escapeHtml(m.message || '')}" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+          <button type="button" onclick="removeMappingRow(this)" style="background:#ff4d4f;color:white;border:none;padding:8px;border-radius:4px;cursor:pointer;">×</button>
+        </div>
+      `).join('') : `
+        <div class="mapping-row" style="display:grid;grid-template-columns:1fr 1fr 40px;gap:10px;margin-bottom:10px;align-items:center;">
+          <input type="text" placeholder="Code值" class="mapping-code" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+          <input type="text" placeholder="Message值" class="mapping-message" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+          <button type="button" onclick="removeMappingRow(this)" style="background:#ff4d4f;color:white;border:none;padding:8px;border-radius:4px;cursor:pointer;">×</button>
+        </div>`);
+      $('#tabContent').innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">编辑通道</div>
+            <button class="btn btn-small cancel-btn" onclick="closeCurrentTab()">关闭</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="channel-form-tabs" style="display:flex;border-bottom:1px solid #eee;margin-bottom:20px;">
+            <div class="channel-form-tab active" data-tab="basic" onclick="switchChannelFormTab(this)">基本信息</div>
+            <div class="channel-form-tab" data-tab="request" onclick="switchChannelFormTab(this)">入参字段</div>
+            <div class="channel-form-tab" data-tab="response" onclick="switchChannelFormTab(this)">出参字段</div>
+            <div class="channel-form-tab" data-tab="mapping" onclick="switchChannelFormTab(this)">响应码</div>
+          </div>
+          <div id="channelFormBasic" class="channel-form-content">
+            <div class="form-row">
+              <div class="form-group"><label>所属供应商</label><select id="cSupplier" disabled style="background:#f5f5f5;">${supplierOptions}</select></div>
+              <div class="form-group"><label>通道名称</label><input type="text" id="cName" value="${escapeHtml(c.name || '')}"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>API地址</label><input type="text" id="cUrl" value="${escapeHtml(c.apiUrl || '')}"></div>
+              <div class="form-group"><label>日调用量限制</label><input type="number" id="cDailyLimit" value="${c.dailyLimit || 0}"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>状态</label>
+                <select id="cStatus">
+                  <option value="active" ${c.status === 'active' ? 'selected' : ''}>启用</option>
+                  <option value="inactive" ${c.status === 'inactive' ? 'selected' : ''}>禁用</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group"><label>备注</label><textarea id="cRemark" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:4px;resize:vertical;height:60px;">${escapeHtml(c.remark || '')}</textarea></div>
+          </div>
+          <div id="channelFormRequest" class="channel-form-content" style="display:none;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+              <h4 style="margin:0;">入参字段</h4>
+              <button type="button" class="btn btn-small" onclick="addRequestParam()">+ 添加字段</button>
+            </div>
+            <div id="requestParamsContainer">
+              ${requestParamsRows || `<div class="param-row" style="display:grid;grid-template-columns:1fr 1fr 80px 1fr 40px;gap:10px;margin-bottom:10px;align-items:center;">
+                <input type="text" placeholder="参数名称" class="param-name" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+                <select class="param-type" style="padding:8px;border:1px solid #ddd;border-radius:4px;"><option value="string">string</option><option value="number">number</option><option value="boolean">boolean</option></select>
+                <select class="param-required" style="padding:8px;border:1px solid #ddd;border-radius:4px;"><option value="true">必填</option><option value="false">可选</option></select>
+                <input type="text" placeholder="说明" class="param-desc" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+                <button type="button" onclick="removeParamRow(this)" style="background:#ff4d4f;color:white;border:none;padding:8px;border-radius:4px;cursor:pointer;">×</button>
+              </div>`}
+            </div>
+          </div>
+          <div id="channelFormResponse" class="channel-form-content" style="display:none;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+              <h4 style="margin:0;">出参字段</h4>
+              <button type="button" class="btn btn-small" onclick="addResponseParam()">+ 添加字段</button>
+            </div>
+            <div id="responseParamsContainer">
+              ${responseParamsRows || `<div class="param-row" style="display:grid;grid-template-columns:1fr 1fr 80px 1fr 40px;gap:10px;margin-bottom:10px;align-items:center;">
+                <input type="text" placeholder="参数名称" class="param-name" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+                <select class="param-type" style="padding:8px;border:1px solid #ddd;border-radius:4px;"><option value="string">string</option><option value="number">number</option><option value="boolean">boolean</option></select>
+                <select class="param-required" style="padding:8px;border:1px solid #ddd;border-radius:4px;"><option value="true">必填</option><option value="false">可选</option></select>
+                <input type="text" placeholder="说明" class="param-desc" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+                <button type="button" onclick="removeParamRow(this)" style="background:#ff4d4f;color:white;border:none;padding:8px;border-radius:4px;cursor:pointer;">×</button>
+              </div>`}
+            </div>
+          </div>
+          <div id="channelFormMapping" class="channel-form-content" style="display:none;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+              <h4 style="margin:0;">响应码</h4>
+              <button type="button" class="btn btn-small" onclick="addResponseMapping()">+ 添加一对</button>
+            </div>
+            <div id="responseMappingContainer">
+              ${responseCodesRows}
+            </div>
+          </div>
+          <div style="margin-top:20px;padding-top:20px;border-top:1px solid #eee;">
+            <button class="btn" onclick="saveChannelEdit(${channelId})">保存</button>
+          </div>
+        </div>
+      `;
+    }
+
+    async function loadChannelAdd(supplierId) {
+      const suppliersRes = await fetchAPI('/admin/suppliers');
+      const suppliers = suppliersRes ? suppliersRes.suppliers || [] : [];
+      const actualSupplierId = supplierId || (suppliers.length > 0 ? suppliers[0].id : null);
+      const supplierOptions = suppliers.map(s => `<option value="${s.id}" ${s.id === actualSupplierId ? 'selected' : ''}>${s.internalName || s.name}</option>`).join('');
+      $('#tabContent').innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">添加通道</div>
+            <button class="btn btn-small cancel-btn" onclick="closeCurrentTab()">关闭</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="channel-form-tabs" style="display:flex;border-bottom:1px solid #eee;margin-bottom:20px;">
+            <div class="channel-form-tab active" data-tab="basic" onclick="switchChannelFormTab(this)">基本信息</div>
+            <div class="channel-form-tab" data-tab="request" onclick="switchChannelFormTab(this)">入参字段</div>
+            <div class="channel-form-tab" data-tab="response" onclick="switchChannelFormTab(this)">出参字段</div>
+            <div class="channel-form-tab" data-tab="mapping" onclick="switchChannelFormTab(this)">响应码</div>
+          </div>
+          <div id="channelFormBasic" class="channel-form-content">
+            <div class="form-row">
+              <div class="form-group"><label>所属供应商</label><select id="cSupplier">${supplierOptions}</select></div>
+              <div class="form-group"><label>通道名称</label><input type="text" id="cName" placeholder="如：阿里云-实名认证-v1"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>API地址</label><input type="text" id="cUrl" placeholder="https://api.example.com/verify"></div>
+              <div class="form-group"><label>日调用量限制</label><input type="number" id="cDailyLimit" placeholder="0表示不限"></div>
+            </div>
+            <div class="form-group"><label>备注</label><textarea id="cRemark" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:4px;resize:vertical;height:60px;" placeholder="备注信息"></textarea></div>
+          </div>
+          <div id="channelFormRequest" class="channel-form-content" style="display:none;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+              <h4 style="margin:0;">入参字段</h4>
+              <button type="button" class="btn btn-small" onclick="addRequestParam()">+ 添加字段</button>
+            </div>
+            <div id="requestParamsContainer">
+              <div class="param-row" style="display:grid;grid-template-columns:1fr 1fr 80px 1fr 40px;gap:10px;margin-bottom:10px;align-items:center;">
+                <input type="text" placeholder="参数名称" class="param-name" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+                <select class="param-type" style="padding:8px;border:1px solid #ddd;border-radius:4px;"><option value="string">string</option><option value="number">number</option><option value="boolean">boolean</option></select>
+                <select class="param-required" style="padding:8px;border:1px solid #ddd;border-radius:4px;"><option value="true">必填</option><option value="false">可选</option></select>
+                <input type="text" placeholder="说明" class="param-desc" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+                <button type="button" onclick="removeParamRow(this)" style="background:#ff4d4f;color:white;border:none;padding:8px;border-radius:4px;cursor:pointer;">×</button>
+              </div>
+            </div>
+          </div>
+          <div id="channelFormResponse" class="channel-form-content" style="display:none;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+              <h4 style="margin:0;">出参字段</h4>
+              <button type="button" class="btn btn-small" onclick="addResponseParam()">+ 添加字段</button>
+            </div>
+            <div id="responseParamsContainer">
+              <div class="param-row" style="display:grid;grid-template-columns:1fr 1fr 80px 1fr 40px;gap:10px;margin-bottom:10px;align-items:center;">
+                <input type="text" placeholder="参数名称" class="param-name" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+                <select class="param-type" style="padding:8px;border:1px solid #ddd;border-radius:4px;"><option value="string">string</option><option value="number">number</option><option value="boolean">boolean</option></select>
+                <select class="param-required" style="padding:8px;border:1px solid #ddd;border-radius:4px;"><option value="true">必填</option><option value="false">可选</option></select>
+                <input type="text" placeholder="说明" class="param-desc" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+                <button type="button" onclick="removeParamRow(this)" style="background:#ff4d4f;color:white;border:none;padding:8px;border-radius:4px;cursor:pointer;">×</button>
+              </div>
+            </div>
+          </div>
+          <div id="channelFormMapping" class="channel-form-content" style="display:none;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+              <h4 style="margin:0;">响应码</h4>
+              <button type="button" class="btn btn-small" onclick="addResponseMapping()">+ 添加一对</button>
+            </div>
+            <div id="responseMappingContainer">
+              <div class="mapping-row" style="display:grid;grid-template-columns:1fr 1fr 40px;gap:10px;margin-bottom:10px;align-items:center;">
+                <input type="text" placeholder="Code值" class="mapping-code" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+                <input type="text" placeholder="Message值" class="mapping-message" style="padding:8px;border:1px solid #ddd;border-radius:4px;">
+                <button type="button" onclick="removeMappingRow(this)" style="background:#ff4d4f;color:white;border:none;padding:8px;border-radius:4px;cursor:pointer;">×</button>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:20px;padding-top:20px;border-top:1px solid #eee;">
+            <button class="btn" onclick="saveChannelAdd(${supplierId})">保存</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function switchChannelFormTab(el) {
+      document.querySelectorAll('.channel-form-tab').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+      const tabName = el.getAttribute('data-tab');
+      document.querySelectorAll('.channel-form-content').forEach(c => c.style.display = 'none');
+      document.getElementById('channelForm' + tabName.charAt(0).toUpperCase() + tabName.slice(1)).style.display = 'block';
+    }
+
+    function closeCurrentTab() {
+      closeTab(activeTabId, { stopPropagation: () => {} });
+    }
+
+    async function saveChannelEdit(channelId) {
+      const data = {
+        name: $('#cName').value,
+        apiUrl: $('#cUrl').value,
+        dailyLimit: parseInt($('#cDailyLimit').value) || 0,
+        remark: $('#cRemark').value,
+        requestParams: collectParams('requestParamsContainer'),
+        responseParams: collectParams('responseParamsContainer'),
+        responseCodes: collectMappings(),
+        status: $('#cStatus').value
+      };
+      if (!data.name || !data.apiUrl) { alert('请填写必填项'); return; }
+      const result = await fetchAPI('/admin/channels/' + channelId, { method: 'PUT', body: JSON.stringify(data) });
+      if (result) {
+        closeCurrentTab();
+      }
+    }
+
+    async function saveChannelAdd(supplierId) {
+      const actualSupplierId = supplierId === null ? parseInt($('#cSupplier').value) : supplierId;
+      const data = {
+        name: $('#cName').value,
+        supplierId: actualSupplierId,
+        apiUrl: $('#cUrl').value,
+        dailyLimit: parseInt($('#cDailyLimit').value) || 0,
+        remark: $('#cRemark').value,
+        requestParams: collectParams('requestParamsContainer'),
+        responseParams: collectParams('responseParamsContainer'),
+        responseCodes: collectMappings(),
+        status: 'active'
+      };
+      if (!data.name || !data.apiUrl || !data.supplierId) { alert('请填写必填项'); return; }
+      const result = await fetchAPI('/admin/channels', { method: 'POST', body: JSON.stringify(data) });
+      if (result) {
+        closeCurrentTab();
+      }
+    }
+
     function closeModal() {
       const modal = $('.modal');
       if (modal) modal.remove();
+      const overlay = $('#modalOverlay');
+      if (overlay) overlay.remove();
     }
 
     async function fetchAPI(path, options = {}) {
