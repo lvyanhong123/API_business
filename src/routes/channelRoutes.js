@@ -8,8 +8,7 @@ const router = express.Router();
 router.post('/', auth, [
   body('name', '通道名称不能为空').not().isEmpty(),
   body('supplierId', '供应商ID不能为空').not().isEmpty(),
-  body('apiUrl', 'API地址不能为空').not().isEmpty(),
-  body('authType', '认证方式不能为空').not().isEmpty()
+  body('apiUrl', 'API地址不能为空').not().isEmpty()
 ], channelController.createChannel);
 
 router.get('/', auth, channelController.getChannels);

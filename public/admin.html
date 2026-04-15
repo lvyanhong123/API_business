@@ -264,6 +264,8 @@
                   <div class="menu-sub-item ${activeTabId === 'suppliers' ? 'active' : ''}" data-tab-id="suppliers" onclick="openTab('suppliers', '供应商列表')">供应商列表</div>
                   <div class="menu-sub-item ${activeTabId === 'channels-all' ? 'active' : ''}" data-tab-id="channels-all" onclick="openTab('channels-all', '通道列表')">通道列表</div>
                   <div class="menu-sub-item ${activeTabId === 'scripts-all' ? 'active' : ''}" data-tab-id="scripts-all" onclick="openTab('scripts-all', '脚本列表')">脚本列表</div>
+                  <div class="menu-sub-item ${activeTabId === 'call-logs' ? 'active' : ''}" data-tab-id="call-logs" onclick="openTab('call-logs', '调用明细')">调用明细</div>
+                  <div class="menu-sub-item ${activeTabId === 'supplier-bills' ? 'active' : ''}" data-tab-id="supplier-bills" onclick="openTab('supplier-bills', '供应商账单')">供应商账单</div>
                 </div>
               </div>
               <div class="menu-item ${activeTabId === 'products' ? 'active' : ''}" data-tab-id="products" onclick="openTab('products', '产品管理')">产品管理</div>
@@ -328,9 +330,21 @@
         } else if (tabId.startsWith('channel-add')) {
           tabs.push({ id: tabId, name: '添加通道' });
           activeMenuGroup = '';
+        } else if (tabId === 'call-logs') {
+          tabs.push({ id: tabId, name: '调用明细' });
+          activeMenuGroup = 'suppliers';
+        } else if (tabId === 'supplier-bills') {
+          tabs.push({ id: tabId, name: '供应商账单' });
+          activeMenuGroup = 'suppliers';
+        } else if (tabId.startsWith('bill-detail-')) {
+          tabs.push({ id: tabId, name: '账单详情' });
+          activeMenuGroup = '';
+        } else if (tabId.startsWith('channel-logs-')) {
+          tabs.push({ id: tabId, name: '通道明细' });
+          activeMenuGroup = '';
         }
       } else {
-        if (tabId === 'suppliers' || tabId === 'channels-all' || tabId === 'scripts-all') {
+        if (tabId === 'suppliers' || tabId === 'channels-all' || tabId === 'scripts-all' || tabId === 'call-logs' || tabId === 'supplier-bills') {
           activeMenuGroup = 'suppliers';
         } else {
           activeMenuGroup = '';
@@ -484,6 +498,8 @@
       else if (tabId === 'customers') loadCustomers();
       else if (tabId === 'channels-all') loadAllChannels();
       else if (tabId === 'scripts-all') loadAllScripts();
+      else if (tabId === 'call-logs') loadCallLogs();
+      else if (tabId === 'supplier-bills') loadSupplierBills();
       else if (tabId.startsWith('script-version-')) {
         const supplierId = tabId.replace('script-version-', '');
         loadScriptVersions(supplierId);
@@ -500,6 +516,12 @@
         const supplierIdStr = tabId.replace('channel-add', '');
         const supplierId = supplierIdStr ? supplierIdStr.replace('-', '') : null;
         loadChannelAdd(supplierId ? parseInt(supplierId) : null);
+      } else if (tabId.startsWith('bill-detail-')) {
+        const billId = tabId.replace('bill-detail-', '');
+        loadBillDetail(billId);
+      } else if (tabId.startsWith('channel-logs-')) {
+        const channelId = tabId.replace('channel-logs-', '');
+        loadChannelCallLogs(channelId);
       }
     }
 
@@ -577,14 +599,15 @@
       `;
     }
 
-    let supplierPageSize = 10;
-    let supplierCurrentPage = 1;
+    let supplierPageSize = 20;
     let supplierAllData = [];
+    let supplierCurrentPage = 1;
 
     async function loadSuppliers() {
       const data = await fetchAPI('/admin/suppliers');
       if (!data) return;
       supplierAllData = data.suppliers || [];
+      supplierCurrentPage = 1;
       $('#tabContent').innerHTML = `
         <div class="card">
           <div class="card-header">
@@ -616,6 +639,40 @@
           <div id="supplierPagination" class="pagination" style="justify-content:flex-end;margin-top:15px;"></div>
         </div>
       `;
+      filterSuppliers();
+    }
+
+    function renderSupplierPagination(total, current, size) {
+      const totalPages = Math.ceil(total / size) || 1;
+      let html = `<button ${current <= 1 ? 'disabled' : ''} onclick="goToSupplierPage(${current - 1})">上一页</button>`;
+      for (let i = 1; i <= totalPages; i++) {
+        if (totalPages > 7 && i !== 1 && i !== totalPages && Math.abs(i - current) > 1) {
+          if (i === 2 || i === totalPages - 1) {
+            html += `<span style="padding:0 5px;">...</span>`;
+          }
+          continue;
+        }
+        html += `<button class="${i === current ? 'active' : ''}" onclick="goToSupplierPage(${i})">${i}</button>`;
+      }
+      html += `<button ${current >= totalPages ? 'disabled' : ''} onclick="goToSupplierPage(${current + 1})">下一页</button>`;
+      html += `<span style="margin-left:10px;font-size:14px;color:#666;">每页</span>`;
+      html += `<select style="padding:4px 8px;border:1px solid #ddd;border-radius:4px;margin:0 5px;" onchange="changeSupplierPageSize(this.value)">`;
+      html += `<option value="10" ${size == 10 ? 'selected' : ''}>10</option>`;
+      html += `<option value="20" ${size == 20 ? 'selected' : ''}>20</option>`;
+      html += `<option value="50" ${size == 50 ? 'selected' : ''}>50</option>`;
+      html += `</select>`;
+      html += `<span style="font-size:14px;color:#666;">条</span>`;
+      return html;
+    }
+
+    function goToSupplierPage(page) {
+      supplierCurrentPage = page;
+      filterSuppliers();
+    }
+
+    function changeSupplierPageSize(size) {
+      supplierPageSize = parseInt(size);
+      supplierCurrentPage = 1;
       filterSuppliers();
     }
 
@@ -654,8 +711,14 @@
         const matchStatus = !status || s.status === status;
         return matchKeyword && matchStatus;
       });
-      $('#suppliersTableBody').innerHTML = renderSuppliersTable(filtered);
-      $('#supplierSearchResults').innerHTML = `<span>共 ${filtered.length} 条</span>`;
+
+      const total = filtered.length;
+      const start = (supplierCurrentPage - 1) * supplierPageSize;
+      const paginatedData = filtered.slice(start, start + supplierPageSize);
+
+      $('#suppliersTableBody').innerHTML = renderSuppliersTable(paginatedData);
+      $('#supplierSearchResults').innerHTML = `<span>共 ${total} 条</span>`;
+      $('#supplierPagination').innerHTML = renderSupplierPagination(total, supplierCurrentPage, supplierPageSize);
     }
 
     function resetSupplierFilter() {
@@ -706,6 +769,8 @@
 
     let channelAllData = [];
     let channelSupplierMap = {};
+    let channelCurrentPage = 1;
+    let channelPageSize = 20;
 
     async function loadAllChannels() {
       const channelsRes = await fetchAPI('/admin/channels');
@@ -715,6 +780,7 @@
       const suppliers = suppliersRes.suppliers || [];
       channelSupplierMap = {};
       suppliers.forEach(s => channelSupplierMap[s.id] = s.name);
+      channelCurrentPage = 1;
       const supplierOptions = suppliers.map(s => `<option value="${s.id}">${s.internalName || s.name}</option>`).join('');
       $('#tabContent').innerHTML = `
         <div class="card">
@@ -748,6 +814,7 @@
               <tbody id="channelsTableBody"></tbody>
             </table>
           </div>
+          <div id="channelPagination" class="pagination" style="justify-content:flex-end;margin-top:15px;"></div>
         </div>
       `;
       filterChannels();
@@ -799,6 +866,40 @@
       return '-';
     }
 
+    function renderChannelPagination(total, current, size) {
+      const totalPages = Math.ceil(total / size) || 1;
+      let html = `<button ${current <= 1 ? 'disabled' : ''} onclick="goToChannelPage(${current - 1})">上一页</button>`;
+      for (let i = 1; i <= totalPages; i++) {
+        if (totalPages > 7 && i !== 1 && i !== totalPages && Math.abs(i - current) > 1) {
+          if (i === 2 || i === totalPages - 1) {
+            html += `<span style="padding:0 5px;">...</span>`;
+          }
+          continue;
+        }
+        html += `<button class="${i === current ? 'active' : ''}" onclick="goToChannelPage(${i})">${i}</button>`;
+      }
+      html += `<button ${current >= totalPages ? 'disabled' : ''} onclick="goToChannelPage(${current + 1})">下一页</button>`;
+      html += `<span style="margin-left:10px;font-size:14px;color:#666;">每页</span>`;
+      html += `<select style="padding:4px 8px;border:1px solid #ddd;border-radius:4px;margin:0 5px;" onchange="changeChannelPageSize(this.value)">`;
+      html += `<option value="10" ${size == 10 ? 'selected' : ''}>10</option>`;
+      html += `<option value="20" ${size == 20 ? 'selected' : ''}>20</option>`;
+      html += `<option value="50" ${size == 50 ? 'selected' : ''}>50</option>`;
+      html += `</select>`;
+      html += `<span style="font-size:14px;color:#666;">条</span>`;
+      return html;
+    }
+
+    function goToChannelPage(page) {
+      channelCurrentPage = page;
+      filterChannels();
+    }
+
+    function changeChannelPageSize(size) {
+      channelPageSize = parseInt(size);
+      channelCurrentPage = 1;
+      filterChannels();
+    }
+
     function filterChannels() {
       const keyword = $('#channelSearchInput').value.toLowerCase();
       const supplierId = $('#channelSupplierSelect').value;
@@ -809,11 +910,18 @@
         const matchStatus = !status || c.status === status;
         return matchKeyword && matchSupplier && matchStatus;
       });
-      $('#channelsTableBody').innerHTML = renderChannelsTable(filtered);
-      $('#channelSearchResults').innerHTML = `<span>共 ${filtered.length} 条</span>`;
+
+      const total = filtered.length;
+      const start = (channelCurrentPage - 1) * channelPageSize;
+      const paginatedData = filtered.slice(start, start + channelPageSize);
+
+      $('#channelsTableBody').innerHTML = renderChannelsTable(paginatedData);
+      $('#channelSearchResults').innerHTML = `<span>共 ${total} 条</span>`;
+      $('#channelPagination').innerHTML = renderChannelPagination(total, channelCurrentPage, channelPageSize);
     }
 
     function resetChannelFilter() {
+      channelCurrentPage = 1;
       $('#channelSearchInput').value = '';
       $('#channelSupplierSelect').value = '';
       $('#channelStatusSelect').value = '';
@@ -1336,6 +1444,8 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
 
     let productAllData = [];
     let productSupplierMap = {};
+    let productCurrentPage = 1;
+    let productPageSize = 20;
 
     async function loadProducts() {
       const productsRes = await fetchAPI('/admin/products');
@@ -1345,6 +1455,7 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
       const suppliers = suppliersRes.suppliers || [];
       productSupplierMap = {};
       suppliers.forEach(s => productSupplierMap[s.id] = s.name);
+      productCurrentPage = 1;
       const supplierOptions = suppliers.map(s => `<option value="${s.id}">${s.internalName || s.name}</option>`).join('');
       $('#tabContent').innerHTML = `
         <div class="card">
@@ -1378,8 +1489,43 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
               <tbody id="productsTableBody"></tbody>
             </table>
           </div>
+          <div id="productPagination" class="pagination" style="justify-content:flex-end;margin-top:15px;"></div>
         </div>
       `;
+      filterProducts();
+    }
+
+    function renderProductPagination(total, current, size) {
+      const totalPages = Math.ceil(total / size) || 1;
+      let html = `<button ${current <= 1 ? 'disabled' : ''} onclick="goToProductPage(${current - 1})">上一页</button>`;
+      for (let i = 1; i <= totalPages; i++) {
+        if (totalPages > 7 && i !== 1 && i !== totalPages && Math.abs(i - current) > 1) {
+          if (i === 2 || i === totalPages - 1) {
+            html += `<span style="padding:0 5px;">...</span>`;
+          }
+          continue;
+        }
+        html += `<button class="${i === current ? 'active' : ''}" onclick="goToProductPage(${i})">${i}</button>`;
+      }
+      html += `<button ${current >= totalPages ? 'disabled' : ''} onclick="goToProductPage(${current + 1})">下一页</button>`;
+      html += `<span style="margin-left:10px;font-size:14px;color:#666;">每页</span>`;
+      html += `<select style="padding:4px 8px;border:1px solid #ddd;border-radius:4px;margin:0 5px;" onchange="changeProductPageSize(this.value)">`;
+      html += `<option value="10" ${size == 10 ? 'selected' : ''}>10</option>`;
+      html += `<option value="20" ${size == 20 ? 'selected' : ''}>20</option>`;
+      html += `<option value="50" ${size == 50 ? 'selected' : ''}>50</option>`;
+      html += `</select>`;
+      html += `<span style="font-size:14px;color:#666;">条</span>`;
+      return html;
+    }
+
+    function goToProductPage(page) {
+      productCurrentPage = page;
+      filterProducts();
+    }
+
+    function changeProductPageSize(size) {
+      productPageSize = parseInt(size);
+      productCurrentPage = 1;
       filterProducts();
     }
 
@@ -1416,11 +1562,18 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
         const matchStatus = !status || p.status === status;
         return matchKeyword && matchSupplier && matchStatus;
       });
-      $('#productsTableBody').innerHTML = renderProductsTable(filtered);
-      $('#productSearchResults').innerHTML = `<span>共 ${filtered.length} 条</span>`;
+
+      const total = filtered.length;
+      const start = (productCurrentPage - 1) * productPageSize;
+      const paginatedData = filtered.slice(start, start + productPageSize);
+
+      $('#productsTableBody').innerHTML = renderProductsTable(paginatedData);
+      $('#productSearchResults').innerHTML = `<span>共 ${total} 条</span>`;
+      $('#productPagination').innerHTML = renderProductPagination(total, productCurrentPage, productPageSize);
     }
 
     function resetProductFilter() {
+      productCurrentPage = 1;
       $('#productSearchInput').value = '';
       $('#productSupplierSelect').value = '';
       $('#productStatusSelect').value = '';
@@ -1428,11 +1581,14 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
     }
 
     let orderAllData = [];
+    let orderCurrentPage = 1;
+    let orderPageSize = 20;
 
     async function loadOrders() {
       const data = await fetchAPI('/orders/all');
       if (!data) return;
       orderAllData = data.orders || [];
+      orderCurrentPage = 1;
       $('#tabContent').innerHTML = `
         <div class="card">
           <div class="card-header">
@@ -1466,8 +1622,43 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
               <tbody id="ordersTableBody"></tbody>
             </table>
           </div>
+          <div id="orderPagination" class="pagination" style="justify-content:flex-end;margin-top:15px;"></div>
         </div>
       `;
+      filterOrders();
+    }
+
+    function renderOrderPagination(total, current, size) {
+      const totalPages = Math.ceil(total / size) || 1;
+      let html = `<button ${current <= 1 ? 'disabled' : ''} onclick="goToOrderPage(${current - 1})">上一页</button>`;
+      for (let i = 1; i <= totalPages; i++) {
+        if (totalPages > 7 && i !== 1 && i !== totalPages && Math.abs(i - current) > 1) {
+          if (i === 2 || i === totalPages - 1) {
+            html += `<span style="padding:0 5px;">...</span>`;
+          }
+          continue;
+        }
+        html += `<button class="${i === current ? 'active' : ''}" onclick="goToOrderPage(${i})">${i}</button>`;
+      }
+      html += `<button ${current >= totalPages ? 'disabled' : ''} onclick="goToOrderPage(${current + 1})">下一页</button>`;
+      html += `<span style="margin-left:10px;font-size:14px;color:#666;">每页</span>`;
+      html += `<select style="padding:4px 8px;border:1px solid #ddd;border-radius:4px;margin:0 5px;" onchange="changeOrderPageSize(this.value)">`;
+      html += `<option value="10" ${size == 10 ? 'selected' : ''}>10</option>`;
+      html += `<option value="20" ${size == 20 ? 'selected' : ''}>20</option>`;
+      html += `<option value="50" ${size == 50 ? 'selected' : ''}>50</option>`;
+      html += `</select>`;
+      html += `<span style="font-size:14px;color:#666;">条</span>`;
+      return html;
+    }
+
+    function goToOrderPage(page) {
+      orderCurrentPage = page;
+      filterOrders();
+    }
+
+    function changeOrderPageSize(size) {
+      orderPageSize = parseInt(size);
+      orderCurrentPage = 1;
       filterOrders();
     }
 
@@ -1506,41 +1697,100 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
         const matchPayment = !paymentStatus || o.paymentStatus === paymentStatus;
         return matchKeyword && matchReview && matchPayment;
       });
-      $('#ordersTableBody').innerHTML = renderOrdersTable(filtered);
-      $('#orderSearchResults').innerHTML = `<span>共 ${filtered.length} 条</span>`;
+
+      const total = filtered.length;
+      const start = (orderCurrentPage - 1) * orderPageSize;
+      const paginatedData = filtered.slice(start, start + orderPageSize);
+
+      $('#ordersTableBody').innerHTML = renderOrdersTable(paginatedData);
+      $('#orderSearchResults').innerHTML = `<span>共 ${total} 条</span>`;
+      $('#orderPagination').innerHTML = renderOrderPagination(total, orderCurrentPage, orderPageSize);
     }
 
     function resetOrderFilter() {
+      orderCurrentPage = 1;
       $('#orderSearchInput').value = '';
       $('#orderReviewStatusSelect').value = '';
       $('#orderPaymentStatusSelect').value = '';
       filterOrders();
     }
 
+    let customerAllData = [];
+    let customerCurrentPage = 1;
+    let customerPageSize = 20;
+
     async function loadCustomers() {
       const data = await fetchAPI('/stats/customers');
       if (!data) return;
+      customerAllData = data || [];
+      customerCurrentPage = 1;
       $('#tabContent').innerHTML = `
         <div class="card">
           <div class="card-header">
             <div class="card-title">客户统计</div>
           </div>
+          <div class="search-results" id="customerSearchResults">共 0 条</div>
           <div class="table-wrap">
             <table>
               <thead><tr><th>公司名称</th><th>总调用次数</th><th>总消费</th></tr></thead>
-              <tbody>
-                ${data.map(c => `
-                  <tr>
-                    <td>${c.companyName || '-'}</td>
-                    <td>${c.totalCalls}</td>
-                    <td>¥${c.totalSpent || 0}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
+              <tbody id="customersTableBody"></tbody>
             </table>
           </div>
+          <div id="customerPagination" class="pagination" style="justify-content:flex-end;margin-top:15px;"></div>
         </div>
       `;
+      filterCustomers();
+    }
+
+    function renderCustomerPagination(total, current, size) {
+      const totalPages = Math.ceil(total / size) || 1;
+      let html = `<button ${current <= 1 ? 'disabled' : ''} onclick="goToCustomerPage(${current - 1})">上一页</button>`;
+      for (let i = 1; i <= totalPages; i++) {
+        if (totalPages > 7 && i !== 1 && i !== totalPages && Math.abs(i - current) > 1) {
+          if (i === 2 || i === totalPages - 1) {
+            html += `<span style="padding:0 5px;">...</span>`;
+          }
+          continue;
+        }
+        html += `<button class="${i === current ? 'active' : ''}" onclick="goToCustomerPage(${i})">${i}</button>`;
+      }
+      html += `<button ${current >= totalPages ? 'disabled' : ''} onclick="goToCustomerPage(${current + 1})">下一页</button>`;
+      html += `<span style="margin-left:10px;font-size:14px;color:#666;">每页</span>`;
+      html += `<select style="padding:4px 8px;border:1px solid #ddd;border-radius:4px;margin:0 5px;" onchange="changeCustomerPageSize(this.value)">`;
+      html += `<option value="10" ${size == 10 ? 'selected' : ''}>10</option>`;
+      html += `<option value="20" ${size == 20 ? 'selected' : ''}>20</option>`;
+      html += `<option value="50" ${size == 50 ? 'selected' : ''}>50</option>`;
+      html += `</select>`;
+      html += `<span style="font-size:14px;color:#666;">条</span>`;
+      return html;
+    }
+
+    function goToCustomerPage(page) {
+      customerCurrentPage = page;
+      filterCustomers();
+    }
+
+    function changeCustomerPageSize(size) {
+      customerPageSize = parseInt(size);
+      customerCurrentPage = 1;
+      filterCustomers();
+    }
+
+    function filterCustomers() {
+      const total = customerAllData.length;
+      const start = (customerCurrentPage - 1) * customerPageSize;
+      const paginatedData = customerAllData.slice(start, start + customerPageSize);
+
+      $('#customersTableBody').innerHTML = paginatedData.map(c => `
+        <tr>
+          <td>${c.companyName || '-'}</td>
+          <td>${c.totalCalls}</td>
+          <td>¥${c.totalSpent || 0}</td>
+        </tr>
+      `).join('');
+
+      $('#customerSearchResults').innerHTML = `<span>共 ${total} 条</span>`;
+      $('#customerPagination').innerHTML = renderCustomerPagination(total, customerCurrentPage, customerPageSize);
     }
 
     async function approveOrder(id) {
@@ -1812,6 +2062,7 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
       const res = await fetchAPI('/admin/suppliers/' + id);
       if (!res) return;
       const s = res;
+      const settlementType = s.settlementType || 'monthly';
       document.body.insertAdjacentHTML('beforeend', `
         <div class="modal show" id="supplierModal">
           <div class="modal-content">
@@ -1835,6 +2086,68 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
                 </select>
               </div>
             </div>
+            <div style="margin-top:20px;padding-top:20px;border-top:1px solid #eee;">
+              <h4 style="margin:0 0 15px 0;">结算设置</h4>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>结算周期</label>
+                  <select id="sSettlementType" onchange="toggleSettlementConfig()">
+                    <option value="monthly" ${settlementType === 'monthly' ? 'selected' : ''}>月结</option>
+                    <option value="yearly" ${settlementType === 'yearly' ? 'selected' : ''}>年结</option>
+                    <option value="custom" ${settlementType === 'custom' ? 'selected' : ''}>自定义</option>
+                  </select>
+                </div>
+              </div>
+              <div id="settlementMonthlyConfig" style="display:${settlementType === 'monthly' ? 'block' : 'none'}">
+                <div class="form-group">
+                  <label>账单日（每月）</label>
+                  <input type="number" id="sBillingDayMonthly" value="${s.billingDayMonthly || 1}" min="1" max="28" style="width:100px;">
+                  <span style="color:#666;font-size:12px;">日生成上月账单</span>
+                </div>
+              </div>
+              <div id="settlementYearlyConfig" style="display:${settlementType === 'yearly' ? 'block' : 'none'}">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>账单月</label>
+                    <input type="number" id="sBillingMonthYearly" value="${s.billingMonthYearly || 1}" min="1" max="12" style="width:100px;">
+                  </div>
+                  <div class="form-group">
+                    <label>账单日</label>
+                    <input type="number" id="sBillingDayYearly" value="${s.billingDayYearly || 1}" min="1" max="28" style="width:100px;">
+                  </div>
+                </div>
+              </div>
+              <div id="settlementCustomConfig" style="display:${settlementType === 'custom' ? 'block' : 'none'}">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>结算间隔（月）</label>
+                    <input type="number" id="sSettlementInterval" value="${s.settlementInterval || 1}" min="1" style="width:100px;">
+                  </div>
+                  <div class="form-group">
+                    <label>开始日</label>
+                    <input type="number" id="sBillingStartDay" value="${s.billingStartDay || 1}" min="1" max="28" style="width:100px;">
+                  </div>
+                </div>
+              </div>
+              <div class="form-row" style="margin-top:15px;">
+                <div class="form-group">
+                  <label>结算方式</label>
+                  <select id="sSettlementMethod">
+                    <option value="bank" ${s.settlementMethod === 'bank' ? 'selected' : ''}>对公转账</option>
+                    <option value="alipay" ${s.settlementMethod === 'alipay' ? 'selected' : ''}>支付宝</option>
+                    <option value="wechat" ${s.settlementMethod === 'wechat' ? 'selected' : ''}>微信</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group" style="margin-top:10px;">
+                <label>银行账户</label>
+                <input type="text" id="sBankAccount" value="${s.bankAccount || ''}" style="width:100%;">
+              </div>
+              <div class="form-group">
+                <label>开户行</label>
+                <input type="text" id="sBankName" value="${s.bankName || ''}" style="width:100%;">
+              </div>
+            </div>
             <div class="btn-group">
               <button class="btn cancel-btn" onclick="closeModal()">取消</button>
               <button class="btn" onclick="updateSupplier(${id})">保存</button>
@@ -1842,6 +2155,13 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
           </div>
         </div>
       `);
+    }
+
+    function toggleSettlementConfig() {
+      const type = $('#sSettlementType').value;
+      document.getElementById('settlementMonthlyConfig').style.display = type === 'monthly' ? 'block' : 'none';
+      document.getElementById('settlementYearlyConfig').style.display = type === 'yearly' ? 'block' : 'none';
+      document.getElementById('settlementCustomConfig').style.display = type === 'custom' ? 'block' : 'none';
     }
 
     async function updateSupplier(id) {
@@ -1853,7 +2173,16 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
         email: $('#sEmail').value,
         address: $('#sAddress').value,
         channelContact: $('#sChannelContact').value,
-        status: $('#sStatus').value
+        status: $('#sStatus').value,
+        settlementType: $('#sSettlementType').value,
+        billingDayMonthly: parseInt($('#sBillingDayMonthly').value) || 1,
+        billingMonthYearly: parseInt($('#sBillingMonthYearly').value) || 1,
+        billingDayYearly: parseInt($('#sBillingDayYearly').value) || 1,
+        settlementInterval: parseInt($('#sSettlementInterval').value) || 1,
+        billingStartDay: parseInt($('#sBillingStartDay').value) || 1,
+        settlementMethod: $('#sSettlementMethod').value,
+        bankAccount: $('#sBankAccount').value,
+        bankName: $('#sBankName').value
       };
       await fetchAPI('/admin/suppliers/' + id, { method: 'PUT', body: JSON.stringify(data) });
       closeModal();
@@ -2440,6 +2769,456 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
       if (result) {
         closeCurrentTab();
       }
+    }
+
+    let callLogCurrentPage = 1;
+    let callLogPageSize = 50;
+
+    async function loadCallLogs() {
+      const channelsRes = await fetchAPI('/admin/channels');
+      const suppliersRes = await fetchAPI('/admin/suppliers');
+      const channels = channelsRes ? channelsRes.channels || [] : [];
+      const suppliers = suppliersRes ? suppliersRes.suppliers || [] : [];
+
+      const channelOptions = '<option value="">全部通道</option>' + channels.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+      const supplierOptions = '<option value="">全部供应商</option>' + suppliers.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+
+      const now = new Date();
+      const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const startTime = monthAgo.toISOString().slice(0, 10);
+      const endTime = now.toISOString().slice(0, 10);
+
+      callLogCurrentPage = 1;
+
+      $('#tabContent').innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">搜索项</div>
+          </div>
+          <div class="search-bar">
+            <select id="logChannelFilter" class="search-input" style="min-width:150px;">${channelOptions}</select>
+            <select id="logSupplierFilter" class="search-input" style="min-width:150px;">${supplierOptions}</select>
+            <input type="date" id="logStartTime" class="search-input" value="${startTime}" style="width:150px;">
+            <span style="color:#666;">至</span>
+            <input type="date" id="logEndTime" class="search-input" value="${endTime}" style="width:150px;">
+            <button class="btn btn-small" onclick="filterCallLogs()">搜索</button>
+            <button class="btn btn-small cancel-btn" onclick="resetCallLogFilter()">重置</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">调用明细</div>
+            <button class="btn btn-small" onclick="loadCallLogs()">刷新</button>
+          </div>
+          <div class="search-results" id="callLogsSearchResults">共 0 条</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>调用时间</th><th>通道名称</th><th>供应商</th><th>响应码</th><th>响应信息</th><th>耗时</th></tr></thead>
+              <tbody id="callLogsTableBody"></tbody>
+            </table>
+          </div>
+          <div id="callLogsPagination" class="pagination" style="justify-content:flex-end;margin-top:15px;"></div>
+        </div>
+      `;
+      filterCallLogs();
+    }
+
+    function renderCallLogsPagination(total, current, size) {
+      const totalPages = Math.ceil(total / size) || 1;
+      let html = `<button ${current <= 1 ? 'disabled' : ''} onclick="goToCallLogPage(${current - 1})">上一页</button>`;
+      for (let i = 1; i <= totalPages; i++) {
+        if (totalPages > 7 && i !== 1 && i !== totalPages && Math.abs(i - current) > 1) {
+          if (i === 2 || i === totalPages - 1) {
+            html += `<span style="padding:0 5px;">...</span>`;
+          }
+          continue;
+        }
+        html += `<button class="${i === current ? 'active' : ''}" onclick="goToCallLogPage(${i})">${i}</button>`;
+      }
+      html += `<button ${current >= totalPages ? 'disabled' : ''} onclick="goToCallLogPage(${current + 1})">下一页</button>`;
+      html += `<span style="margin-left:10px;font-size:14px;color:#666;">每页</span>`;
+      html += `<select style="padding:4px 8px;border:1px solid #ddd;border-radius:4px;margin:0 5px;" onchange="changeCallLogPageSize(this.value)">`;
+      html += `<option value="20" ${size == 20 ? 'selected' : ''}>20</option>`;
+      html += `<option value="50" ${size == 50 ? 'selected' : ''}>50</option>`;
+      html += `<option value="100" ${size == 100 ? 'selected' : ''}>100</option>`;
+      html += `</select>`;
+      html += `<span style="font-size:14px;color:#666;">条</span>`;
+      return html;
+    }
+
+    function goToCallLogPage(page) {
+      callLogCurrentPage = page;
+      filterCallLogs();
+    }
+
+    function changeCallLogPageSize(size) {
+      callLogPageSize = parseInt(size);
+      callLogCurrentPage = 1;
+      filterCallLogs();
+    }
+
+    function resetCallLogFilter() {
+      callLogCurrentPage = 1;
+      $('#logChannelFilter').value = '';
+      $('#logSupplierFilter').value = '';
+      const now = new Date();
+      const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      $('#logStartTime').value = monthAgo.toISOString().slice(0, 10);
+      $('#logEndTime').value = now.toISOString().slice(0, 10);
+      filterCallLogs();
+    }
+
+    async function filterCallLogs() {
+      const channelId = $('#logChannelFilter').value;
+      const supplierId = $('#logSupplierFilter').value;
+      const startTime = $('#logStartTime').value;
+      const endTime = $('#logEndTime').value ? $('#logEndTime').value + ' 23:59:59' : '';
+
+      let url = '/admin/call-logs?page=' + callLogCurrentPage + '&limit=' + callLogPageSize;
+      if (channelId) url += '&channelId=' + channelId;
+      if (supplierId) url += '&supplierId=' + supplierId;
+      if (startTime) url += '&startTime=' + startTime;
+      if (endTime) url += '&endTime=' + endTime;
+
+      const res = await fetchAPI(url);
+      if (!res) return;
+
+      const logs = res.logs || [];
+      $('#callLogsSearchResults').innerHTML = `共 ${res.total} 条`;
+
+      if (logs.length === 0) {
+        $('#callLogsTableBody').innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999;">暂无数据</td></tr>';
+        $('#callLogsPagination').innerHTML = '';
+        return;
+      }
+
+      $('#callLogsTableBody').innerHTML = logs.map(log => `
+        <tr>
+          <td>${new Date(log.callTime).toLocaleString()}</td>
+          <td>${log.channelName || '-'}</td>
+          <td>${log.supplierName || '-'}</td>
+          <td><span class="status ${log.success ? 'status-active' : 'status-inactive'}">${log.responseCode}</span></td>
+          <td>${log.responseMessage || '-'}</td>
+          <td>${log.responseTime}ms</td>
+        </tr>
+      `).join('');
+
+      $('#callLogsPagination').innerHTML = renderCallLogsPagination(res.total, callLogCurrentPage, callLogPageSize);
+    }
+
+    async function loadChannelCallLogs(channelId) {
+      const res = await fetchAPI('/admin/channels/' + channelId);
+      if (!res) return;
+      const channel = res;
+
+      const logsRes = await fetchAPI('/admin/call-logs/channel/' + channelId + '?limit=100');
+      const logs = logsRes ? logsRes.logs || [] : [];
+      const total = logsRes ? logsRes.total || 0 : 0;
+
+      $('#tabContent').innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">通道调用明细 - ${channel.name}</div>
+            <button class="btn btn-small" onclick="openTab('call-logs', '调用明细')">返回列表</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">明细列表</div>
+          </div>
+          <div class="search-results" id="channelLogsSearchResults">共 ${total} 条</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>调用时间</th><th>客户ID</th><th>响应码</th><th>响应信息</th><th>耗时</th></tr></thead>
+              <tbody id="channelLogsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      `;
+
+      if (logs.length === 0) {
+        $('#channelLogsTableBody').innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;">暂无数据</td></tr>';
+        return;
+      }
+
+      $('#channelLogsTableBody').innerHTML = logs.map(log => `
+        <tr>
+          <td>${new Date(log.callTime).toLocaleString()}</td>
+          <td>${log.customerId}</td>
+          <td><span class="status ${log.success ? 'status-active' : 'status-inactive'}">${log.responseCode}</span></td>
+          <td>${log.responseMessage || '-'}</td>
+          <td>${log.responseTime}ms</td>
+        </tr>
+      `).join('');
+    }
+
+    let billCurrentPage = 1;
+    let billPageSize = 20;
+
+    async function loadSupplierBills() {
+      const suppliersRes = await fetchAPI('/admin/suppliers');
+      const suppliers = suppliersRes ? suppliersRes.suppliers || [] : [];
+      const supplierOptions = '<option value="">全部供应商</option>' + suppliers.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+
+      billCurrentPage = 1;
+
+      $('#tabContent').innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">搜索项</div>
+          </div>
+          <div class="search-bar">
+            <select id="billSupplierFilter" class="search-input" style="min-width:150px;">${supplierOptions}</select>
+            <select id="billStatusFilter" class="search-input" style="min-width:120px;">
+              <option value="">全部状态</option>
+              <option value="generated">已生成</option>
+              <option value="confirmed">已确认</option>
+              <option value="paid">已付款</option>
+            </select>
+            <button class="btn btn-small" onclick="filterBills()">搜索</button>
+            <button class="btn btn-small cancel-btn" onclick="resetBillFilter()">重置</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">供应商账单</div>
+            <button class="btn" onclick="showGenerateBillModal()">生成账单</button>
+          </div>
+          <div class="search-results" id="billsSearchResults">共 0 条</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>账单编号</th><th>供应商</th><th>结算周期</th><th>账期</th><th>总金额</th><th>状态</th><th>操作</th></tr></thead>
+              <tbody id="billsTableBody"></tbody>
+            </table>
+          </div>
+          <div id="billsPagination" class="pagination" style="justify-content:flex-end;margin-top:15px;"></div>
+        </div>
+      `;
+      filterBills();
+    }
+
+    function renderBillsPagination(total, current, size) {
+      const totalPages = Math.ceil(total / size) || 1;
+      let html = `<button ${current <= 1 ? 'disabled' : ''} onclick="goToBillPage(${current - 1})">上一页</button>`;
+      for (let i = 1; i <= totalPages; i++) {
+        if (totalPages > 7 && i !== 1 && i !== totalPages && Math.abs(i - current) > 1) {
+          if (i === 2 || i === totalPages - 1) {
+            html += `<span style="padding:0 5px;">...</span>`;
+          }
+          continue;
+        }
+        html += `<button class="${i === current ? 'active' : ''}" onclick="goToBillPage(${i})">${i}</button>`;
+      }
+      html += `<button ${current >= totalPages ? 'disabled' : ''} onclick="goToBillPage(${current + 1})">下一页</button>`;
+      html += `<span style="margin-left:10px;font-size:14px;color:#666;">每页</span>`;
+      html += `<select style="padding:4px 8px;border:1px solid #ddd;border-radius:4px;margin:0 5px;" onchange="changeBillPageSize(this.value)">`;
+      html += `<option value="10" ${size == 10 ? 'selected' : ''}>10</option>`;
+      html += `<option value="20" ${size == 20 ? 'selected' : ''}>20</option>`;
+      html += `<option value="50" ${size == 50 ? 'selected' : ''}>50</option>`;
+      html += `</select>`;
+      html += `<span style="font-size:14px;color:#666;">条</span>`;
+      return html;
+    }
+
+    function goToBillPage(page) {
+      billCurrentPage = page;
+      filterBills();
+    }
+
+    function changeBillPageSize(size) {
+      billPageSize = parseInt(size);
+      billCurrentPage = 1;
+      filterBills();
+    }
+
+    function resetBillFilter() {
+      billCurrentPage = 1;
+      $('#billSupplierFilter').value = '';
+      $('#billStatusFilter').value = '';
+      filterBills();
+    }
+
+    async function filterBills() {
+      const supplierId = $('#billSupplierFilter')?.value || '';
+      const status = $('#billStatusFilter')?.value || '';
+
+      let url = '/admin/bills?page=' + billCurrentPage + '&limit=' + billPageSize;
+      if (supplierId) url += '&supplierId=' + supplierId;
+      if (status) url += '&status=' + status;
+
+      const res = await fetchAPI(url);
+      if (!res) return;
+
+      const bills = res.bills || [];
+      const statusMap = { generated: '已生成', confirmed: '已确认', paid: '已付款' };
+      const typeMap = { monthly: '月结', yearly: '年结', custom: '自定义' };
+
+      $('#billsSearchResults').innerHTML = `共 ${res.total} 条`;
+
+      if (bills.length === 0) {
+        $('#billsTableBody').innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999;">暂无账单数据</td></tr>';
+        $('#billsPagination').innerHTML = '';
+        return;
+      }
+
+      $('#billsTableBody').innerHTML = bills.map(bill => `
+        <tr>
+          <td>${bill.billNo}</td>
+          <td>${bill.supplierName || '-'}</td>
+          <td>${typeMap[bill.settlementType] || bill.settlementType}</td>
+          <td>${bill.periodStart}~${bill.periodEnd}</td>
+          <td style="color:#ff4d4f;font-weight:bold;">¥${(bill.totalAmount || 0).toFixed(2)}</td>
+          <td><span class="status ${bill.status === 'generated' ? 'status-active' : bill.status === 'paid' ? 'status-active' : 'status-inactive'}">${statusMap[bill.status] || bill.status}</span></td>
+          <td>
+            <button class="action-btn primary" onclick="openTab('bill-detail-${bill.id}', '账单详情')">查看</button>
+          </td>
+        </tr>
+      `).join('');
+
+      $('#billsPagination').innerHTML = renderBillsPagination(res.total, billCurrentPage, billPageSize);
+    }
+
+    async function showGenerateBillModal() {
+      const suppliersRes = await fetchAPI('/admin/suppliers');
+      const suppliers = suppliersRes ? suppliersRes.suppliers || [] : [];
+      const supplierOptions = suppliers.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+
+      const now = new Date();
+      const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+      const periodStart = lastMonth.toISOString().slice(0, 10);
+      const periodEnd = lastMonthEnd.toISOString().slice(0, 10);
+
+      document.body.insertAdjacentHTML('beforeend', `
+        <div class="modal show" id="generateBillModal">
+          <div class="modal-content">
+            <h3>生成账单</h3>
+            <div class="form-group">
+              <label>供应商</label>
+              <select id="gbSupplierId">${supplierOptions}</select>
+            </div>
+            <div class="form-group">
+              <label>结算周期</label>
+              <select id="gbSettlementType">
+                <option value="monthly">月结</option>
+                <option value="yearly">年结</option>
+                <option value="custom">自定义</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>开始日期</label>
+                <input type="date" id="gbPeriodStart" value="${periodStart}">
+              </div>
+              <div class="form-group">
+                <label>结束日期</label>
+                <input type="date" id="gbPeriodEnd" value="${periodEnd}">
+              </div>
+            </div>
+            <div class="btn-group">
+              <button class="btn cancel-btn" onclick="closeModal()">取消</button>
+              <button class="btn" onclick="generateBill()">生成</button>
+            </div>
+          </div>
+        </div>
+      `);
+    }
+
+    async function generateBill() {
+      const supplierId = $('#gbSupplierId').value;
+      const settlementType = $('#gbSettlementType').value;
+      const periodStart = $('#gbPeriodStart').value;
+      const periodEnd = $('#gbPeriodEnd').value;
+
+      if (!supplierId || !periodStart || !periodEnd) {
+        alert('请填写完整信息');
+        return;
+      }
+
+      const res = await fetchAPI('/admin/bills/generate', {
+        method: 'POST',
+        body: JSON.stringify({ supplierId: parseInt(supplierId), periodStart, periodEnd, settlementType })
+      });
+
+      if (res) {
+        alert('账单生成成功');
+        closeModal();
+        loadSupplierBills();
+      }
+    }
+
+    async function loadBillDetail(billId) {
+      const res = await fetchAPI('/admin/bills/' + billId);
+      if (!res) return;
+
+      const bill = res;
+      const supplier = bill.supplier || {};
+      const items = bill.items || [];
+      const statusMap = { generated: '已生成', confirmed: '已确认', paid: '已付款' };
+      const typeMap = { monthly: '月结', yearly: '年结', custom: '自定义' };
+      const methodMap = { bank: '对公转账', alipay: '支付宝', wechat: '微信' };
+
+      $('#tabContent').innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">账单详情</div>
+            <button class="btn btn-small" onclick="openTab('supplier-bills', '供应商账单')">返回列表</button>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+          <div class="card" style="padding:15px;">
+            <h4 style="margin:0 0 15px 0;border-bottom:1px solid #eee;padding-bottom:10px;">账单信息</h4>
+            <div style="display:grid;grid-template-columns:100px 1fr;gap:10px;line-height:2;">
+              <span style="color:#666;">账单编号：</span><span style="font-weight:500;">${bill.billNo}</span>
+              <span style="color:#666;">供应商：</span><span>${supplier.name || '-'}</span>
+              <span style="color:#666;">结算周期：</span><span>${typeMap[bill.settlementType] || bill.settlementType}</span>
+              <span style="color:#666;">账期：</span><span>${bill.periodStart} 至 ${bill.periodEnd}</span>
+              <span style="color:#666;">生成时间：</span><span>${new Date(bill.generatedAt).toLocaleString()}</span>
+              <span style="color:#666;">状态：</span><span class="status ${bill.status === 'generated' ? 'status-active' : 'status-inactive'}">${statusMap[bill.status] || bill.status}</span>
+            </div>
+          </div>
+          <div class="card" style="padding:15px;">
+            <h4 style="margin:0 0 15px 0;border-bottom:1px solid #eee;padding-bottom:10px;">结算账户</h4>
+            <div style="display:grid;grid-template-columns:100px 1fr;gap:10px;line-height:2;">
+              <span style="color:#666;">结算方式：</span><span>${methodMap[supplier.settlementMethod] || '-'}</span>
+              <span style="color:#666;">银行账户：</span><span>${supplier.bankAccount || '-'}</span>
+              <span style="color:#666;">开户行：</span><span>${supplier.bankName || '-'}</span>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">通道明细</div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>通道名称</th><th>调用次数</th><th>成功/失败</th><th>成本规则</th><th>金额</th><th>操作</th></tr></thead>
+              <tbody id="billItemsTableBody"></tbody>
+            </table>
+          </div>
+          <div style="margin-top:15px;text-align:right;font-size:18px;font-weight:bold;color:#ff4d4f;padding:10px;">
+            总计: ¥${(bill.totalAmount || 0).toFixed(2)}
+          </div>
+        </div>
+      `;
+
+      if (items.length === 0) {
+        $('#billItemsTableBody').innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999;">暂无通道数据</td></tr>';
+        return;
+      }
+
+      $('#billItemsTableBody').innerHTML = items.map(item => `
+        <tr>
+          <td>${item.channelName || '-'}</td>
+          <td>${item.callCount}</td>
+          <td><span style="color:#52c41a;">${item.successCount}</span> / <span style="color:#ff4d4f;">${item.failedCount}</span></td>
+          <td style="font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;">${item.costRule ? JSON.stringify(item.costRule) : '-'}</td>
+          <td style="color:#ff4d4f;font-weight:500;">¥${(item.amount || 0).toFixed(2)}</td>
+          <td>
+            <button class="action-btn primary" onclick="openTab('channel-logs-${item.channelId}', '通道明细')">明细</button>
+          </td>
+        </tr>
+      `).join('');
     }
 
     async function saveChannelAdd(supplierId) {

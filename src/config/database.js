@@ -309,6 +309,108 @@ const dbUtils = {
         return true;
       }).length;
     }
+  },
+
+  callLogs: {
+    findAll: () => loadDb().callLogs || [],
+    findById: (id) => loadDb().callLogs?.find(l => l.id === id),
+    findByChannel: (channelId) => (loadDb().callLogs || []).filter(l => l.channelId === channelId),
+    findBySupplier: (supplierId) => (loadDb().callLogs || []).filter(l => l.supplierId === supplierId),
+    findByTimeRange: (startTime, endTime) => (loadDb().callLogs || []).filter(l => {
+      const callTime = new Date(l.callTime);
+      return callTime >= new Date(startTime) && callTime <= new Date(endTime);
+    }),
+    create: (data) => {
+      const newData = loadDb();
+      if (!newData.callLogs) newData.callLogs = [];
+      const id = getNextId('callLogs');
+      const item = { id, ...data, createdAt: new Date() };
+      newData.callLogs.push(item);
+      saveDb();
+      return item;
+    },
+    count: (where) => {
+      const logs = loadDb().callLogs || [];
+      if (!where) return logs.length;
+      return logs.filter(l => {
+        for (const key in where) {
+          if (l[key] !== where[key]) return false;
+        }
+        return true;
+      }).length;
+    },
+    aggregateByChannel: (startTime, endTime) => {
+      const logs = (loadDb().callLogs || []).filter(l => {
+        const callTime = new Date(l.callTime);
+        return callTime >= new Date(startTime) && callTime <= new Date(endTime);
+      });
+      const grouped = {};
+      logs.forEach(log => {
+        if (!grouped[log.channelId]) {
+          grouped[log.channelId] = { channelId: log.channelId, supplierId: log.supplierId, callCount: 0, totalCost: 0 };
+        }
+        grouped[log.channelId].callCount++;
+        grouped[log.channelId].totalCost += log.cost || 0;
+      });
+      return Object.values(grouped);
+    }
+  },
+
+  supplierBills: {
+    findAll: () => loadDb().supplierBills || [],
+    findById: (id) => loadDb().supplierBills?.find(b => b.id === id),
+    findBySupplier: (supplierId) => (loadDb().supplierBills || []).filter(b => b.supplierId === supplierId),
+    findByStatus: (status) => (loadDb().supplierBills || []).filter(b => b.status === status),
+    create: (data) => {
+      const newData = loadDb();
+      if (!newData.supplierBills) newData.supplierBills = [];
+      const id = getNextId('supplierBills');
+      const item = { id, ...data, createdAt: new Date() };
+      newData.supplierBills.push(item);
+      saveDb();
+      return item;
+    },
+    update: (id, data) => {
+      const newData = loadDb();
+      const index = newData.supplierBills?.findIndex(b => b.id === id);
+      if (index === -1 || index === undefined) return null;
+      newData.supplierBills[index] = { ...newData.supplierBills[index], ...data, updatedAt: new Date() };
+      saveDb();
+      return newData.supplierBills[index];
+    },
+    findByPeriod: (supplierId, periodStart, periodEnd) => {
+      return (loadDb().supplierBills || []).find(b =>
+        b.supplierId === supplierId &&
+        b.periodStart === periodStart &&
+        b.periodEnd === periodEnd
+      );
+    }
+  },
+
+  billItems: {
+    findAll: () => loadDb().billItems || [],
+    findByBillId: (billId) => (loadDb().billItems || []).filter(i => i.billId === billId),
+    create: (data) => {
+      const newData = loadDb();
+      if (!newData.billItems) newData.billItems = [];
+      const id = getNextId('billItems');
+      const item = { id, ...data };
+      newData.billItems.push(item);
+      saveDb();
+      return item;
+    },
+    createMany: (items) => {
+      const newData = loadDb();
+      if (!newData.billItems) newData.billItems = [];
+      const created = items.map(item => {
+        const id = getNextId('billItems');
+        const newItem = { id, ...item };
+        newData.billItems.push(newItem);
+        return newItem;
+      });
+      saveDb();
+      return created;
+    }
   }
 };
 

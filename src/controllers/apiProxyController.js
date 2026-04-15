@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const axios = require('axios');
+const { calculateCost } = require('../services/costCalculator');
 
 exports.invokeApi = async (req, res) => {
   const { productCode } = req.params;
@@ -94,6 +95,27 @@ exports.invokeApi = async (req, res) => {
       duration: result.duration,
       fee
     });
+
+    const channels = db.channels.findBySupplier(supplier.id);
+    const channel = channels.find(c => c.apiUrl === supplier.apiUrl);
+    if (channel) {
+      const responseParams = result.data || {};
+      const cost = calculateCost(channel, requestParams, responseParams);
+
+      db.callLogs.create({
+        channelId: channel.id,
+        supplierId: supplier.id,
+        customerId: customer.id,
+        productId: product.id,
+        callTime: new Date().toISOString(),
+        requestParams,
+        responseParams,
+        responseCode: String(result.statusCode),
+        responseTime: result.duration,
+        cost,
+        success: result.success
+      });
+    }
 
     if (!result.success) {
       return res.status(result.statusCode).json({ error: result.errorMessage });

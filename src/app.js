@@ -41,6 +41,12 @@ app.use('/api/v1', apiProxyRoutes);
 const statsRoutes = require('./routes/statsRoutes');
 app.use('/api/stats', statsRoutes);
 
+const callLogRoutes = require('./routes/callLogRoutes');
+app.use('/api/admin/call-logs', callLogRoutes);
+
+const billRoutes = require('./routes/billRoutes');
+app.use('/api/admin/bills', billRoutes);
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`服务器运行在端口 ${PORT}`);

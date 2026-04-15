@@ -101,16 +101,22 @@
       "subscriptionPrice": 0,
       "status": "active",
       "createdAt": "2026-04-13T06:32:51.440Z",
-      "updatedAt": "2026-04-14T16:00:40.511Z",
+      "updatedAt": "2026-04-15T02:00:00.398Z",
       "supplierName": "阿里云",
       "costRule": {
-        "rule_type": "per_key",
+        "rule_type": "tiered",
         "rule_config": {
-          "key": "车",
-          "per_time": 0.6,
-          "daily_cap": 3,
-          "monthly_cap": 20,
-          "yearly_cap": 50
+          "cycle": "month",
+          "tiers": [
+            {
+              "range": "1-1000",
+              "price": 0.5
+            },
+            {
+              "range": "1000-20000",
+              "price": 0.3
+            }
+          ]
         }
       }
     },
@@ -128,6 +134,32 @@
       "createdAt": "2026-04-13T11:08:29.383Z",
       "updatedAt": "2026-04-13T11:08:29.383Z",
       "supplierName": "腾讯云"
+    },
+    {
+      "id": 4,
+      "name": "车辆轨迹",
+      "supplierId": 3,
+      "apiUrl": "https://api.aliyun.com/identity/verify",
+      "status": "active",
+      "dailyLimit": 0,
+      "remark": "",
+      "requestParams": [],
+      "responseParams": [],
+      "responseCode": "",
+      "responseMessage": "",
+      "createdAt": "2026-04-15T01:57:43.501Z",
+      "updatedAt": "2026-04-15T01:58:59.646Z",
+      "supplierName": "京东云",
+      "costRule": {
+        "rule_type": "per_key",
+        "rule_config": {
+          "key": "车",
+          "per_time": 0.5,
+          "daily_cap": 0.3,
+          "monthly_cap": 0,
+          "yearly_cap": 0
+        }
+      }
     }
   ],
   "products": [
@@ -185,5 +217,1264 @@
       "paidAt": "2026-04-13T06:34:02.805Z"
     }
   ],
-  "apiLogs": []
+  "apiLogs": [],
+  "callLogs": [
+    {
+      "id": 1,
+      "channelId": 2,
+      "supplierId": 1,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-04-04T21:44:17.885Z",
+      "requestParams": {
+        "phone": "138****4816",
+        "name": "测试用户",
+        "idCard": "345502*************"
+      },
+      "responseParams": {
+        "resultCode": "03",
+        "message": "认证失败",
+        "verifyId": "V1776237917885789"
+      },
+      "responseCode": "03",
+      "responseMessage": "参数错误",
+      "responseTime": 395,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.885Z"
+    },
+    {
+      "id": 2,
+      "channelId": 2,
+      "supplierId": 1,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-04-06T19:14:17.885Z",
+      "requestParams": {
+        "phone": "138****8037",
+        "name": "测试用户",
+        "idCard": "829081*************"
+      },
+      "responseParams": {
+        "resultCode": "00",
+        "message": "认证成功",
+        "verifyId": "V1776237917886376"
+      },
+      "responseCode": "00",
+      "responseMessage": "成功",
+      "responseTime": 361,
+      "cost": 0.5,
+      "success": true,
+      "createdAt": "2026-04-15T07:25:17.886Z"
+    },
+    {
+      "id": 3,
+      "channelId": 2,
+      "supplierId": 1,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-04-14T05:15:17.885Z",
+      "requestParams": {
+        "phone": "138****7237",
+        "name": "测试用户",
+        "idCard": "838012*************"
+      },
+      "responseParams": {
+        "resultCode": "01",
+        "message": "认证失败",
+        "verifyId": "V1776237917886594"
+      },
+      "responseCode": "01",
+      "responseMessage": "认证失败",
+      "responseTime": 475,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.886Z"
+    },
+    {
+      "id": 4,
+      "channelId": 1,
+      "supplierId": 1,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-03-16T15:54:17.885Z",
+      "requestParams": {
+        "phone": "138****6094",
+        "name": "测试用户",
+        "idCard": "751846*************"
+      },
+      "responseParams": {
+        "resultCode": "03",
+        "message": "认证失败",
+        "verifyId": "V1776237917886251"
+      },
+      "responseCode": "03",
+      "responseMessage": "参数错误",
+      "responseTime": 529,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.886Z"
+    },
+    {
+      "id": 5,
+      "channelId": 4,
+      "supplierId": 3,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-03-17T23:12:17.885Z",
+      "requestParams": {
+        "phone": "138****4008",
+        "name": "测试用户",
+        "idCard": "248790*************"
+      },
+      "responseParams": {
+        "resultCode": "03",
+        "message": "认证失败",
+        "verifyId": "V1776237917887821"
+      },
+      "responseCode": "03",
+      "responseMessage": "参数错误",
+      "responseTime": 258,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.887Z"
+    },
+    {
+      "id": 6,
+      "channelId": 1,
+      "supplierId": 1,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-04-09T02:19:17.885Z",
+      "requestParams": {
+        "phone": "138****3637",
+        "name": "测试用户",
+        "idCard": "681898*************"
+      },
+      "responseParams": {
+        "resultCode": "02",
+        "message": "认证失败",
+        "verifyId": "V1776237917887828"
+      },
+      "responseCode": "02",
+      "responseMessage": "系统繁忙",
+      "responseTime": 162,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.887Z"
+    },
+    {
+      "id": 7,
+      "channelId": 1,
+      "supplierId": 1,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-03-29T01:39:17.885Z",
+      "requestParams": {
+        "phone": "138****4059",
+        "name": "测试用户",
+        "idCard": "705816*************"
+      },
+      "responseParams": {
+        "resultCode": "03",
+        "message": "认证失败",
+        "verifyId": "V1776237917888165"
+      },
+      "responseCode": "03",
+      "responseMessage": "参数错误",
+      "responseTime": 497,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.888Z"
+    },
+    {
+      "id": 8,
+      "channelId": 1,
+      "supplierId": 1,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-03-19T18:38:17.885Z",
+      "requestParams": {
+        "phone": "138****8271",
+        "name": "测试用户",
+        "idCard": "436460*************"
+      },
+      "responseParams": {
+        "resultCode": "02",
+        "message": "认证失败",
+        "verifyId": "V1776237917889358"
+      },
+      "responseCode": "02",
+      "responseMessage": "系统繁忙",
+      "responseTime": 310,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.889Z"
+    },
+    {
+      "id": 9,
+      "channelId": 2,
+      "supplierId": 1,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-04-12T23:53:17.885Z",
+      "requestParams": {
+        "phone": "138****0072",
+        "name": "测试用户",
+        "idCard": "869557*************"
+      },
+      "responseParams": {
+        "resultCode": "02",
+        "message": "认证失败",
+        "verifyId": "V177623791788962"
+      },
+      "responseCode": "02",
+      "responseMessage": "系统繁忙",
+      "responseTime": 411,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.889Z"
+    },
+    {
+      "id": 10,
+      "channelId": 2,
+      "supplierId": 1,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-04-04T01:48:17.885Z",
+      "requestParams": {
+        "phone": "138****8264",
+        "name": "测试用户",
+        "idCard": "682316*************"
+      },
+      "responseParams": {
+        "resultCode": "01",
+        "message": "认证失败",
+        "verifyId": "V1776237917890949"
+      },
+      "responseCode": "01",
+      "responseMessage": "认证失败",
+      "responseTime": 298,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.890Z"
+    },
+    {
+      "id": 11,
+      "channelId": 3,
+      "supplierId": 2,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-03-28T06:11:17.885Z",
+      "requestParams": {
+        "phone": "138****3923",
+        "name": "测试用户",
+        "idCard": "846883*************"
+      },
+      "responseParams": {
+        "resultCode": "02",
+        "message": "认证失败",
+        "verifyId": "V1776237917890696"
+      },
+      "responseCode": "02",
+      "responseMessage": "系统繁忙",
+      "responseTime": 472,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.890Z"
+    },
+    {
+      "id": 12,
+      "channelId": 3,
+      "supplierId": 2,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-03-28T10:02:17.885Z",
+      "requestParams": {
+        "phone": "138****3332",
+        "name": "测试用户",
+        "idCard": "565584*************"
+      },
+      "responseParams": {
+        "resultCode": "01",
+        "message": "认证失败",
+        "verifyId": "V1776237917890984"
+      },
+      "responseCode": "01",
+      "responseMessage": "认证失败",
+      "responseTime": 431,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.890Z"
+    },
+    {
+      "id": 13,
+      "channelId": 1,
+      "supplierId": 1,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-04-03T00:50:17.885Z",
+      "requestParams": {
+        "phone": "138****2061",
+        "name": "测试用户",
+        "idCard": "496120*************"
+      },
+      "responseParams": {
+        "resultCode": "00",
+        "message": "认证成功",
+        "verifyId": "V1776237917891250"
+      },
+      "responseCode": "00",
+      "responseMessage": "成功",
+      "responseTime": 226,
+      "cost": 0.5,
+      "success": true,
+      "createdAt": "2026-04-15T07:25:17.891Z"
+    },
+    {
+      "id": 14,
+      "channelId": 4,
+      "supplierId": 3,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-04-14T13:28:17.885Z",
+      "requestParams": {
+        "phone": "138****5592",
+        "name": "测试用户",
+        "idCard": "920897*************"
+      },
+      "responseParams": {
+        "resultCode": "02",
+        "message": "认证失败",
+        "verifyId": "V1776237917892666"
+      },
+      "responseCode": "02",
+      "responseMessage": "系统繁忙",
+      "responseTime": 176,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.892Z"
+    },
+    {
+      "id": 15,
+      "channelId": 4,
+      "supplierId": 3,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-03-30T10:46:17.885Z",
+      "requestParams": {
+        "phone": "138****7640",
+        "name": "测试用户",
+        "idCard": "834804*************"
+      },
+      "responseParams": {
+        "resultCode": "01",
+        "message": "认证失败",
+        "verifyId": "V1776237917892762"
+      },
+      "responseCode": "01",
+      "responseMessage": "认证失败",
+      "responseTime": 100,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.892Z"
+    },
+    {
+      "id": 16,
+      "channelId": 1,
+      "supplierId": 1,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-04-14T13:05:17.885Z",
+      "requestParams": {
+        "phone": "138****1993",
+        "name": "测试用户",
+        "idCard": "258302*************"
+      },
+      "responseParams": {
+        "resultCode": "02",
+        "message": "认证失败",
+        "verifyId": "V1776237917892624"
+      },
+      "responseCode": "02",
+      "responseMessage": "系统繁忙",
+      "responseTime": 99,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.892Z"
+    },
+    {
+      "id": 17,
+      "channelId": 4,
+      "supplierId": 3,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-04-01T08:57:17.885Z",
+      "requestParams": {
+        "phone": "138****9544",
+        "name": "测试用户",
+        "idCard": "647884*************"
+      },
+      "responseParams": {
+        "resultCode": "00",
+        "message": "认证成功",
+        "verifyId": "V1776237917893329"
+      },
+      "responseCode": "00",
+      "responseMessage": "成功",
+      "responseTime": 185,
+      "cost": 0.5,
+      "success": true,
+      "createdAt": "2026-04-15T07:25:17.893Z"
+    },
+    {
+      "id": 18,
+      "channelId": 1,
+      "supplierId": 1,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-04-04T18:03:17.885Z",
+      "requestParams": {
+        "phone": "138****1535",
+        "name": "测试用户",
+        "idCard": "293157*************"
+      },
+      "responseParams": {
+        "resultCode": "00",
+        "message": "认证成功",
+        "verifyId": "V1776237917893703"
+      },
+      "responseCode": "00",
+      "responseMessage": "成功",
+      "responseTime": 277,
+      "cost": 0.5,
+      "success": true,
+      "createdAt": "2026-04-15T07:25:17.893Z"
+    },
+    {
+      "id": 19,
+      "channelId": 3,
+      "supplierId": 2,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-03-30T19:28:17.885Z",
+      "requestParams": {
+        "phone": "138****5200",
+        "name": "测试用户",
+        "idCard": "863095*************"
+      },
+      "responseParams": {
+        "resultCode": "03",
+        "message": "认证失败",
+        "verifyId": "V1776237917894166"
+      },
+      "responseCode": "03",
+      "responseMessage": "参数错误",
+      "responseTime": 216,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.894Z"
+    },
+    {
+      "id": 20,
+      "channelId": 2,
+      "supplierId": 1,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-03-27T08:50:17.885Z",
+      "requestParams": {
+        "phone": "138****7222",
+        "name": "测试用户",
+        "idCard": "909639*************"
+      },
+      "responseParams": {
+        "resultCode": "00",
+        "message": "认证成功",
+        "verifyId": "V1776237917895354"
+      },
+      "responseCode": "00",
+      "responseMessage": "成功",
+      "responseTime": 236,
+      "cost": 0.5,
+      "success": true,
+      "createdAt": "2026-04-15T07:25:17.895Z"
+    },
+    {
+      "id": 21,
+      "channelId": 3,
+      "supplierId": 2,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-04-06T09:18:17.885Z",
+      "requestParams": {
+        "phone": "138****3447",
+        "name": "测试用户",
+        "idCard": "809772*************"
+      },
+      "responseParams": {
+        "resultCode": "00",
+        "message": "认证成功",
+        "verifyId": "V1776237917895833"
+      },
+      "responseCode": "00",
+      "responseMessage": "成功",
+      "responseTime": 332,
+      "cost": 0.5,
+      "success": true,
+      "createdAt": "2026-04-15T07:25:17.895Z"
+    },
+    {
+      "id": 22,
+      "channelId": 4,
+      "supplierId": 3,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-03-22T20:01:17.885Z",
+      "requestParams": {
+        "phone": "138****5723",
+        "name": "测试用户",
+        "idCard": "918841*************"
+      },
+      "responseParams": {
+        "resultCode": "00",
+        "message": "认证成功",
+        "verifyId": "V1776237917896701"
+      },
+      "responseCode": "00",
+      "responseMessage": "成功",
+      "responseTime": 206,
+      "cost": 0.5,
+      "success": true,
+      "createdAt": "2026-04-15T07:25:17.896Z"
+    },
+    {
+      "id": 23,
+      "channelId": 2,
+      "supplierId": 1,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-04-10T07:09:17.885Z",
+      "requestParams": {
+        "phone": "138****3059",
+        "name": "测试用户",
+        "idCard": "544599*************"
+      },
+      "responseParams": {
+        "resultCode": "03",
+        "message": "认证失败",
+        "verifyId": "V1776237917896120"
+      },
+      "responseCode": "03",
+      "responseMessage": "参数错误",
+      "responseTime": 225,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.896Z"
+    },
+    {
+      "id": 24,
+      "channelId": 2,
+      "supplierId": 1,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-04-12T23:39:17.885Z",
+      "requestParams": {
+        "phone": "138****6797",
+        "name": "测试用户",
+        "idCard": "700782*************"
+      },
+      "responseParams": {
+        "resultCode": "03",
+        "message": "认证失败",
+        "verifyId": "V177623791789742"
+      },
+      "responseCode": "03",
+      "responseMessage": "参数错误",
+      "responseTime": 397,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.897Z"
+    },
+    {
+      "id": 25,
+      "channelId": 4,
+      "supplierId": 3,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-03-19T16:03:17.885Z",
+      "requestParams": {
+        "phone": "138****2688",
+        "name": "测试用户",
+        "idCard": "360515*************"
+      },
+      "responseParams": {
+        "resultCode": "01",
+        "message": "认证失败",
+        "verifyId": "V1776237917897695"
+      },
+      "responseCode": "01",
+      "responseMessage": "认证失败",
+      "responseTime": 293,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.897Z"
+    },
+    {
+      "id": 26,
+      "channelId": 4,
+      "supplierId": 3,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-04-07T22:56:17.885Z",
+      "requestParams": {
+        "phone": "138****8969",
+        "name": "测试用户",
+        "idCard": "453955*************"
+      },
+      "responseParams": {
+        "resultCode": "01",
+        "message": "认证失败",
+        "verifyId": "V1776237917898410"
+      },
+      "responseCode": "01",
+      "responseMessage": "认证失败",
+      "responseTime": 340,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.898Z"
+    },
+    {
+      "id": 27,
+      "channelId": 1,
+      "supplierId": 1,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-03-25T01:32:17.885Z",
+      "requestParams": {
+        "phone": "138****3520",
+        "name": "测试用户",
+        "idCard": "949079*************"
+      },
+      "responseParams": {
+        "resultCode": "01",
+        "message": "认证失败",
+        "verifyId": "V1776237917898223"
+      },
+      "responseCode": "01",
+      "responseMessage": "认证失败",
+      "responseTime": 339,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.898Z"
+    },
+    {
+      "id": 28,
+      "channelId": 4,
+      "supplierId": 3,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-03-23T11:33:17.885Z",
+      "requestParams": {
+        "phone": "138****3642",
+        "name": "测试用户",
+        "idCard": "521667*************"
+      },
+      "responseParams": {
+        "resultCode": "01",
+        "message": "认证失败",
+        "verifyId": "V1776237917899432"
+      },
+      "responseCode": "01",
+      "responseMessage": "认证失败",
+      "responseTime": 532,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.899Z"
+    },
+    {
+      "id": 29,
+      "channelId": 1,
+      "supplierId": 1,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-03-31T22:07:17.885Z",
+      "requestParams": {
+        "phone": "138****8956",
+        "name": "测试用户",
+        "idCard": "672984*************"
+      },
+      "responseParams": {
+        "resultCode": "02",
+        "message": "认证失败",
+        "verifyId": "V1776237917899842"
+      },
+      "responseCode": "02",
+      "responseMessage": "系统繁忙",
+      "responseTime": 332,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.899Z"
+    },
+    {
+      "id": 30,
+      "channelId": 4,
+      "supplierId": 3,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-03-17T23:04:17.885Z",
+      "requestParams": {
+        "phone": "138****5081",
+        "name": "测试用户",
+        "idCard": "568793*************"
+      },
+      "responseParams": {
+        "resultCode": "00",
+        "message": "认证成功",
+        "verifyId": "V1776237917899711"
+      },
+      "responseCode": "00",
+      "responseMessage": "成功",
+      "responseTime": 375,
+      "cost": 0.5,
+      "success": true,
+      "createdAt": "2026-04-15T07:25:17.899Z"
+    },
+    {
+      "id": 31,
+      "channelId": 4,
+      "supplierId": 3,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-03-31T08:55:17.885Z",
+      "requestParams": {
+        "phone": "138****1809",
+        "name": "测试用户",
+        "idCard": "978820*************"
+      },
+      "responseParams": {
+        "resultCode": "02",
+        "message": "认证失败",
+        "verifyId": "V1776237917900149"
+      },
+      "responseCode": "02",
+      "responseMessage": "系统繁忙",
+      "responseTime": 433,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.900Z"
+    },
+    {
+      "id": 32,
+      "channelId": 3,
+      "supplierId": 2,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-03-19T06:51:17.885Z",
+      "requestParams": {
+        "phone": "138****6065",
+        "name": "测试用户",
+        "idCard": "636792*************"
+      },
+      "responseParams": {
+        "resultCode": "03",
+        "message": "认证失败",
+        "verifyId": "V1776237917901578"
+      },
+      "responseCode": "03",
+      "responseMessage": "参数错误",
+      "responseTime": 362,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.901Z"
+    },
+    {
+      "id": 33,
+      "channelId": 2,
+      "supplierId": 1,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-04-11T17:49:17.885Z",
+      "requestParams": {
+        "phone": "138****9125",
+        "name": "测试用户",
+        "idCard": "771094*************"
+      },
+      "responseParams": {
+        "resultCode": "03",
+        "message": "认证失败",
+        "verifyId": "V177623791790134"
+      },
+      "responseCode": "03",
+      "responseMessage": "参数错误",
+      "responseTime": 488,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.901Z"
+    },
+    {
+      "id": 34,
+      "channelId": 2,
+      "supplierId": 1,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-03-25T00:42:17.885Z",
+      "requestParams": {
+        "phone": "138****6857",
+        "name": "测试用户",
+        "idCard": "356002*************"
+      },
+      "responseParams": {
+        "resultCode": "03",
+        "message": "认证失败",
+        "verifyId": "V177623791790293"
+      },
+      "responseCode": "03",
+      "responseMessage": "参数错误",
+      "responseTime": 171,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.902Z"
+    },
+    {
+      "id": 35,
+      "channelId": 1,
+      "supplierId": 1,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-04-12T15:04:17.885Z",
+      "requestParams": {
+        "phone": "138****7380",
+        "name": "测试用户",
+        "idCard": "755041*************"
+      },
+      "responseParams": {
+        "resultCode": "01",
+        "message": "认证失败",
+        "verifyId": "V1776237917902577"
+      },
+      "responseCode": "01",
+      "responseMessage": "认证失败",
+      "responseTime": 348,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.902Z"
+    },
+    {
+      "id": 36,
+      "channelId": 1,
+      "supplierId": 1,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-03-27T10:23:17.885Z",
+      "requestParams": {
+        "phone": "138****5599",
+        "name": "测试用户",
+        "idCard": "821289*************"
+      },
+      "responseParams": {
+        "resultCode": "00",
+        "message": "认证成功",
+        "verifyId": "V1776237917903762"
+      },
+      "responseCode": "00",
+      "responseMessage": "成功",
+      "responseTime": 354,
+      "cost": 0.5,
+      "success": true,
+      "createdAt": "2026-04-15T07:25:17.903Z"
+    },
+    {
+      "id": 37,
+      "channelId": 4,
+      "supplierId": 3,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-03-19T01:43:17.885Z",
+      "requestParams": {
+        "phone": "138****3060",
+        "name": "测试用户",
+        "idCard": "484594*************"
+      },
+      "responseParams": {
+        "resultCode": "02",
+        "message": "认证失败",
+        "verifyId": "V1776237917903645"
+      },
+      "responseCode": "02",
+      "responseMessage": "系统繁忙",
+      "responseTime": 329,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.903Z"
+    },
+    {
+      "id": 38,
+      "channelId": 2,
+      "supplierId": 1,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-04-07T07:41:17.885Z",
+      "requestParams": {
+        "phone": "138****6637",
+        "name": "测试用户",
+        "idCard": "830455*************"
+      },
+      "responseParams": {
+        "resultCode": "01",
+        "message": "认证失败",
+        "verifyId": "V1776237917904487"
+      },
+      "responseCode": "01",
+      "responseMessage": "认证失败",
+      "responseTime": 421,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.904Z"
+    },
+    {
+      "id": 39,
+      "channelId": 2,
+      "supplierId": 1,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-04-01T13:29:17.885Z",
+      "requestParams": {
+        "phone": "138****2520",
+        "name": "测试用户",
+        "idCard": "826776*************"
+      },
+      "responseParams": {
+        "resultCode": "03",
+        "message": "认证失败",
+        "verifyId": "V1776237917904226"
+      },
+      "responseCode": "03",
+      "responseMessage": "参数错误",
+      "responseTime": 103,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.904Z"
+    },
+    {
+      "id": 40,
+      "channelId": 3,
+      "supplierId": 2,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-04-04T16:04:17.885Z",
+      "requestParams": {
+        "phone": "138****7366",
+        "name": "测试用户",
+        "idCard": "476631*************"
+      },
+      "responseParams": {
+        "resultCode": "00",
+        "message": "认证成功",
+        "verifyId": "V177623791790535"
+      },
+      "responseCode": "00",
+      "responseMessage": "成功",
+      "responseTime": 153,
+      "cost": 0.5,
+      "success": true,
+      "createdAt": "2026-04-15T07:25:17.905Z"
+    },
+    {
+      "id": 41,
+      "channelId": 2,
+      "supplierId": 1,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-04-08T19:51:17.885Z",
+      "requestParams": {
+        "phone": "138****6975",
+        "name": "测试用户",
+        "idCard": "782918*************"
+      },
+      "responseParams": {
+        "resultCode": "00",
+        "message": "认证成功",
+        "verifyId": "V1776237917906293"
+      },
+      "responseCode": "00",
+      "responseMessage": "成功",
+      "responseTime": 210,
+      "cost": 0.5,
+      "success": true,
+      "createdAt": "2026-04-15T07:25:17.906Z"
+    },
+    {
+      "id": 42,
+      "channelId": 4,
+      "supplierId": 3,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-03-22T07:28:17.885Z",
+      "requestParams": {
+        "phone": "138****9535",
+        "name": "测试用户",
+        "idCard": "446694*************"
+      },
+      "responseParams": {
+        "resultCode": "01",
+        "message": "认证失败",
+        "verifyId": "V1776237917906127"
+      },
+      "responseCode": "01",
+      "responseMessage": "认证失败",
+      "responseTime": 447,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.906Z"
+    },
+    {
+      "id": 43,
+      "channelId": 1,
+      "supplierId": 1,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-04-09T18:52:17.885Z",
+      "requestParams": {
+        "phone": "138****7900",
+        "name": "测试用户",
+        "idCard": "529503*************"
+      },
+      "responseParams": {
+        "resultCode": "01",
+        "message": "认证失败",
+        "verifyId": "V1776237917907362"
+      },
+      "responseCode": "01",
+      "responseMessage": "认证失败",
+      "responseTime": 505,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.907Z"
+    },
+    {
+      "id": 44,
+      "channelId": 3,
+      "supplierId": 2,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-04-14T20:47:17.885Z",
+      "requestParams": {
+        "phone": "138****2339",
+        "name": "测试用户",
+        "idCard": "124440*************"
+      },
+      "responseParams": {
+        "resultCode": "01",
+        "message": "认证失败",
+        "verifyId": "V1776237917907766"
+      },
+      "responseCode": "01",
+      "responseMessage": "认证失败",
+      "responseTime": 218,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.907Z"
+    },
+    {
+      "id": 45,
+      "channelId": 4,
+      "supplierId": 3,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-03-31T05:20:17.885Z",
+      "requestParams": {
+        "phone": "138****7526",
+        "name": "测试用户",
+        "idCard": "196477*************"
+      },
+      "responseParams": {
+        "resultCode": "01",
+        "message": "认证失败",
+        "verifyId": "V177623791790881"
+      },
+      "responseCode": "01",
+      "responseMessage": "认证失败",
+      "responseTime": 332,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.908Z"
+    },
+    {
+      "id": 46,
+      "channelId": 4,
+      "supplierId": 3,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-04-11T10:05:17.885Z",
+      "requestParams": {
+        "phone": "138****2625",
+        "name": "测试用户",
+        "idCard": "534315*************"
+      },
+      "responseParams": {
+        "resultCode": "02",
+        "message": "认证失败",
+        "verifyId": "V1776237917909213"
+      },
+      "responseCode": "02",
+      "responseMessage": "系统繁忙",
+      "responseTime": 170,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.909Z"
+    },
+    {
+      "id": 47,
+      "channelId": 1,
+      "supplierId": 1,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-04-01T05:16:17.885Z",
+      "requestParams": {
+        "phone": "138****4741",
+        "name": "测试用户",
+        "idCard": "255869*************"
+      },
+      "responseParams": {
+        "resultCode": "00",
+        "message": "认证成功",
+        "verifyId": "V1776237917909321"
+      },
+      "responseCode": "00",
+      "responseMessage": "成功",
+      "responseTime": 53,
+      "cost": 0.5,
+      "success": true,
+      "createdAt": "2026-04-15T07:25:17.909Z"
+    },
+    {
+      "id": 48,
+      "channelId": 1,
+      "supplierId": 1,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-03-23T01:21:17.885Z",
+      "requestParams": {
+        "phone": "138****4007",
+        "name": "测试用户",
+        "idCard": "361434*************"
+      },
+      "responseParams": {
+        "resultCode": "01",
+        "message": "认证失败",
+        "verifyId": "V1776237917910742"
+      },
+      "responseCode": "01",
+      "responseMessage": "认证失败",
+      "responseTime": 82,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.910Z"
+    },
+    {
+      "id": 49,
+      "channelId": 4,
+      "supplierId": 3,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-03-22T16:53:17.885Z",
+      "requestParams": {
+        "phone": "138****4778",
+        "name": "测试用户",
+        "idCard": "698752*************"
+      },
+      "responseParams": {
+        "resultCode": "01",
+        "message": "认证失败",
+        "verifyId": "V1776237917910782"
+      },
+      "responseCode": "01",
+      "responseMessage": "认证失败",
+      "responseTime": 74,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.910Z"
+    },
+    {
+      "id": 50,
+      "channelId": 1,
+      "supplierId": 1,
+      "customerId": 1,
+      "productId": 1,
+      "callTime": "2026-03-23T09:36:17.885Z",
+      "requestParams": {
+        "phone": "138****1893",
+        "name": "测试用户",
+        "idCard": "953535*************"
+      },
+      "responseParams": {
+        "resultCode": "01",
+        "message": "认证失败",
+        "verifyId": "V177623791791180"
+      },
+      "responseCode": "01",
+      "responseMessage": "认证失败",
+      "responseTime": 461,
+      "cost": 0.5,
+      "success": false,
+      "createdAt": "2026-04-15T07:25:17.911Z"
+    }
+  ],
+  "supplierBills": [
+    {
+      "id": 1,
+      "supplierId": 1,
+      "billNo": "BILL20260415897",
+      "periodStart": "2026-02-28",
+      "periodEnd": "2026-03-30",
+      "settlementType": "monthly",
+      "totalAmount": 5.5,
+      "status": "generated",
+      "generatedAt": "2026-04-15T03:22:06.159Z",
+      "createdAt": "2026-04-15T03:22:06.159Z",
+      "updatedAt": "2026-04-15T03:22:06.161Z"
+    }
+  ],
+  "billItems": [
+    {
+      "id": 1,
+      "billId": 1,
+      "channelId": 1,
+      "callCount": 5,
+      "successCount": 2,
+      "failedCount": 3,
+      "costRule": {
+        "rule_type": "per_call",
+        "rule_config": {
+          "price": 0.5
+        }
+      },
+      "amount": 2.5
+    },
+    {
+      "id": 2,
+      "billId": 1,
+      "channelId": 2,
+      "callCount": 6,
+      "successCount": 1,
+      "failedCount": 5,
+      "costRule": {
+        "rule_type": "tiered",
+        "rule_config": {
+          "cycle": "month",
+          "tiers": [
+            {
+              "range": "1-1000",
+              "price": 0.5
+            },
+            {
+              "range": "1000-20000",
+              "price": 0.3
+            }
+          ]
+        }
+      },
+      "amount": 3
+    }
+  ]
 }
