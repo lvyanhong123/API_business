@@ -266,6 +266,7 @@
                   <div class="menu-sub-item ${activeTabId === 'scripts-all' ? 'active' : ''}" data-tab-id="scripts-all" onclick="openTab('scripts-all', '脚本列表')">脚本列表</div>
                   <div class="menu-sub-item ${activeTabId === 'call-logs' ? 'active' : ''}" data-tab-id="call-logs" onclick="openTab('call-logs', '调用明细')">调用明细</div>
                   <div class="menu-sub-item ${activeTabId === 'supplier-bills' ? 'active' : ''}" data-tab-id="supplier-bills" onclick="openTab('supplier-bills', '供应商账单')">供应商账单</div>
+                  <div class="menu-sub-item ${activeTabId === 'customer-bills' ? 'active' : ''}" data-tab-id="customer-bills" onclick="openTab('customer-bills', '客户账单')">客户账单</div>
                 </div>
               </div>
               <div class="menu-item ${activeTabId === 'products' ? 'active' : ''}" data-tab-id="products" onclick="openTab('products', '产品管理')">产品管理</div>
@@ -335,6 +336,9 @@
           activeMenuGroup = 'suppliers';
         } else if (tabId === 'supplier-bills') {
           tabs.push({ id: tabId, name: '供应商账单' });
+          activeMenuGroup = 'suppliers';
+        } else if (tabId === 'customer-bills') {
+          tabs.push({ id: tabId, name: '客户账单' });
           activeMenuGroup = 'suppliers';
         } else if (tabId.startsWith('bill-detail-')) {
           tabs.push({ id: tabId, name: '账单详情' });
@@ -500,6 +504,7 @@
       else if (tabId === 'scripts-all') loadAllScripts();
       else if (tabId === 'call-logs') loadCallLogs();
       else if (tabId === 'supplier-bills') loadSupplierBills();
+      else if (tabId === 'customer-bills') loadCustomerBills();
       else if (tabId.startsWith('script-version-')) {
         const supplierId = tabId.replace('script-version-', '');
         loadScriptVersions(supplierId);
@@ -1543,8 +1548,9 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
           <td>¥${p.pricePerCall || p.subscriptionPrice}</td>
           <td><span class="status ${p.status === 'online' ? 'status-active' : 'status-inactive'}">${p.status === 'online' ? '已上线' : '已下线'}</span></td>
           <td>
-            <button class="action-btn default">编辑</button>
-            <button class="action-btn danger">删除</button>
+            <button class="action-btn default" onclick="showEditProductModal(${p.id})">编辑</button>
+            <button class="action-btn primary" onclick="showProductChannelsModal(${p.id}, '${p.name}')">配置通道</button>
+            <button class="action-btn danger" onclick="deleteProduct(${p.id})">删除</button>
           </td>
         </tr>
       `).join('');
@@ -1578,6 +1584,137 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
       $('#productSupplierSelect').value = '';
       $('#productStatusSelect').value = '';
       filterProducts();
+    }
+
+    async function showProductChannelsModal(productId, productName) {
+      const channelsRes = await fetchAPI('/channels');
+      const productChannelsRes = await fetchAPI('/admin/products/' + productId + '/channels');
+      const allChannels = channelsRes ? channelsRes.channels || [] : [];
+      const assignedChannelIds = productChannelsRes ? productChannelsRes.channels.map(c => c.channelId) : [];
+
+      const availableChannels = allChannels.filter(c => !assignedChannelIds.includes(c.id));
+      const channelOptions = availableChannels.map(c =>
+        `<option value="${c.id}">${c.name} (${c.supplierName || '未知供应商'})</option>`
+      ).join('');
+
+      const assignedChannels = productChannelsRes ? productChannelsRes.channels : [];
+
+      const modal = document.createElement('div');
+      modal.className = 'modal show';
+      modal.id = 'productChannelsModal';
+      modal.innerHTML = `
+        <div class="modal-content" style="max-width:600px;">
+          <h3>配置通道 - ${productName}</h3>
+          <div style="margin:15px 0;">
+            <div style="display:flex;gap:10px;margin-bottom:15px;">
+              <select id="newChannelSelect" class="search-input" style="flex:1;">
+                <option value="">选择要添加的通道</option>
+                ${channelOptions}
+              </select>
+              <label style="display:flex;align-items:center;gap:5px;">
+                <input type="checkbox" id="newChannelIsPrimary"> 主通道
+              </label>
+              <button class="btn btn-small" onclick="addProductChannel(${productId})">添加</button>
+            </div>
+          </div>
+          <div style="margin-bottom:15px;">
+            <h4 style="margin-bottom:10px;">已配置通道：</h4>
+            <div id="assignedChannelsList">
+              ${assignedChannels.length === 0 ? '<p style="color:#999;">暂未配置通道</p>' :
+                assignedChannels.map(c => `
+                  <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;border-bottom:1px solid #eee;">
+                    <div>
+                      <span>${c.channelName}</span>
+                      ${c.isPrimary ? '<span style="background:#1890ff;color:#fff;padding:2px 6px;border-radius:3px;font-size:12px;margin-left:5px;">主</span>' : ''}
+                    </div>
+                    <button class="action-btn danger btn-small" onclick="removeProductChannel(${productId}, ${c.channelId})">移除</button>
+                  </div>
+                `).join('')
+              }
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <button class="btn" onclick="closeProductChannelsModal()">关闭</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    async function addProductChannel(productId) {
+      const channelId = $('#newChannelSelect').value;
+      if (!channelId) {
+        alert('请选择通道');
+        return;
+      }
+      const isPrimary = $('#newChannelIsPrimary').checked;
+      const res = await fetchAPI('/admin/products/' + productId + '/channels', {
+        method: 'POST',
+        body: JSON.stringify({ channelId: parseInt(channelId), isPrimary })
+      });
+      if (res) {
+        const productChannelsRes = await fetchAPI('/admin/products/' + productId + '/channels');
+        const channelsRes = await fetchAPI('/channels');
+        const allChannels = channelsRes ? channelsRes.channels || [] : [];
+        const assignedChannelIds = productChannelsRes ? productChannelsRes.channels.map(c => c.channelId) : [];
+        const availableChannels = allChannels.filter(c => !assignedChannelIds.includes(c.id));
+        const channelOptions = availableChannels.map(c =>
+          `<option value="${c.id}">${c.name} (${c.supplierName || '未知供应商'})</option>`
+        ).join('');
+        $('#newChannelSelect').innerHTML = '<option value="">选择要添加的通道</option>' + channelOptions;
+        const assignedChannels = productChannelsRes ? productChannelsRes.channels : [];
+        $('#assignedChannelsList').innerHTML = assignedChannels.length === 0 ? '<p style="color:#999;">暂未配置通道</p>' :
+          assignedChannels.map(c => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;border-bottom:1px solid #eee;">
+              <div>
+                <span>${c.channelName}</span>
+                ${c.isPrimary ? '<span style="background:#1890ff;color:#fff;padding:2px 6px;border-radius:3px;font-size:12px;margin-left:5px;">主</span>' : ''}
+              </div>
+              <button class="action-btn danger btn-small" onclick="removeProductChannel(${productId}, ${c.channelId})">移除</button>
+            </div>
+          `).join('');
+      }
+    }
+
+    async function removeProductChannel(productId, channelId) {
+      if (!confirm('确定要移除该通道吗？')) return;
+      const res = await fetchAPI('/admin/products/' + productId + '/channels/' + channelId, { method: 'DELETE' });
+      if (res) {
+        const productChannelsRes = await fetchAPI('/admin/products/' + productId + '/channels');
+        const channelsRes = await fetchAPI('/channels');
+        const allChannels = channelsRes ? channelsRes.channels || [] : [];
+        const assignedChannelIds = productChannelsRes ? productChannelsRes.channels.map(c => c.channelId) : [];
+        const availableChannels = allChannels.filter(c => !assignedChannelIds.includes(c.id));
+        const channelOptions = availableChannels.map(c =>
+          `<option value="${c.id}">${c.name} (${c.supplierName || '未知供应商'})</option>`
+        ).join('');
+        $('#newChannelSelect').innerHTML = '<option value="">选择要添加的通道</option>' + channelOptions;
+        const assignedChannels = productChannelsRes ? productChannelsRes.channels : [];
+        $('#assignedChannelsList').innerHTML = assignedChannels.length === 0 ? '<p style="color:#999;">暂未配置通道</p>' :
+          assignedChannels.map(c => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;border-bottom:1px solid #eee;">
+              <div>
+                <span>${c.channelName}</span>
+                ${c.isPrimary ? '<span style="background:#1890ff;color:#fff;padding:2px 6px;border-radius:3px;font-size:12px;margin-left:5px;">主</span>' : ''}
+              </div>
+              <button class="action-btn danger btn-small" onclick="removeProductChannel(${productId}, ${c.channelId})">移除</button>
+            </div>
+          `).join('');
+      }
+    }
+
+    function closeProductChannelsModal() {
+      const modal = document.getElementById('productChannelsModal');
+      if (modal) modal.remove();
+    }
+
+    async function deleteProduct(productId) {
+      if (!confirm('确定要删除该产品吗？')) return;
+      const res = await fetchAPI('/admin/products/' + productId, { method: 'DELETE' });
+      if (res) {
+        alert('删除成功');
+        loadProducts();
+      }
     }
 
     let orderAllData = [];
@@ -1720,19 +1857,28 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
     let customerPageSize = 20;
 
     async function loadCustomers() {
-      const data = await fetchAPI('/stats/customers');
-      if (!data) return;
-      customerAllData = data || [];
+      const statsRes = await fetchAPI('/stats/customers');
+      const accountsRes = await fetchAPI('/customers/accounts');
+      if (!statsRes) return;
+      const statsData = statsRes || [];
+      const accountsData = accountsRes ? accountsRes.accounts || [] : [];
+      const accountMap = {};
+      accountsData.forEach(a => accountMap[a.customerId] = a);
+      customerAllData = statsData.map(s => ({
+        ...s,
+        balance: accountMap[s.id]?.balance || 0,
+        creditLimit: accountMap[s.id]?.creditLimit || 0
+      }));
       customerCurrentPage = 1;
       $('#tabContent').innerHTML = `
         <div class="card">
           <div class="card-header">
-            <div class="card-title">客户统计</div>
+            <div class="card-title">客户列表</div>
           </div>
           <div class="search-results" id="customerSearchResults">共 0 条</div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>公司名称</th><th>总调用次数</th><th>总消费</th></tr></thead>
+              <thead><tr><th>ID</th><th>公司名称</th><th>账户余额</th><th>信用额度</th><th>总调用</th><th>操作</th></tr></thead>
               <tbody id="customersTableBody"></tbody>
             </table>
           </div>
@@ -1783,9 +1929,15 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
 
       $('#customersTableBody').innerHTML = paginatedData.map(c => `
         <tr>
+          <td>${c.id || '-'}</td>
           <td>${c.companyName || '-'}</td>
-          <td>${c.totalCalls}</td>
-          <td>¥${c.totalSpent || 0}</td>
+          <td style="color:${c.balance > 0 ? '#52c41a' : '#ff4d4f'};">¥${c.balance || 0}</td>
+          <td>¥${c.creditLimit || 0}</td>
+          <td>${c.totalCalls || 0}</td>
+          <td>
+            <button class="action-btn primary btn-small" onclick="showRechargeModal(${c.id}, '${c.companyName || ''}')">充值</button>
+            <button class="action-btn default btn-small" onclick="showRefundModal(${c.id}, '${c.companyName || ''}')">退款</button>
+          </td>
         </tr>
       `).join('');
 
@@ -1793,13 +1945,126 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
       $('#customerPagination').innerHTML = renderCustomerPagination(total, customerCurrentPage, customerPageSize);
     }
 
+    async function showRechargeModal(customerId, customerName) {
+      const modal = document.createElement('div');
+      modal.className = 'modal show';
+      modal.id = 'rechargeModal';
+      modal.innerHTML = `
+        <div class="modal-content" style="max-width:400px;">
+          <h3>充值 - ${customerName}</h3>
+          <div class="form-group">
+            <label>充值金额</label>
+            <input type="number" id="rechargeAmount" placeholder="请输入金额" min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>支付方式</label>
+            <select id="rechargeMethod" class="search-input" style="width:100%;">
+              <option value="bank">对公转账</option>
+              <option value="alipay">支付宝</option>
+              <option value="wechat">微信</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>备注</label>
+            <input type="text" id="rechargeRemark" placeholder="可选">
+          </div>
+          <div style="text-align:right;margin-top:20px;">
+            <button class="btn btn-small" onclick="closeRechargeModal()">取消</button>
+            <button class="btn" onclick="doRecharge(${customerId})">确定充值</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    async function doRecharge(customerId) {
+      const amount = parseFloat($('#rechargeAmount').value);
+      if (!amount || amount <= 0) {
+        alert('请输入正确的金额');
+        return;
+      }
+      const paymentMethod = $('#rechargeMethod').value;
+      const remark = $('#rechargeRemark').value;
+      const res = await fetchAPI('/customers/accounts/' + customerId + '/recharge', {
+        method: 'POST',
+        body: JSON.stringify({ amount, paymentMethod, remark })
+      });
+      if (res) {
+        alert('充值成功');
+        closeRechargeModal();
+        loadCustomers();
+      }
+    }
+
+    function closeRechargeModal() {
+      const modal = document.getElementById('rechargeModal');
+      if (modal) modal.remove();
+    }
+
+    async function showRefundModal(customerId, customerName) {
+      const accountRes = await fetchAPI('/customers/accounts/' + customerId);
+      const balance = accountRes ? accountRes.balance || 0 : 0;
+      const modal = document.createElement('div');
+      modal.className = 'modal show';
+      modal.id = 'refundModal';
+      modal.innerHTML = `
+        <div class="modal-content" style="max-width:400px;">
+          <h3>退款 - ${customerName}</h3>
+          <div class="form-group">
+            <label>可退款余额</label>
+            <div style="padding:8px;background:#f5f5f5;border-radius:4px;">¥${balance}</div>
+          </div>
+          <div class="form-group">
+            <label>退款金额</label>
+            <input type="number" id="refundAmount" placeholder="请输入金额" min="0" max="${balance}" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>退款原因</label>
+            <input type="text" id="refundReason" placeholder="请输入原因">
+          </div>
+          <div style="text-align:right;margin-top:20px;">
+            <button class="btn btn-small" onclick="closeRefundModal()">取消</button>
+            <button class="btn" onclick="doRefund(${customerId})">确定退款</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    async function doRefund(customerId) {
+      const amount = parseFloat($('#refundAmount').value);
+      if (!amount || amount <= 0) {
+        alert('请输入正确的金额');
+        return;
+      }
+      const reason = $('#refundReason').value;
+      const res = await fetchAPI('/customers/accounts/' + customerId + '/refund', {
+        method: 'POST',
+        body: JSON.stringify({ amount, reason })
+      });
+      if (res) {
+        alert('退款成功');
+        closeRefundModal();
+        loadCustomers();
+      }
+    }
+
+    function closeRefundModal() {
+      const modal = document.getElementById('refundModal');
+      if (modal) modal.remove();
+    }
+
     async function approveOrder(id) {
-      await fetchAPI('/orders/' + id + '/approve', { method: 'PUT' });
+      const res = await fetchAPI('/orders/' + id + '/approve', { method: 'PUT' });
+      if (res && res.apiKey) {
+        alert('订单审核通过！\\n\\nAPI Key: ' + res.apiKey + '\\n\\n请告知客户此 Key');
+      }
       loadOrders();
     }
 
     async function rejectOrder(id) {
-      await fetchAPI('/orders/' + id + '/reject', { method: 'PUT', body: JSON.stringify({}) });
+      const reason = prompt('请输入拒绝原因（可选）:');
+      await fetchAPI('/orders/' + id + '/reject', { method: 'PUT', body: JSON.stringify({ reason }) });
       loadOrders();
     }
 
@@ -3145,6 +3410,230 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
         closeModal();
         loadSupplierBills();
       }
+    }
+
+    let customerBillsData = [];
+    let customerBillsCurrentPage = 1;
+    let customerBillsPageSize = 20;
+
+    async function loadCustomerBills() {
+      const customersRes = await fetchAPI('/admin/customers');
+      const customers = customersRes ? customersRes.customers || [] : [];
+      const customerOptions = '<option value="">全部客户</option>' + customers.map(c => `<option value="${c.id}">${c.companyName || c.name}</option>`).join('');
+
+      customerBillsCurrentPage = 1;
+
+      $('#tabContent').innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">搜索项</div>
+          </div>
+          <div class="search-bar">
+            <select id="customerBillCustomerFilter" class="search-input" style="min-width:150px;">${customerOptions}</select>
+            <select id="customerBillPeriodFilter" class="search-input" style="min-width:120px;">
+              <option value="">全部账期</option>
+              <option value="2026-01">2026-01</option>
+              <option value="2026-02">2026-02</option>
+              <option value="2026-03">2026-03</option>
+              <option value="2026-04">2026-04</option>
+            </select>
+            <select id="customerBillStatusFilter" class="search-input" style="min-width:120px;">
+              <option value="">全部状态</option>
+              <option value="pending">待确认</option>
+              <option value="confirmed">已确认</option>
+            </select>
+            <button class="btn btn-small" onclick="filterCustomerBills()">搜索</button>
+            <button class="btn btn-small cancel-btn" onclick="resetCustomerBillFilter()">重置</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">客户账单</div>
+            <button class="btn" onclick="showGenerateCustomerBillModal()">生成账单</button>
+          </div>
+          <div class="search-results" id="customerBillsSearchResults">共 0 条</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>账单编号</th><th>客户名称</th><th>账期</th><th>总金额</th><th>状态</th><th>生成时间</th><th>操作</th></tr></thead>
+              <tbody id="customerBillsTableBody"></tbody>
+            </table>
+          </div>
+          <div id="customerBillsPagination" class="pagination" style="justify-content:flex-end;margin-top:15px;"></div>
+        </div>
+      `;
+      filterCustomerBills();
+    }
+
+    async function filterCustomerBills() {
+      const customerId = $('#customerBillCustomerFilter').value;
+      const period = $('#customerBillPeriodFilter').value;
+      const status = $('#customerBillStatusFilter').value;
+
+      let url = '/admin/customer-bills?page=' + customerBillsCurrentPage + '&limit=' + customerBillsPageSize;
+      if (customerId) url += '&customerId=' + customerId;
+
+      const res = await fetchAPI(url);
+      if (!res) return;
+
+      let bills = res.bills || [];
+
+      if (period) {
+        bills = bills.filter(b => b.period === period);
+      }
+      if (status) {
+        bills = bills.filter(b => b.status === status);
+      }
+
+      customerBillsData = bills;
+
+      $('#customerBillsSearchResults').innerHTML = `共 ${bills.length} 条`;
+      $('#customerBillsTableBody').innerHTML = bills.length === 0
+        ? '<tr><td colspan="7" style="text-align:center;color:#999;">暂无数据</td></tr>'
+        : bills.map(b => `
+          <tr>
+            <td>${b.id}</td>
+            <td>${b.customerName || '-'}</td>
+            <td>${b.period}</td>
+            <td style="color:#ff4d4f;font-weight:500;">¥${(b.totalAmount || 0).toFixed(2)}</td>
+            <td><span class="status ${b.status === 'pending' ? 'status-pending' : 'status-active'}">${b.status === 'pending' ? '待确认' : '已确认'}</span></td>
+            <td>${new Date(b.createdAt).toLocaleString()}</td>
+            <td>
+              <button class="action-btn primary btn-small" onclick="showCustomerBillDetail(${b.id})">详情</button>
+            </td>
+          </tr>
+        `).join('');
+
+      const totalPages = Math.ceil((res.total || 0) / customerBillsPageSize) || 1;
+      let pageHtml = `<button ${customerBillsCurrentPage <= 1 ? 'disabled' : ''} onclick="goToCustomerBillPage(${customerBillsCurrentPage - 1})">上一页</button>`;
+      for (let i = 1; i <= totalPages; i++) {
+        if (totalPages > 7 && i !== 1 && i !== totalPages && Math.abs(i - customerBillsCurrentPage) > 1) {
+          if (i === 2 || i === totalPages - 1) pageHtml += `<span style="padding:0 5px;">...</span>`;
+          continue;
+        }
+        pageHtml += `<button class="${i === customerBillsCurrentPage ? 'active' : ''}" onclick="goToCustomerBillPage(${i})">${i}</button>`;
+      }
+      pageHtml += `<button ${customerBillsCurrentPage >= totalPages ? 'disabled' : ''} onclick="goToCustomerBillPage(${customerBillsCurrentPage + 1})">下一页</button>`;
+      $('#customerBillsPagination').innerHTML = pageHtml;
+    }
+
+    function goToCustomerBillPage(page) {
+      customerBillsCurrentPage = page;
+      filterCustomerBills();
+    }
+
+    function resetCustomerBillFilter() {
+      customerBillsCurrentPage = 1;
+      $('#customerBillCustomerFilter').value = '';
+      $('#customerBillPeriodFilter').value = '';
+      $('#customerBillStatusFilter').value = '';
+      filterCustomerBills();
+    }
+
+    async function showGenerateCustomerBillModal() {
+      const customersRes = await fetchAPI('/admin/customers');
+      const customers = customersRes ? customersRes.customers || [] : [];
+      const customerOptions = customers.map(c => `<option value="${c.id}">${c.companyName || c.name}</option>`).join('');
+
+      const now = new Date();
+      const currentPeriod = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+
+      const modal = document.createElement('div');
+      modal.className = 'modal show';
+      modal.id = 'generateCustomerBillModal';
+      modal.innerHTML = `
+        <div class="modal-content" style="max-width:400px;">
+          <h3>生成客户账单</h3>
+          <div class="form-group">
+            <label>客户</label>
+            <select id="genBillCustomer" class="search-input" style="width:100%;">${customerOptions}</select>
+          </div>
+          <div class="form-group">
+            <label>账期</label>
+            <input type="month" id="genBillPeriod" class="search-input" style="width:100%;" value="${currentPeriod}">
+          </div>
+          <div style="text-align:right;margin-top:20px;">
+            <button class="btn btn-small" onclick="closeGenerateCustomerBillModal()">取消</button>
+            <button class="btn" onclick="generateCustomerBill()">生成</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    function closeGenerateCustomerBillModal() {
+      const modal = document.getElementById('generateCustomerBillModal');
+      if (modal) modal.remove();
+    }
+
+    async function generateCustomerBill() {
+      const customerId = $('#genBillCustomer').value;
+      const period = $('#genBillPeriod').value;
+
+      if (!customerId || !period) {
+        alert('请选择客户和账期');
+        return;
+      }
+
+      const res = await fetchAPI('/admin/customer-bills/generate', {
+        method: 'POST',
+        body: JSON.stringify({ customerId: parseInt(customerId), period })
+      });
+
+      if (res) {
+        alert(res.message || '账单生成成功');
+        closeGenerateCustomerBillModal();
+        loadCustomerBills();
+      }
+    }
+
+    async function showCustomerBillDetail(billId) {
+      const res = await fetchAPI('/admin/customer-bills/' + billId);
+      if (!res) return;
+
+      const bill = res.bill;
+      const items = res.items || [];
+
+      const modal = document.createElement('div');
+      modal.className = 'modal show';
+      modal.id = 'customerBillDetailModal';
+      modal.innerHTML = `
+        <div class="modal-content" style="max-width:700px;max-height:80vh;overflow-y:auto;">
+          <h3>客户账单详情 - ${bill.period}</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin:15px 0;">
+            <div><strong>客户名称：</strong>${bill.customerName || '-'}</div>
+            <div><strong>账期：</strong>${bill.period}</div>
+            <div><strong>状态：</strong>${bill.status === 'pending' ? '待确认' : '已确认'}</div>
+            <div><strong>生成时间：</strong>${new Date(bill.createdAt).toLocaleString()}</div>
+          </div>
+          <table style="width:100%;border-collapse:collapse;margin:15px 0;">
+            <thead><tr style="background:#f5f5f5;"><th>产品名称</th><th>调用次数</th><th>单价</th><th>金额</th></tr></thead>
+            <tbody>
+              ${items.length === 0 ? '<tr><td colspan="4" style="text-align:center;color:#999;">暂无数据</td></tr>' :
+                items.map(item => `
+                  <tr style="border-bottom:1px solid #eee;">
+                    <td style="padding:10px;">${item.productName || '-'}</td>
+                    <td style="padding:10px;">${item.callCount}</td>
+                    <td style="padding:10px;">¥${(item.pricePerCall || 0).toFixed(2)}</td>
+                    <td style="padding:10px;color:#ff4d4f;font-weight:500;">¥${(item.amount || 0).toFixed(2)}</td>
+                  </tr>
+                `).join('')
+              }
+            </tbody>
+          </table>
+          <div style="text-align:right;font-size:20px;font-weight:bold;color:#ff4d4f;padding:10px;border-top:2px solid #eee;">
+            总计: ¥${(bill.totalAmount || 0).toFixed(2)}
+          </div>
+          <div style="text-align:right;margin-top:15px;">
+            <button class="btn" onclick="closeCustomerBillDetailModal()">关闭</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    function closeCustomerBillDetailModal() {
+      const modal = document.getElementById('customerBillDetailModal');
+      if (modal) modal.remove();
     }
 
     async function loadBillDetail(billId) {

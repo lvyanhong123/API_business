@@ -6,12 +6,11 @@ function generateOrderNo() {
 }
 
 exports.createOrder = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-
   const { product, orderType, quantity = 1 } = req.body;
+
+  if (!product || !orderType) {
+    return res.status(400).json({ message: '请选择产品和订单类型' });
+  }
 
   try {
     const productInfo = db.products.findById(product);
@@ -146,19 +145,27 @@ exports.approveOrder = async (req, res) => {
       paidAt: new Date()
     });
 
-    const customer = db.customers.findById(order.customerId);
-    if (!customer.appId) {
-      const appId = 'APP' + Date.now() + Math.random().toString(36).substr(2, 9);
-      const appSecret = 'SK' + Math.random().toString(36).substr(2, 32);
-      db.customers.update(order.customerId, { appId, appSecret });
+    const existingKeys = db.apiKeys.findByCustomerId(order.customerId);
+    const existingForProduct = existingKeys.find(k => k.productId === order.productId);
+    let apiKey = existingForProduct ? existingForProduct.apiKey : null;
+
+    if (!apiKey) {
+      apiKey = 'ak_' + Date.now() + Math.random().toString(36).substr(2, 24);
+      db.apiKeys.create({
+        customerId: order.customerId,
+        productId: order.productId,
+        apiKey: apiKey,
+        status: 'active'
+      });
     }
 
     if (order.orderType === 'per_call') {
-      db.customers.update(order.customerId, { quota: customer.quota + order.quantity });
+      const customer = db.customers.findById(order.customerId);
+      db.customers.update(order.customerId, { quota: (customer.quota || 0) + order.quantity });
     }
 
     const updatedOrder = db.orders.findById(parseInt(id));
-    res.status(200).json({ message: '订单审核通过', order: updatedOrder });
+    res.status(200).json({ message: '订单审核通过', order: updatedOrder, apiKey });
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });
   }

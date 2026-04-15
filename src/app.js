@@ -35,8 +35,17 @@ app.use('/api/orders', orderRoutes);
 const customerRoutes = require('./routes/customerRoutes');
 app.use('/api/customers', customerRoutes);
 
+const customerAccountRoutes = require('./routes/customerAccountRoutes');
+app.use('/api/customers', customerAccountRoutes);
+
+const apiKeyRoutes = require('./routes/apiKeyRoutes');
+app.use('/api/admin/keys', apiKeyRoutes);
+
 const apiProxyRoutes = require('./routes/apiProxyRoutes');
 app.use('/api/v1', apiProxyRoutes);
+
+const apiGatewayRoutes = require('./routes/apiGatewayRoutes');
+app.use('/api/gateway', apiGatewayRoutes);
 
 const statsRoutes = require('./routes/statsRoutes');
 app.use('/api/stats', statsRoutes);
@@ -46,6 +55,9 @@ app.use('/api/admin/call-logs', callLogRoutes);
 
 const billRoutes = require('./routes/billRoutes');
 app.use('/api/admin/bills', billRoutes);
+
+const customerBillRoutes = require('./routes/customerBillRoutes');
+app.use('/api/admin/customer-bills', customerBillRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

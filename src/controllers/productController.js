@@ -104,12 +104,92 @@ exports.deleteProduct = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const deleted = db.products.delete(parseInt(id));
-    if (!deleted) {
+    const product = db.products.findById(parseInt(id));
+    if (!product) {
       return res.status(404).json({ message: '产品不存在' });
     }
 
+    db.productChannels.deleteByProductId(parseInt(id));
+    const deleted = db.products.delete(parseInt(id));
+
     res.status(200).json({ message: '产品删除成功' });
+  } catch (error) {
+    res.status(500).json({ message: '服务器错误' });
+  }
+};
+
+exports.getProductChannels = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const product = db.products.findById(parseInt(id));
+    if (!product) {
+      return res.status(404).json({ message: '产品不存在' });
+    }
+
+    const productChannels = db.productChannels.findByProductId(parseInt(id));
+    const channels = productChannels.map(pc => {
+      const channel = db.channels.findById(pc.channelId);
+      return {
+        id: pc.id,
+        channelId: channel ? channel.id : null,
+        channelName: channel ? channel.name : '-',
+        isPrimary: pc.isPrimary,
+        priority: pc.priority
+      };
+    });
+
+    res.status(200).json({ productId: parseInt(id), channels });
+  } catch (error) {
+    res.status(500).json({ message: '服务器错误' });
+  }
+};
+
+exports.addProductChannel = async (req, res) => {
+  const { id } = req.params;
+  const { channelId, isPrimary = true, priority = 1 } = req.body;
+
+  try {
+    const product = db.products.findById(parseInt(id));
+    if (!product) {
+      return res.status(404).json({ message: '产品不存在' });
+    }
+
+    const channel = db.channels.findById(channelId);
+    if (!channel) {
+      return res.status(404).json({ message: '通道不存在' });
+    }
+
+    const existing = db.productChannels.findByProductIdAndChannelId(parseInt(id), channelId);
+    if (existing) {
+      return res.status(400).json({ message: '该通道已配置到该产品' });
+    }
+
+    const productChannel = db.productChannels.create({
+      productId: parseInt(id),
+      channelId,
+      isPrimary,
+      priority
+    });
+
+    res.status(201).json({ message: '通道添加成功', productChannel });
+  } catch (error) {
+    res.status(500).json({ message: '服务器错误' });
+  }
+};
+
+exports.removeProductChannel = async (req, res) => {
+  const { id, channelId } = req.params;
+
+  try {
+    const productChannel = db.productChannels.findByProductIdAndChannelId(parseInt(id), parseInt(channelId));
+    if (!productChannel) {
+      return res.status(404).json({ message: '产品通道关联不存在' });
+    }
+
+    db.productChannels.delete(productChannel.id);
+
+    res.status(200).json({ message: '通道移除成功' });
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });
   }

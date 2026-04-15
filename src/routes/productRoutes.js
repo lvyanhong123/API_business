@@ -20,4 +20,10 @@ router.put('/:id', auth, productController.updateProduct);
 
 router.delete('/:id', auth, productController.deleteProduct);
 
+router.get('/:id/channels', auth, productController.getProductChannels);
+
+router.post('/:id/channels', auth, productController.addProductChannel);
+
+router.delete('/:id/channels/:channelId', auth, productController.removeProductChannel);
+
 module.exports = router;

@@ -8,9 +8,17 @@ const defaultData = {
   suppliers: [],
   channels: [],
   products: [],
+  productChannels: [],
+  responseCodeMappings: [],
   customers: [],
+  customerAccounts: [],
   orders: [],
-  apiLogs: []
+  apiKeys: [],
+  apiLogs: [],
+  paymentOrders: [],
+  refundOrders: [],
+  customerBills: [],
+  customerBillItems: []
 };
 
 let db = null;
@@ -210,6 +218,81 @@ const dbUtils = {
     }
   },
 
+  productChannels: {
+    findAll: () => loadDb().productChannels || [],
+    findById: (id) => loadDb().productChannels?.find(pc => pc.id === id),
+    findByProductId: (productId) => (loadDb().productChannels || []).filter(pc => pc.productId === productId),
+    findByChannelId: (channelId) => (loadDb().productChannels || []).filter(pc => pc.channelId === channelId),
+    findByProductIdAndChannelId: (productId, channelId) => (loadDb().productChannels || []).find(pc => pc.productId === productId && pc.channelId === channelId),
+    create: (data) => {
+      const newData = loadDb();
+      if (!newData.productChannels) newData.productChannels = [];
+      const id = getNextId('productChannels');
+      const item = { id, ...data, createdAt: new Date() };
+      newData.productChannels.push(item);
+      saveDb();
+      return item;
+    },
+    delete: (id) => {
+      const newData = loadDb();
+      const index = newData.productChannels?.findIndex(pc => pc.id === id);
+      if (index === -1 || index === undefined) return false;
+      newData.productChannels.splice(index, 1);
+      saveDb();
+      return true;
+    },
+    deleteByProductId: (productId) => {
+      const newData = loadDb();
+      newData.productChannels = (newData.productChannels || []).filter(pc => pc.productId !== productId);
+      saveDb();
+    },
+    update: (id, data) => {
+      const newData = loadDb();
+      const index = newData.productChannels?.findIndex(pc => pc.id === id);
+      if (index === -1 || index === undefined) return null;
+      newData.productChannels[index] = { ...newData.productChannels[index], ...data };
+      saveDb();
+      return newData.productChannels[index];
+    }
+  },
+
+  responseCodeMappings: {
+    findAll: () => loadDb().responseCodeMappings || [],
+    findById: (id) => loadDb().responseCodeMappings?.find(m => m.id === id),
+    findByChannelId: (channelId) => (loadDb().responseCodeMappings || []).filter(m => m.channelId === channelId),
+    findByChannelIdAndSourceCode: (channelId, sourceCode) => (loadDb().responseCodeMappings || []).find(m => m.channelId === channelId && m.sourceCode === sourceCode),
+    create: (data) => {
+      const newData = loadDb();
+      if (!newData.responseCodeMappings) newData.responseCodeMappings = [];
+      const id = getNextId('responseCodeMappings');
+      const item = { id, ...data, createdAt: new Date() };
+      newData.responseCodeMappings.push(item);
+      saveDb();
+      return item;
+    },
+    delete: (id) => {
+      const newData = loadDb();
+      const index = newData.responseCodeMappings?.findIndex(m => m.id === id);
+      if (index === -1 || index === undefined) return false;
+      newData.responseCodeMappings.splice(index, 1);
+      saveDb();
+      return true;
+    },
+    deleteByChannelId: (channelId) => {
+      const newData = loadDb();
+      newData.responseCodeMappings = (newData.responseCodeMappings || []).filter(m => m.channelId !== channelId);
+      saveDb();
+    },
+    update: (id, data) => {
+      const newData = loadDb();
+      const index = newData.responseCodeMappings?.findIndex(m => m.id === id);
+      if (index === -1 || index === undefined) return null;
+      newData.responseCodeMappings[index] = { ...newData.responseCodeMappings[index], ...data };
+      saveDb();
+      return newData.responseCodeMappings[index];
+    }
+  },
+
   customers: {
     findAll: () => loadDb().customers,
     findById: (id) => loadDb().customers.find(c => c.id === id),
@@ -249,6 +332,106 @@ const dbUtils = {
     count: () => loadDb().customers.length
   },
 
+  customerAccounts: {
+    findAll: () => loadDb().customerAccounts || [],
+    findById: (id) => loadDb().customerAccounts?.find(ca => ca.id === id),
+    findByCustomerId: (customerId) => (loadDb().customerAccounts || []).find(ca => ca.customerId === customerId),
+    create: (data) => {
+      const newData = loadDb();
+      if (!newData.customerAccounts) newData.customerAccounts = [];
+      const id = getNextId('customerAccounts');
+      const item = { id, ...data, createdAt: new Date(), updatedAt: new Date() };
+      newData.customerAccounts.push(item);
+      saveDb();
+      return item;
+    },
+    update: (id, data) => {
+      const newData = loadDb();
+      const index = newData.customerAccounts?.findIndex(ca => ca.id === id);
+      if (index === -1 || index === undefined) return null;
+      newData.customerAccounts[index] = { ...newData.customerAccounts[index], ...data, updatedAt: new Date() };
+      saveDb();
+      return newData.customerAccounts[index];
+    },
+    updateByCustomerId: (customerId, data) => {
+      const newData = loadDb();
+      const index = newData.customerAccounts?.findIndex(ca => ca.customerId === customerId);
+      if (index === -1 || index === undefined) return null;
+      newData.customerAccounts[index] = { ...newData.customerAccounts[index], ...data, updatedAt: new Date() };
+      saveDb();
+      return newData.customerAccounts[index];
+    }
+  },
+
+  paymentOrders: {
+    findAll: () => loadDb().paymentOrders || [],
+    findById: (id) => loadDb().paymentOrders?.find(p => p.id === id),
+    findByCustomerId: (customerId) => (loadDb().paymentOrders || []).filter(p => p.customerId === customerId),
+    create: (data) => {
+      const newData = loadDb();
+      if (!newData.paymentOrders) newData.paymentOrders = [];
+      const id = getNextId('paymentOrders');
+      const item = { id, ...data, createdAt: new Date() };
+      newData.paymentOrders.push(item);
+      saveDb();
+      return item;
+    }
+  },
+
+  refundOrders: {
+    findAll: () => loadDb().refundOrders || [],
+    findById: (id) => loadDb().refundOrders?.find(r => r.id === id),
+    findByCustomerId: (customerId) => (loadDb().refundOrders || []).filter(r => r.customerId === customerId),
+    create: (data) => {
+      const newData = loadDb();
+      if (!newData.refundOrders) newData.refundOrders = [];
+      const id = getNextId('refundOrders');
+      const item = { id, ...data, createdAt: new Date() };
+      newData.refundOrders.push(item);
+      saveDb();
+      return item;
+    }
+  },
+
+  customerBills: {
+    findAll: () => loadDb().customerBills || [],
+    findById: (id) => loadDb().customerBills?.find(b => b.id === id),
+    findByCustomerId: (customerId) => (loadDb().customerBills || []).filter(b => b.customerId === customerId),
+    findByPeriod: (period) => (loadDb().customerBills || []).filter(b => b.period === period),
+    findByCustomerIdAndPeriod: (customerId, period) => (loadDb().customerBills || []).find(b => b.customerId === customerId && b.period === period),
+    create: (data) => {
+      const newData = loadDb();
+      if (!newData.customerBills) newData.customerBills = [];
+      const id = getNextId('customerBills');
+      const item = { id, ...data, createdAt: new Date() };
+      newData.customerBills.push(item);
+      saveDb();
+      return item;
+    },
+    update: (id, data) => {
+      const newData = loadDb();
+      const index = newData.customerBills?.findIndex(b => b.id === id);
+      if (index === -1 || index === undefined) return null;
+      newData.customerBills[index] = { ...newData.customerBills[index], ...data };
+      saveDb();
+      return newData.customerBills[index];
+    }
+  },
+
+  customerBillItems: {
+    findAll: () => loadDb().customerBillItems || [],
+    findByBillId: (billId) => (loadDb().customerBillItems || []).filter(i => i.billId === billId),
+    create: (data) => {
+      const newData = loadDb();
+      if (!newData.customerBillItems) newData.customerBillItems = [];
+      const id = getNextId('customerBillItems');
+      const item = { id, ...data };
+      newData.customerBillItems.push(item);
+      saveDb();
+      return item;
+    }
+  },
+
   orders: {
     findAll: () => loadDb().orders,
     findById: (id) => loadDb().orders.find(o => o.id === id),
@@ -286,6 +469,39 @@ const dbUtils = {
       return true;
     },
     count: () => loadDb().orders.length
+  },
+
+  apiKeys: {
+    findAll: () => loadDb().apiKeys || [],
+    findById: (id) => loadDb().apiKeys?.find(k => k.id === id),
+    findByApiKey: (apiKey) => (loadDb().apiKeys || []).find(k => k.apiKey === apiKey),
+    findByCustomerId: (customerId) => (loadDb().apiKeys || []).filter(k => k.customerId === customerId),
+    findByProductId: (productId) => (loadDb().apiKeys || []).filter(k => k.productId === productId),
+    create: (data) => {
+      const newData = loadDb();
+      if (!newData.apiKeys) newData.apiKeys = [];
+      const id = getNextId('apiKeys');
+      const item = { id, ...data, createdAt: new Date() };
+      newData.apiKeys.push(item);
+      saveDb();
+      return item;
+    },
+    update: (id, data) => {
+      const newData = loadDb();
+      const index = newData.apiKeys?.findIndex(k => k.id === id);
+      if (index === -1 || index === undefined) return null;
+      newData.apiKeys[index] = { ...newData.apiKeys[index], ...data };
+      saveDb();
+      return newData.apiKeys[index];
+    },
+    delete: (id) => {
+      const newData = loadDb();
+      const index = newData.apiKeys?.findIndex(k => k.id === id);
+      if (index === -1 || index === undefined) return false;
+      newData.apiKeys.splice(index, 1);
+      saveDb();
+      return true;
+    }
   },
 
   apiLogs: {

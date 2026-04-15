@@ -10,12 +10,15 @@ const generateToken = (id) => {
 };
 
 exports.register = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
+  const { companyName, businessLicense, contact, password } = req.body;
+
+  if (!companyName || !businessLicense || !contact?.email || !contact?.phone || !password) {
+    return res.status(400).json({ message: '请填写完整信息' });
   }
 
-  const { companyName, businessLicense, contact, password } = req.body;
+  if (password.length < 6) {
+    return res.status(400).json({ message: '密码长度不能少于6位' });
+  }
 
   try {
     const existing = db.customers.findOne({ businessLicense });
@@ -41,12 +44,11 @@ exports.register = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-
   const { businessLicense, password } = req.body;
+
+  if (!businessLicense || !password) {
+    return res.status(400).json({ message: '请填写营业执照号和密码' });
+  }
 
   try {
     const customer = db.customers.findOne({ businessLicense });

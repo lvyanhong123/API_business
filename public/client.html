@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>客户自助门户</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f2f5; min-height: 100vh; }
+    .header { background: #001529; color: #fff; padding: 0 20px; height: 60px; display: flex; align-items: center; justify-content: space-between; }
+    .logo { font-size: 18px; font-weight: bold; }
+    .user-info { display: flex; align-items: center; gap: 15px; }
+    .logout-btn { background: transparent; border: 1px solid #fff; color: #fff; padding: 5px 15px; border-radius: 4px; cursor: pointer; }
+    .container { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
+    .card { background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 20px; overflow: hidden; }
+    .card-header { padding: 15px 20px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
+    .card-title { font-size: 16px; font-weight: 500; color: #333; }
+    .card-body { padding: 20px; }
+    .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 20px; }
+    .stat-card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center; }
+    .stat-value { font-size: 28px; font-weight: bold; color: #1890ff; }
+    .stat-label { color: #666; margin-top: 5px; font-size: 14px; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #f0f0f0; }
+    th { background: #fafafa; font-weight: 500; color: #333; }
+    .status { padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+    .status-active { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+    .status-inactive { background: #fff2e8; color: #fa8c16; border: 1px solid #ffbb6b; }
+    .status-pending { background: #fffbe6; color: #faad14; border: 1px solid #ffe58f; }
+    .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
+    .btn-primary { background: #1890ff; color: #fff; }
+    .btn-default { background: #fff; color: #333; border: 1px solid #d9d9d9; }
+    .btn-danger { background: #ff4d4f; color: #fff; }
+    .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+    .tab { padding: 10px 20px; background: #fff; border: 1px solid #d9d9d9; border-radius: 4px; cursor: pointer; }
+    .tab.active { background: #1890ff; color: #fff; border-color: #1890ff; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 5px; color: #666; font-size: 14px; }
+    .form-group input, .form-group select { width: 100%; padding: 8px 12px; border: 1px solid #d9d9d9; border-radius: 4px; }
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+    .modal.show { display: flex; }
+    .modal-content { background: #fff; padding: 20px; border-radius: 8px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; }
+    .modal-header { margin-bottom: 20px; font-size: 18px; font-weight: 500; }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+    .api-key-box { background: #f5f5f5; padding: 15px; border-radius: 4px; font-family: monospace; word-break: break-all; margin: 10px 0; }
+    .empty { text-align: center; padding: 40px; color: #999; }
+    .login-page { display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    .login-box { background: #fff; padding: 40px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); width: 400px; }
+    .login-box h2 { text-align: center; margin-bottom: 30px; }
+    .login-box .form-group { margin-bottom: 20px; }
+    .login-box .btn { width: 100%; padding: 12px; font-size: 16px; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div id="loginPage" class="login-page">
+    <div class="login-box">
+      <h2>客户登录</h2>
+      <div class="form-group">
+        <label>营业执照号</label>
+        <input type="text" id="loginLicense" placeholder="请输入营业执照号">
+      </div>
+      <div class="form-group">
+        <label>密码</label>
+        <input type="password" id="loginPassword" placeholder="请输入密码">
+      </div>
+      <button class="btn btn-primary" onclick="doLogin()">登录</button>
+      <p style="text-align:center;margin-top:15px;color:#666;">
+        还没有账号？<a href="#" onclick="showRegister()" style="color:#1890ff;">立即注册</a>
+      </p>
+    </div>
+  </div>
+
+  <div id="mainPage" class="hidden">
+    <div class="header">
+      <div class="logo">客户自助门户</div>
+      <div class="user-info">
+        <span id="userName"></span>
+        <button class="logout-btn" onclick="logout()">退出</button>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="statBalance">¥0</div>
+          <div class="stat-label">账户余额</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statQuota">0</div>
+          <div class="stat-label">API配额</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statCalls">0</div>
+          <div class="stat-label">总调用次数</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statOrders">0</div>
+          <div class="stat-label">订单数</div>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('products')">产品列表</div>
+        <div class="tab" onclick="switchTab('orders')">我的订单</div>
+        <div class="tab" onclick="switchTab('apikeys')">API密钥</div>
+        <div class="tab" onclick="switchTab('calllogs')">调用记录</div>
+      </div>
+
+      <div id="productsTab">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">可购买产品</div>
+          </div>
+          <div class="card-body">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>产品编码</th><th>产品名称</th><th>计费方式</th><th>价格</th><th>操作</th></tr></thead>
+                <tbody id="productsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="ordersTab" class="hidden">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">我的订单</div>
+          </div>
+          <div class="card-body">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>订单号</th><th>产品</th><th>类型</th><th>金额</th><th>审核状态</th><th>支付状态</th><th>时间</th></tr></thead>
+                <tbody id="ordersTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="apikeysTab" class="hidden">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">我的API密钥</div>
+            <button class="btn btn-primary btn-small" onclick="showApiKeyModal()">查看密钥</button>
+          </div>
+          <div class="card-body">
+            <div id="apiKeyList"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="calllogsTab" class="hidden">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">调用记录</div>
+          </div>
+          <div class="card-body">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>调用时间</th><th>产品</th><th>响应码</th><th>响应信息</th><th>耗时</th></tr></thead>
+                <tbody id="callLogsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="registerModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">客户注册</div>
+      <div class="form-group">
+        <label>公司名称</label>
+        <input type="text" id="regCompanyName" placeholder="请输入公司名称">
+      </div>
+      <div class="form-group">
+        <label>营业执照号</label>
+        <input type="text" id="regLicense" placeholder="请输入营业执照号">
+      </div>
+      <div class="form-group">
+        <label>联系人</label>
+        <input type="text" id="regContact" placeholder="请输入联系人">
+      </div>
+      <div class="form-group">
+        <label>密码</label>
+        <input type="password" id="regPassword" placeholder="请输入密码">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-default" onclick="closeModal('registerModal')">取消</button>
+        <button class="btn btn-primary" onclick="doRegister()">注册</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="orderModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">购买产品</div>
+      <div class="form-group">
+        <label>产品</label>
+        <div id="orderProductName" style="padding:8px;background:#f5f5f5;border-radius:4px;"></div>
+      </div>
+      <div class="form-group">
+        <label>计费类型</label>
+        <select id="orderType" onchange="toggleQuantity()">
+          <option value="per_call">按次计费</option>
+          <option value="subscription">包月订阅</option>
+        </select>
+      </div>
+      <div class="form-group" id="quantityGroup">
+        <label>购买次数</label>
+        <input type="number" id="orderQuantity" value="100" min="1">
+      </div>
+      <div class="form-group" id="monthsGroup" style="display:none;">
+        <label>订阅月数</label>
+        <input type="number" id="orderMonths" value="1" min="1">
+      </div>
+      <div style="padding:10px;background:#e6f7ff;border-radius:4px;margin-bottom:15px;">
+        应付金额：<span id="orderAmount" style="font-size:20px;font-weight:bold;color:#1890ff;">¥0</span>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-default" onclick="closeModal('orderModal')">取消</button>
+        <button class="btn btn-primary" onclick="submitOrder()">提交订单</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="apiKeyModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">我的API密钥</div>
+      <div id="apiKeyContent"></div>
+      <div class="modal-footer">
+        <button class="btn btn-default" onclick="closeModal('apiKeyModal')">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'http://localhost:3001/api';
+    let token = localStorage.getItem('customerToken');
+    let customerId = localStorage.getItem('customerId');
+    let currentProduct = null;
+    let products = [];
+
+    if (token) {
+      showMainPage();
+    }
+
+    function showRegister() {
+      document.getElementById('registerModal').classList.add('show');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('show');
+    }
+
+    async function doLogin() {
+      const license = document.getElementById('loginLicense').value;
+      const password = document.getElementById('loginPassword').value;
+
+      if (!license || !password) {
+        alert('请填写完整信息');
+        return;
+      }
+
+      const res = await fetch(API_BASE + '/customers/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ businessLicense: license, password })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem('customerToken', data.token);
+        localStorage.setItem('customerId', data.customer.id);
+        localStorage.setItem('customerName', data.customer.companyName);
+        token = data.token;
+        customerId = data.customer.id;
+        showMainPage();
+      } else {
+        alert(data.message || '登录失败');
+      }
+    }
+
+    async function doRegister() {
+      const companyName = document.getElementById('regCompanyName').value;
+      const businessLicense = document.getElementById('regLicense').value;
+      const contact = document.getElementById('regContact').value;
+      const password = document.getElementById('regPassword').value;
+
+      if (!companyName || !businessLicense || !contact || !password) {
+        alert('请填写完整信息');
+        return;
+      }
+
+      const res = await fetch(API_BASE + '/customers/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ companyName, businessLicense, contact, password })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert('注册成功，请登录');
+        closeModal('registerModal');
+        document.getElementById('loginLicense').value = businessLicense;
+      } else {
+        alert(data.message || '注册失败');
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('customerToken');
+      localStorage.removeItem('customerId');
+      localStorage.removeItem('customerName');
+      location.reload();
+    }
+
+    function showMainPage() {
+      document.getElementById('loginPage').classList.add('hidden');
+      document.getElementById('mainPage').classList.remove('hidden');
+      document.getElementById('userName').textContent = localStorage.getItem('customerName') || '';
+      loadStats();
+      loadProducts();
+    }
+
+    async function loadStats() {
+      const headers = { 'Authorization': 'Bearer ' + token };
+
+      const [accountRes, keysRes, ordersRes] = await Promise.all([
+        fetch(API_BASE + '/accounts/' + customerId, { headers }),
+        fetch(API_BASE + '/keys/customer', { headers }),
+        fetch(API_BASE + '/orders', { headers })
+      ]);
+
+      const account = accountRes.ok ? await accountRes.json() : { balance: 0, creditLimit: 0 };
+      const keys = keysRes.ok ? await keysRes.json() : { keys: [] };
+      const orders = ordersRes.ok ? await ordersRes.json() : { orders: [] };
+
+      document.getElementById('statBalance').textContent = '¥' + (account.balance || 0);
+      document.getElementById('statQuota').textContent = keys.keys.length;
+      document.getElementById('statOrders').textContent = orders.orders?.length || 0;
+      document.getElementById('statCalls').textContent = '0';
+    }
+
+    async function loadProducts() {
+      const res = await fetch(API_BASE + '/products');
+      const data = await res.json();
+      products = data.products?.filter(p => p.status === 'online') || [];
+
+      document.getElementById('productsTableBody').innerHTML = products.map(p => `
+        <tr>
+          <td>${p.code}</td>
+          <td>${p.name}</td>
+          <td>${p.pricingType === 'per_call' ? '按次' : '包月'}</td>
+          <td>¥${p.pricingType === 'per_call' ? p.pricePerCall : p.subscriptionPrice}</td>
+          <td><button class="btn btn-primary btn-small" onclick="showOrderModal(${p.id})">购买</button></td>
+        </tr>
+      `).join('') || '<tr><td colspan="5" class="empty">暂无可购买产品</td></tr>';
+    }
+
+    async function loadOrders() {
+      const res = await fetch(API_BASE + '/orders', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      const orders = data.orders || [];
+
+      document.getElementById('ordersTableBody').innerHTML = orders.map(o => `
+        <tr>
+          <td>${o.orderNo}</td>
+          <td>${o.product?.name || '-'}</td>
+          <td>${o.orderType === 'per_call' ? '按次' : '包月'}</td>
+          <td>¥${o.amount}</td>
+          <td><span class="status status-${o.reviewStatus}">${o.reviewStatus === 'pending' ? '待审核' : o.reviewStatus === 'approved' ? '已通过' : '已拒绝'}</span></td>
+          <td><span class="status status-${o.paymentStatus}">${o.paymentStatus === 'paid' ? '已支付' : '未支付'}</span></td>
+          <td>${new Date(o.createdAt).toLocaleString()}</td>
+        </tr>
+      `).join('') || '<tr><td colspan="7" class="empty">暂无订单</td></tr>';
+    }
+
+    async function loadApiKeys() {
+      const res = await fetch(API_BASE + '/keys/customer', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      const keys = data.keys || [];
+
+      if (keys.length === 0) {
+        document.getElementById('apiKeyList').innerHTML = '<div class="empty">暂无API密钥，请先购买产品</div>';
+      } else {
+        document.getElementById('apiKeyList').innerHTML = keys.map(k => `
+          <div style="padding:15px;border:1px solid #e8e8e8;border-radius:4px;margin-bottom:10px;">
+            <div style="margin-bottom:5px;"><strong>产品：</strong>${k.productName}</div>
+            <div style="margin-bottom:5px;"><strong>密钥：</strong><code style="background:#f5f5f5;padding:2px 6px;border-radius:3px;">${k.apiKey}</code></div>
+            <div><strong>状态：</strong><span class="status status-${k.status}">${k.status === 'active' ? '正常' : '已吊销'}</span></div>
+          </div>
+        `).join('');
+      }
+    }
+
+    async function loadCallLogs() {
+      const res = await fetch(API_BASE + '/call-logs', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      const logs = data.logs || [];
+
+      document.getElementById('callLogsTableBody').innerHTML = logs.map(l => `
+        <tr>
+          <td>${new Date(l.callTime).toLocaleString()}</td>
+          <td>${l.productName || '-'}</td>
+          <td><span class="status status-${l.success ? 'active' : 'inactive'}">${l.responseCode}</span></td>
+          <td>${l.responseMessage || '-'}</td>
+          <td>${l.responseTime}ms</td>
+        </tr>
+      `).join('') || '<tr><td colspan="5" class="empty">暂无调用记录</td></tr>';
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+
+      document.getElementById('productsTab').classList.add('hidden');
+      document.getElementById('ordersTab').classList.add('hidden');
+      document.getElementById('apikeysTab').classList.add('hidden');
+      document.getElementById('calllogsTab').classList.add('hidden');
+
+      if (tab === 'products') {
+        document.getElementById('productsTab').classList.remove('hidden');
+      } else if (tab === 'orders') {
+        document.getElementById('ordersTab').classList.remove('hidden');
+        loadOrders();
+      } else if (tab === 'apikeys') {
+        document.getElementById('apikeysTab').classList.remove('hidden');
+        loadApiKeys();
+      } else if (tab === 'calllogs') {
+        document.getElementById('calllogsTab').classList.remove('hidden');
+        loadCallLogs();
+      }
+    }
+
+    function showOrderModal(productId) {
+      currentProduct = products.find(p => p.id === productId);
+      if (!currentProduct) return;
+
+      document.getElementById('orderProductName').textContent = currentProduct.name;
+      document.getElementById('orderType').value = 'per_call';
+      document.getElementById('orderQuantity').value = 100;
+      document.getElementById('orderMonths').value = 1;
+      toggleQuantity();
+      document.getElementById('orderModal').classList.add('show');
+    }
+
+    function toggleQuantity() {
+      const type = document.getElementById('orderType').value;
+      document.getElementById('quantityGroup').style.display = type === 'per_call' ? 'block' : 'none';
+      document.getElementById('monthsGroup').style.display = type === 'subscription' ? 'block' : 'none';
+      calculateAmount();
+    }
+
+    function calculateAmount() {
+      if (!currentProduct) return;
+      const type = document.getElementById('orderType').value;
+      let amount = 0;
+      if (type === 'per_call') {
+        amount = currentProduct.pricePerCall * (parseInt(document.getElementById('orderQuantity').value) || 0);
+      } else {
+        amount = currentProduct.subscriptionPrice * (parseInt(document.getElementById('orderMonths').value) || 0);
+      }
+      document.getElementById('orderAmount').textContent = '¥' + amount.toFixed(2);
+    }
+
+    document.getElementById('orderQuantity')?.addEventListener('input', calculateAmount);
+    document.getElementById('orderMonths')?.addEventListener('input', calculateAmount);
+
+    async function submitOrder() {
+      if (!currentProduct) return;
+
+      const orderType = document.getElementById('orderType').value;
+      const quantity = parseInt(document.getElementById('orderQuantity').value) || 100;
+      const months = parseInt(document.getElementById('orderMonths').value) || 1;
+
+      const res = await fetch(API_BASE + '/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({
+          product: currentProduct.id,
+          orderType,
+          quantity: orderType === 'per_call' ? quantity : months
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert('订单提交成功，等待审核');
+        closeModal('orderModal');
+        loadOrders();
+      } else {
+        alert(data.message || '订单提交失败');
+      }
+    }
+
+    async function showApiKeyModal() {
+      const res = await fetch(API_BASE + '/keys/customer', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await res.json();
+      const keys = data.keys || [];
+
+      if (keys.length === 0) {
+        document.getElementById('apiKeyContent').innerHTML = '<p>暂无API密钥，请先购买产品并等待审核通过</p>';
+      } else {
+        document.getElementById('apiKeyContent').innerHTML = keys.map(k => `
+          <div style="margin-bottom:15px;">
+            <div style="margin-bottom:5px;"><strong>产品：</strong>${k.productName}</div>
+            <div class="api-key-box">
+              <strong>API Key：</strong>${k.apiKey}
+            </div>
+          </div>
+        `).join('');
+      }
+
+      document.getElementById('apiKeyModal').classList.add('show');
+    }
+  </script>
+</body>
+</html>
