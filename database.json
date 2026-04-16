@@ -188,7 +188,7 @@
         "phone": "13800138000",
         "email": "test@example.com"
       },
-      "password": "$2a$10$ds.1NrBjN3QF7PrYqsbr6unozs/WAhcZ2Wos1EEDSq1LKeJDjcgfO",
+      "password": "$2a$10$iGlGeirk/vCIrC4offyLMOEfKOsO8jf5YnFfrR4ve.nNMNQpZU.J2",
       "quota": 100,
       "status": "active",
       "createdAt": "2026-04-13T06:33:19.074Z",
@@ -1537,6 +1537,29 @@
       "apiKey": "ak_1776246708457xbwebf5m26j",
       "status": "active",
       "createdAt": "2026-04-15T09:51:48.457Z"
+    }
+  ],
+  "customerBills": [
+    {
+      "id": 1,
+      "customerId": 1,
+      "period": "2026-03",
+      "totalAmount": 0.4,
+      "status": "pending",
+      "generatedAt": "2026-04-16T10:30:20.551Z",
+      "createdAt": "2026-04-16T10:30:20.551Z"
+    }
+  ],
+  "customerBillItems": [
+    {
+      "id": 1,
+      "billId": 1,
+      "productId": 1,
+      "productName": "实名认证API",
+      "productCode": "identity_verify",
+      "callCount": 4,
+      "pricePerCall": 0.1,
+      "amount": 0.4
     }
   ]
 }

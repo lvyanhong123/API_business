@@ -59,6 +59,22 @@ app.use('/api/admin/bills', billRoutes);
 const customerBillRoutes = require('./routes/customerBillRoutes');
 app.use('/api/admin/customer-bills', customerBillRoutes);
 
+const db = require('./config/database');
+app.get('/api/admin/customers', (req, res) => {
+  const customers = db.customers.findAll().map(c => ({
+    id: c.id,
+    companyName: c.companyName,
+    name: c.companyName,
+    businessLicense: c.businessLicense,
+    contact: c.contact,
+    status: c.status,
+    quota: c.quota,
+    paymentType: c.paymentType,
+    createdAt: c.createdAt
+  }));
+  res.json({ customers });
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`服务器运行在端口 ${PORT}`);
