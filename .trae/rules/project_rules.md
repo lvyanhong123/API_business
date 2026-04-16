@@ -36,12 +36,13 @@
 ### 文档更新规则
 
 - 当用户确认新的业务决策、需求变更或规范更新时，AI 应主动更新相应的规范文档
-- 文档归属判断：
+- 规范归属判断：
   - **约束 AI 行为** → project_rules.md
   - **前端组件选择/组合** → component-standard.md
   - **视觉样式** → ui-interaction-standard.md
   - **命名/逻辑/后端** → logic-standard.md
   - **业务知识/需求** → API_business_project.md
+- **例外**：如果该规范需要用户显式指令触发，且有明确操作步骤（如 Git 上传），应创建 Skill 存放到 `.trae/skills/<name>/SKILL.md`，而不是文档
 
 ---
 
