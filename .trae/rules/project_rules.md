@@ -44,6 +44,12 @@
   - **业务知识/需求** → API_business_project.md
 - **例外**：如果该规范需要用户显式指令触发，且有明确操作步骤（如 Git 上传），应创建 Skill 存放到 `.trae/skills/<name>/SKILL.md`，而不是文档
 
+### 讨论记录规则
+
+- 当用户说"任务结束"或"今天就到这里"时，询问是否需要总结当天的讨论
+- 在对话过程中，将值得总结的讨论记录到 todo list
+- 讨论记录存放目录：`docs/discussions/`，文件命名格式：`YYYY-MM-DD-主题.md`
+
 ---
 
 ## 强制执行的组件规范 (Component Rules)
