@@ -7,8 +7,9 @@
 - 提交GitHub并打tag，完成告知版本号
 
 ### Git提交规则
-- 用户说"提交GitHub"时，先记录讨论总结到 docs/discussions/，再执行提交
-- 总结内容：本次讨论的决策、规则更新、新增/修改的skill内容
+- 用户说"提交GitHub"时，执行顺序：1. 创建/更新讨论总结 → 2. 更新规范和业务文档 → 3. 提交GitHub
+- 讨论总结：docs/discussions/YYYY-MM-DD-主题.md
+- 规范更新归属：约束AI行为→project_rules.md | 开发规范→logic-standard.md | 业务知识→API_business_project.md
 - **禁止**基于本地有修改就自动上传，必须等待用户明确指令
 
 ### 需求理解规则
