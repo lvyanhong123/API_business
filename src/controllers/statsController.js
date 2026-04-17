@@ -47,6 +47,7 @@ exports.getCustomerStats = async (req, res) => {
     const stats = customers.map(c => {
       const logs = db.apiLogs.findAll().filter(l => l.customerId === c.id);
       return {
+        id: c.id,
         companyName: c.companyName,
         totalCalls: logs.length,
         totalSpent: logs.reduce((sum, l) => sum + l.fee, 0)

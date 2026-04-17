@@ -38,6 +38,93 @@
 
 ---
 
+## 菜单栏设计规范
+
+### 核心原则
+
+菜单栏的状态管理应该**集中统一**，避免在多个地方重复编写相似的判断逻辑。
+
+### 标准结构
+
+```javascript
+// 1. 菜单组定义（唯一数据源）
+const MENU_GROUPS = {
+  'suppliers': '供应商管理',
+  'customers': '客户管理',
+  'bill-management': '账单管理'
+};
+
+// 2. 菜单元素与组的映射
+const MENU_SUB_IDS = {
+  'menuSuppliersSub': 'suppliers',
+  'menuCustomersSub': 'customers',
+  'menuBillManagementSub': 'bill-management'
+};
+```
+
+### 添加新菜单组的标准流程
+
+| 步骤 | 操作 |
+|------|------|
+| 1 | 在 `MENU_GROUPS` 中添加新组 |
+| 2 | 在 HTML 中添加菜单 DOM 结构 |
+| 3 | 在 `openTab` 的 `activeMenuGroup` 判断链中添加 |
+| 4 | 在 `updateMenuDisplay` 中添加 DOM 更新逻辑 |
+| 5 | 在 `toggleMenuGroup` 中添加菜单切换逻辑 |
+| 6 | 在 `renderMenu` 中添加菜单组识别逻辑 |
+
+### 错误示例
+
+在多个地方硬编码判断逻辑：
+
+```javascript
+// ❌ 错误：每次添加菜单组都要改4个地方，容易遗漏
+if (title.includes('供应商')) groupName = 'suppliers';
+else if (title.includes('客户')) groupName = 'customers';
+else if (title.includes('账单')) groupName = 'bill-management'; // 新增时漏改
+
+// ❌ renderMenu 中的错误映射
+const groupName = subId === 'menuSuppliersSub' ? 'suppliers' : 'customers';
+// 当 subId 是 menuBillManagementSub 时，被错误归类为 'customers'
+```
+
+### 正确示例
+
+使用统一映射，避免重复判断：
+
+```javascript
+// ✅ 正确：使用映射表，所有函数共用
+const MENU_SUB_IDS = {
+  'menuSuppliersSub': 'suppliers',
+  'menuCustomersSub': 'customers',
+  'menuBillManagementSub': 'bill-management'
+};
+
+function getGroupNameFromId(id) {
+  return MENU_SUB_IDS[id] || '';
+}
+
+// 所有函数调用同一个映射
+function updateMenuDisplay() {
+  for (const [subId, groupName] of Object.entries(MENU_SUB_IDS)) {
+    const subEl = document.getElementById(subId);
+    if (subEl) subEl.className = 'menu-sub ' + (activeMenuGroup === groupName ? 'open' : '');
+  }
+}
+```
+
+### 检查清单
+
+添加/修改菜单组时：
+- [ ] 更新 MENU_GROUPS 定义
+- [ ] 更新 MENU_SUB_IDS 映射
+- [ ] openTab 函数
+- [ ] updateMenuDisplay 函数
+- [ ] toggleMenuGroup 函数
+- [ ] renderMenu 函数
+
+---
+
 ## API响应规范
 
 ### 统一响应格式
@@ -217,3 +304,38 @@ function switchTab(tabId) {
 
 - 页面加载时从 localStorage 恢复 Tab 状态
 - 确保刷新页面后停留在当前 Tab
+
+---
+
+## 功能完成标准
+
+**完整功能 = 后端接口 + 前端页面 + 前后端联调通过。只做后端接口不算完成。**
+
+- 后端接口：API路由、控制器、数据库操作
+- 前端页面：表单、列表、交互逻辑
+- 前后端联调：接口对接、数据流转、体验验证
+
+---
+
+## 多用户端考虑规范
+
+**实现任何功能时，必须同时考虑所有涉及的用户端，避免遗漏。**
+
+| 用户端 | 说明 |
+|--------|------|
+| 客户自助门户 (client.html, 端口3001) | 企业客户/员工使用 |
+| 管理后台 (admin.html, 端口3000) | 平台管理员使用 |
+
+**常见遗漏场景：**
+
+| 功能场景 | 必须处理的用户端 |
+|----------|-----------------|
+| 新增账号体系 | 客户门户（注册/登录）+ 管理后台（账号管理） |
+| 账号绑定企业 | 客户门户（申请绑定）+ 管理后台（审批） |
+| 企业管理员变更 | 客户门户（申请变更）+ 管理后台（审批处理） |
+| 禁用/启用账号 | 管理后台（操作）+ 客户门户（状态反馈） |
+
+**实现检查清单：**
+1. 功能涉及哪些用户操作？
+2. 每个用户操作对应哪个用户端？
+3. 每个用户端的页面和接口是否都已实现？

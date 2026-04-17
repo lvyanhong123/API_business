@@ -4,10 +4,13 @@ require('dotenv').config();
 const customerController = require('./controllers/customerController');
 const customerAuth = require('./middleware/customerAuth');
 const db = require('./config/database');
+const accountRoutes = require('./routes/accountRoutes');
 
 const customerApp = express();
 customerApp.use(express.json());
 customerApp.use(express.static(path.join(__dirname, '../public')));
+
+customerApp.use('/api/accounts', accountRoutes);
 
 customerApp.post('/api/customers/register', customerController.register);
 customerApp.post('/api/customers/login', customerController.login);

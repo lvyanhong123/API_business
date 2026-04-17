@@ -10,6 +10,8 @@ const defaultData = {
   products: [],
   productChannels: [],
   responseCodeMappings: [],
+  accounts: [],
+  accountCustomers: [],
   customers: [],
   customerAccounts: [],
   orders: [],
@@ -293,6 +295,100 @@ const dbUtils = {
     }
   },
 
+  accounts: {
+    findAll: () => loadDb().accounts || [],
+    findById: (id) => loadDb().accounts?.find(a => a.id === id),
+    findOne: (where) => {
+      const data = loadDb();
+      return data.accounts.find(a => {
+        for (const key in where) {
+          if (a[key] !== where[key]) return false;
+        }
+        return true;
+      });
+    },
+    findByUsername: (username) => loadDb().accounts?.find(a => a.username === username),
+    create: (data) => {
+      const newData = loadDb();
+      if (!newData.accounts) newData.accounts = [];
+      const id = getNextId('accounts');
+      const item = { id, ...data, createdAt: new Date(), updatedAt: new Date() };
+      newData.accounts.push(item);
+      saveDb();
+      return item;
+    },
+    update: (id, data) => {
+      const newData = loadDb();
+      const index = newData.accounts?.findIndex(a => a.id === id);
+      if (index === -1 || index === undefined) return null;
+      newData.accounts[index] = { ...newData.accounts[index], ...data, updatedAt: new Date() };
+      saveDb();
+      return newData.accounts[index];
+    },
+    delete: (id) => {
+      const newData = loadDb();
+      const index = newData.accounts?.findIndex(a => a.id === id);
+      if (index === -1 || index === undefined) return false;
+      newData.accounts.splice(index, 1);
+      saveDb();
+      return true;
+    }
+  },
+
+  accountCustomers: {
+    findAll: () => loadDb().accountCustomers || [],
+    findById: (id) => loadDb().accountCustomers?.find(ac => ac.id === id),
+    findByAccountId: (accountId) => (loadDb().accountCustomers || []).filter(ac => ac.accountId === accountId),
+    findByCustomerId: (customerId) => (loadDb().accountCustomers || []).filter(ac => ac.customerId === customerId),
+    findOne: (where) => {
+      const data = loadDb();
+      return data.accountCustomers?.find(ac => {
+        for (const key in where) {
+          if (ac[key] !== where[key]) return false;
+        }
+        return true;
+      });
+    },
+    findActiveByAccountId: (accountId) => (loadDb().accountCustomers || []).filter(ac => ac.accountId === accountId && ac.status === 'active'),
+    findActiveByCustomerId: (customerId) => (loadDb().accountCustomers || []).filter(ac => ac.customerId === customerId && ac.status === 'active'),
+    findAdminByCustomerId: (customerId) => (loadDb().accountCustomers || []).find(ac => ac.customerId === customerId && ac.role === 'admin' && ac.status === 'active'),
+    create: (data) => {
+      const newData = loadDb();
+      if (!newData.accountCustomers) newData.accountCustomers = [];
+      const id = getNextId('accountCustomers');
+      const item = { id, ...data, createdAt: new Date(), updatedAt: new Date() };
+      newData.accountCustomers.push(item);
+      saveDb();
+      return item;
+    },
+    update: (id, data) => {
+      const newData = loadDb();
+      const index = newData.accountCustomers?.findIndex(ac => ac.id === id);
+      if (index === -1 || index === undefined) return null;
+      newData.accountCustomers[index] = { ...newData.accountCustomers[index], ...data, updatedAt: new Date() };
+      saveDb();
+      return newData.accountCustomers[index];
+    },
+    delete: (id) => {
+      const newData = loadDb();
+      const index = newData.accountCustomers?.findIndex(ac => ac.id === id);
+      if (index === -1 || index === undefined) return false;
+      newData.accountCustomers.splice(index, 1);
+      saveDb();
+      return true;
+    },
+    deleteByAccountId: (accountId) => {
+      const newData = loadDb();
+      newData.accountCustomers = (newData.accountCustomers || []).filter(ac => ac.accountId !== accountId);
+      saveDb();
+    },
+    deleteByCustomerId: (customerId) => {
+      const newData = loadDb();
+      newData.accountCustomers = (newData.accountCustomers || []).filter(ac => ac.customerId !== customerId);
+      saveDb();
+    }
+  },
+
   customers: {
     findAll: () => loadDb().customers,
     findById: (id) => loadDb().customers.find(c => c.id === id),
@@ -476,6 +572,7 @@ const dbUtils = {
     findById: (id) => loadDb().apiKeys?.find(k => k.id === id),
     findByApiKey: (apiKey) => (loadDb().apiKeys || []).find(k => k.apiKey === apiKey),
     findByCustomerId: (customerId) => (loadDb().apiKeys || []).filter(k => k.customerId === customerId),
+    findByAccountId: (accountId) => (loadDb().apiKeys || []).filter(k => k.accountId === accountId),
     findByProductId: (productId) => (loadDb().apiKeys || []).filter(k => k.productId === productId),
     create: (data) => {
       const newData = loadDb();

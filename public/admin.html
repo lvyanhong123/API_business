@@ -268,10 +268,18 @@
                   <div class="menu-sub-item ${activeTabId === 'suppliers' ? 'active' : ''}" data-tab-id="suppliers" onclick="openTab('suppliers', '供应商列表')">供应商列表</div>
                   <div class="menu-sub-item ${activeTabId === 'channels-all' ? 'active' : ''}" data-tab-id="channels-all" onclick="openTab('channels-all', '通道列表')">通道列表</div>
                   <div class="menu-sub-item ${activeTabId === 'scripts-all' ? 'active' : ''}" data-tab-id="scripts-all" onclick="openTab('scripts-all', '脚本列表')">脚本列表</div>
+                </div>
+              </div>
+              <div class="menu-group">
+                <div class="menu-group-title ${activeMenuGroup === 'bill-management' ? 'active' : ''}" onclick="toggleMenuGroup('bill-management')">
+                  账单管理 <span class="arrow">></span>
+                </div>
+                <div class="menu-sub ${activeMenuGroup === 'bill-management' ? 'open' : ''}" id="menuBillManagementSub">
+                  <div class="menu-sub-item ${activeTabId === 'call-logs' ? 'active' : ''}" data-tab-id="call-logs" onclick="openTab('call-logs', '调用明细')">调用明细</div>
+                  <div class="menu-sub-item ${activeTabId === 'customer-bills' ? 'active' : ''}" data-tab-id="customer-bills" onclick="openTab('customer-bills', '客户账单')">客户账单</div>
                   <div class="menu-sub-item ${activeTabId === 'supplier-bills' ? 'active' : ''}" data-tab-id="supplier-bills" onclick="openTab('supplier-bills', '供应商账单')">供应商账单</div>
                 </div>
               </div>
-              <div class="menu-item ${activeTabId === 'call-logs' ? 'active' : ''}" data-tab-id="call-logs" onclick="openTab('call-logs', '调用明细')">调用明细</div>
               <div class="menu-item ${activeTabId === 'products' ? 'active' : ''}" data-tab-id="products" onclick="openTab('products', '产品管理')">产品管理</div>
               <div class="menu-item ${activeTabId === 'orders' ? 'active' : ''}" data-tab-id="orders" onclick="openTab('orders', '订单审核')">订单审核</div>
               <div class="menu-group">
@@ -280,9 +288,10 @@
                 </div>
                 <div class="menu-sub ${activeMenuGroup === 'customers' ? 'open' : ''}" id="menuCustomersSub">
                   <div class="menu-sub-item ${activeTabId === 'customers' ? 'active' : ''}" data-tab-id="customers" onclick="openTab('customers', '客户列表')">客户列表</div>
-                  <div class="menu-sub-item ${activeTabId === 'customer-bills' ? 'active' : ''}" data-tab-id="customer-bills" onclick="openTab('customer-bills', '客户账单')">客户账单</div>
                   <div class="menu-sub-item ${activeTabId === 'payment-records' ? 'active' : ''}" data-tab-id="payment-records" onclick="openTab('payment-records', '支付记录')">支付记录</div>
                   <div class="menu-sub-item ${activeTabId === 'refund-records' ? 'active' : ''}" data-tab-id="refund-records" onclick="openTab('refund-records', '退款记录')">退款记录</div>
+                  <div class="menu-sub-item ${activeTabId === 'accounts' ? 'active' : ''}" data-tab-id="accounts" onclick="openTab('accounts', '账号列表')">账号列表</div>
+                  <div class="menu-sub-item ${activeTabId === 'bind-approvals' ? 'active' : ''}" data-tab-id="bind-approvals" onclick="openTab('bind-approvals', '绑定审批')">绑定审批</div>
                 </div>
               </div>
             </div>
@@ -346,12 +355,18 @@
           activeMenuGroup = '';
         } else if (tabId === 'call-logs') {
           tabs.push({ id: tabId, name: '调用明细' });
-          activeMenuGroup = '';
+          activeMenuGroup = 'bill-management';
         } else if (tabId === 'supplier-bills') {
           tabs.push({ id: tabId, name: '供应商账单' });
-          activeMenuGroup = 'suppliers';
+          activeMenuGroup = 'bill-management';
         } else if (tabId === 'customer-bills') {
           tabs.push({ id: tabId, name: '客户账单' });
+          activeMenuGroup = 'bill-management';
+        } else if (tabId === 'accounts') {
+          tabs.push({ id: tabId, name: '账号列表' });
+          activeMenuGroup = 'customers';
+        } else if (tabId === 'bind-approvals') {
+          tabs.push({ id: tabId, name: '绑定审批' });
           activeMenuGroup = 'customers';
         } else if (tabId === 'payment-records') {
           tabs.push({ id: tabId, name: '支付记录' });
@@ -367,18 +382,71 @@
           activeMenuGroup = '';
         }
       } else {
-        if (tabId === 'suppliers' || tabId === 'channels-all' || tabId === 'scripts-all' || tabId === 'supplier-bills') {
+        if (tabId === 'suppliers' || tabId === 'channels-all' || tabId === 'scripts-all') {
           activeMenuGroup = 'suppliers';
-        } else if (tabId === 'customers' || tabId === 'customer-bills' || tabId === 'payment-records' || tabId === 'refund-records') {
+        } else if (tabId === 'customers' || tabId === 'payment-records' || tabId === 'refund-records' || tabId === 'accounts' || tabId === 'bind-approvals') {
           activeMenuGroup = 'customers';
+        } else if (tabId === 'call-logs' || tabId === 'customer-bills' || tabId === 'supplier-bills') {
+          activeMenuGroup = 'bill-management';
         } else {
           activeMenuGroup = '';
         }
+        if (activeMenuGroup) {
+          const menuSuppliersSub = document.getElementById('menuSuppliersSub');
+          if (menuSuppliersSub) menuSuppliersSub.className = 'menu-sub ' + (activeMenuGroup === 'suppliers' ? 'open' : '');
+          const menuCustomersSub = document.getElementById('menuCustomersSub');
+          if (menuCustomersSub) menuCustomersSub.className = 'menu-sub ' + (activeMenuGroup === 'customers' ? 'open' : '');
+          const menuBillManagementSub = document.getElementById('menuBillManagementSub');
+          if (menuBillManagementSub) menuBillManagementSub.className = 'menu-sub ' + (activeMenuGroup === 'bill-management' ? 'open' : '');
+          document.querySelectorAll('.menu-group').forEach(menuGroup => {
+            const titleEl = menuGroup.querySelector('.menu-group-title');
+            if (titleEl) {
+              const title = titleEl.textContent;
+              let groupName = '';
+              if (title.includes('供应商')) groupName = 'suppliers';
+              else if (title.includes('客户')) groupName = 'customers';
+              else if (title.includes('账单')) groupName = 'bill-management';
+              titleEl.className = 'menu-group-title ' + (activeMenuGroup === groupName ? 'active' : '');
+            }
+          });
+        } else {
+          const menuSuppliersSub = document.getElementById('menuSuppliersSub');
+          if (menuSuppliersSub) menuSuppliersSub.className = 'menu-sub';
+          const menuCustomersSub = document.getElementById('menuCustomersSub');
+          if (menuCustomersSub) menuCustomersSub.className = 'menu-sub';
+          const menuBillManagementSub = document.getElementById('menuBillManagementSub');
+          if (menuBillManagementSub) menuBillManagementSub.className = 'menu-sub';
+          document.querySelectorAll('.menu-group').forEach(menuGroup => {
+            const titleEl = menuGroup.querySelector('.menu-group-title');
+            if (titleEl) titleEl.className = 'menu-group-title';
+          });
+        }
       }
+      updateMenuDisplay();
       activeTabId = tabId;
       saveTabState();
       renderTabs();
       switchTab(tabId);
+    }
+
+    function updateMenuDisplay() {
+      const menuSuppliersSub = document.getElementById('menuSuppliersSub');
+      if (menuSuppliersSub) menuSuppliersSub.className = 'menu-sub ' + (activeMenuGroup === 'suppliers' ? 'open' : '');
+      const menuCustomersSub = document.getElementById('menuCustomersSub');
+      if (menuCustomersSub) menuCustomersSub.className = 'menu-sub ' + (activeMenuGroup === 'customers' ? 'open' : '');
+      const menuBillManagementSub = document.getElementById('menuBillManagementSub');
+      if (menuBillManagementSub) menuBillManagementSub.className = 'menu-sub ' + (activeMenuGroup === 'bill-management' ? 'open' : '');
+      document.querySelectorAll('.menu-group').forEach(menuGroup => {
+        const titleEl = menuGroup.querySelector('.menu-group-title');
+        if (titleEl) {
+          const title = titleEl.textContent;
+          let groupName = '';
+          if (title.includes('供应商')) groupName = 'suppliers';
+          else if (title.includes('客户')) groupName = 'customers';
+          else if (title.includes('账单')) groupName = 'bill-management';
+          titleEl.className = 'menu-group-title ' + (activeMenuGroup === groupName ? 'active' : '');
+        }
+      });
     }
 
     function toggleMenuGroup(group) {
@@ -388,21 +456,7 @@
         activeMenuGroup = group;
       }
       saveTabState();
-      const menuSuppliersSub = document.getElementById('menuSuppliersSub');
-      if (menuSuppliersSub) {
-        menuSuppliersSub.className = 'menu-sub ' + (activeMenuGroup === 'suppliers' ? 'open' : '');
-      }
-      const menuCustomersSub = document.getElementById('menuCustomersSub');
-      if (menuCustomersSub) {
-        menuCustomersSub.className = 'menu-sub ' + (activeMenuGroup === 'customers' ? 'open' : '');
-      }
-      document.querySelectorAll('.menu-group').forEach(menuGroup => {
-        const titleEl = menuGroup.querySelector('.menu-group-title');
-        if (titleEl) {
-          const groupName = menuGroup.querySelector('.menu-group-title').textContent.includes('供应商') ? 'suppliers' : 'customers';
-          titleEl.className = 'menu-group-title ' + (activeMenuGroup === groupName ? 'active' : '');
-        }
-      });
+      updateMenuDisplay();
     }
 
     function openChannelTab(supplierId, supplierName) {
@@ -533,6 +587,8 @@
       else if (tabId === 'call-logs') loadCallLogs();
       else if (tabId === 'supplier-bills') loadSupplierBills();
       else if (tabId === 'customer-bills') loadCustomerBills();
+      else if (tabId === 'accounts') loadAccounts();
+      else if (tabId === 'bind-approvals') loadBindApprovals();
       else if (tabId === 'payment-records') loadPaymentRecords();
       else if (tabId === 'refund-records') loadRefundRecords();
       else if (tabId.startsWith('script-version-')) {
@@ -564,13 +620,20 @@
       document.querySelectorAll('.menu-group').forEach(menuGroup => {
         const titleEl = menuGroup.querySelector('.menu-group-title');
         if (titleEl) {
-          const groupName = titleEl.textContent.includes('供应商') ? 'suppliers' : 'customers';
+          const title = titleEl.textContent;
+          let groupName = '';
+          if (title.includes('供应商')) groupName = 'suppliers';
+          else if (title.includes('客户')) groupName = 'customers';
+          else if (title.includes('账单')) groupName = 'bill-management';
           titleEl.className = 'menu-group-title ' + (activeMenuGroup === groupName ? 'active' : '');
         }
         const subEl = menuGroup.querySelector('.menu-sub');
         if (subEl) {
           const subId = subEl.id;
-          const groupName = subId === 'menuSuppliersSub' ? 'suppliers' : 'customers';
+          let groupName = '';
+          if (subId === 'menuSuppliersSub') groupName = 'suppliers';
+          else if (subId === 'menuCustomersSub') groupName = 'customers';
+          else if (subId === 'menuBillManagementSub') groupName = 'bill-management';
           subEl.className = 'menu-sub ' + (activeMenuGroup === groupName ? 'open' : '');
         }
       });
@@ -1909,6 +1972,7 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
         <div class="card">
           <div class="card-header">
             <div class="card-title">客户列表</div>
+            <button class="btn btn-small" onclick="showCreateCustomerModal()">创建客户</button>
           </div>
           <div class="search-results" id="customerSearchResults">共 0 条</div>
           <div class="table-wrap">
@@ -3975,6 +4039,75 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
       }
     }
 
+    function showCreateCustomerModal() {
+      document.body.insertAdjacentHTML('beforeend', `
+        <div id="modalOverlay" class="modal-overlay show" onclick="if(event.target===this)closeModal()">
+          <div style="background:white;padding:30px;border-radius:8px;width:500px;max-width:90%;">
+            <div class="modal-header">
+              <div class="modal-title">创建客户</div>
+              <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-body">
+              <div class="form-group">
+                <label>公司名称</label>
+                <input type="text" id="createCustomerCompanyName" placeholder="请输入公司名称">
+              </div>
+              <div class="form-group">
+                <label>营业执照号</label>
+                <input type="text" id="createCustomerLicense" placeholder="请输入营业执照号">
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>联系人姓名</label>
+                  <input type="text" id="createCustomerContactName" placeholder="请输入联系人姓名">
+                </div>
+                <div class="form-group">
+                  <label>联系人手机</label>
+                  <input type="text" id="createCustomerContactPhone" placeholder="请输入联系人手机">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>联系人邮箱</label>
+                <input type="email" id="createCustomerContactEmail" placeholder="请输入联系人邮箱">
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn" style="background:#999;" onclick="closeModal()">取消</button>
+              <button class="btn" onclick="doCreateCustomer()">创建</button>
+            </div>
+          </div>
+        </div>
+      `);
+    }
+
+    async function doCreateCustomer() {
+      const companyName = $('#createCustomerCompanyName').value;
+      const businessLicense = $('#createCustomerLicense').value;
+      const contactName = $('#createCustomerContactName').value;
+      const contactPhone = $('#createCustomerContactPhone').value;
+      const contactEmail = $('#createCustomerContactEmail').value;
+
+      if (!companyName || !businessLicense || !contactName || !contactPhone || !contactEmail) {
+        alert('请填写完整信息');
+        return;
+      }
+
+      const res = await fetchAPI('/customers', {
+        method: 'POST',
+        body: JSON.stringify({
+          companyName,
+          businessLicense,
+          contact: { name: contactName, phone: contactPhone, email: contactEmail }
+        })
+      });
+
+      if (res) {
+        alert('客户创建成功');
+        closeModal();
+        loadCustomers();
+      }
+    }
+
     function closeModal() {
       const modal = $('.modal');
       if (modal) modal.remove();
@@ -3993,6 +4126,11 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
           },
           body: options.body || undefined
         });
+        if (res.status === 401) {
+          alert('登录已过期，请重新登录');
+          logout();
+          return null;
+        }
         const data = await res.json();
         if (!res.ok) {
           alert(data.message || '操作失败');
@@ -4010,6 +4148,420 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
       adminLayout();
     } else {
       loginPage();
+    }
+
+    let accountAllData = [];
+    let accountCurrentPage = 1;
+    let accountPageSize = 10;
+
+    async function loadAccounts() {
+      const accountsRes = await fetchAPI('/accounts');
+      const bindingsRes = await fetchAPI('/account-customers');
+      if (!accountsRes) return;
+
+      accountAllData = (accountsRes || []).map(a => {
+        const bindings = (bindingsRes || []).filter(b => b.accountId === a.id);
+        return {
+          ...a,
+          bindings: bindings,
+          customerNames: bindings.map(b => b.companyName || `企业${b.customerId}`).join(', ') || '-'
+        };
+      });
+      accountCurrentPage = 1;
+      $('#tabContent').innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">账号列表</div>
+            <button class="btn btn-small" onclick="showCreateAccountModal()">创建账号</button>
+          </div>
+          <div class="search-bar">
+            <input type="text" id="accountSearchInput" class="search-input" placeholder="搜索姓名/手机号" oninput="filterAccounts()">
+          </div>
+          <div id="accountSearchResults">共 ${accountAllData.length} 条</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>ID</th><th>姓名</th><th>手机号</th><th>状态</th><th>绑定的企业</th><th>注册时间</th><th>操作</th></tr></thead>
+              <tbody id="accountsTableBody"></tbody>
+            </table>
+          </div>
+          <div id="accountPagination" class="pagination" style="justify-content:flex-end;margin-top:15px;"></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">绑定关系列表</div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>ID</th><th>账号</th><th>企业</th><th>角色</th><th>状态</th><th>创建时间</th><th>操作</th></tr></thead>
+              <tbody id="bindingsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      `;
+      filterAccounts();
+      renderBindings();
+    }
+
+    function filterAccounts() {
+      const keyword = $('#accountSearchInput').value.toLowerCase();
+      const filtered = accountAllData.filter(a =>
+        (a.name || '').toLowerCase().includes(keyword) ||
+        (a.username || '').toLowerCase().includes(keyword)
+      );
+      const total = filtered.length;
+      const start = (accountCurrentPage - 1) * accountPageSize;
+      const paginatedData = filtered.slice(start, start + accountPageSize);
+
+      $('#accountsTableBody').innerHTML = paginatedData.map(a => `
+        <tr>
+          <td>${a.id}</td>
+          <td>${a.name || '-'}</td>
+          <td>${a.username || '-'}</td>
+          <td><span class="status status-${a.status === 'active' ? 'active' : 'inactive'}">${a.status === 'active' ? '正常' : '禁用'}</span></td>
+          <td>${a.customerNames}</td>
+          <td>${new Date(a.createdAt).toLocaleString()}</td>
+          <td>
+            <button class="action-btn ${a.status === 'active' ? 'danger' : 'primary'} btn-small" onclick="toggleAccountStatus(${a.id}, '${a.status}')">${a.status === 'active' ? '禁用' : '启用'}</button>
+            <button class="action-btn default btn-small" onclick="showBindAccountModal(${a.id}, '${a.name || ''}')">绑定企业</button>
+          </td>
+        </tr>
+      `).join('') || '<tr><td colspan="7" style="text-align:center;padding:20px;color:#999;">暂无数据</td></tr>';
+
+      $('#accountSearchResults').textContent = `共 ${total} 条`;
+      renderAccountPagination(total);
+    }
+
+    function renderAccountPagination(total) {
+      const totalPages = Math.ceil(total / accountPageSize) || 1;
+      let html = `<button ${accountCurrentPage <= 1 ? 'disabled' : ''} onclick="goToAccountPage(${accountCurrentPage - 1})">上一页</button>`;
+      for (let i = 1; i <= totalPages; i++) {
+        if (totalPages > 7 && i !== 1 && i !== totalPages && Math.abs(i - accountCurrentPage) > 1) {
+          if (i === 2 || i === totalPages - 1) html += `<span style="padding:0 5px;">...</span>`;
+          continue;
+        }
+        html += `<button class="${i === accountCurrentPage ? 'active' : ''}" onclick="goToAccountPage(${i})">${i}</button>`;
+      }
+      html += `<button ${accountCurrentPage >= totalPages ? 'disabled' : ''} onclick="goToAccountPage(${accountCurrentPage + 1})">下一页</button>`;
+      html += `<span style="margin-left:10px;font-size:14px;color:#666;">每页</span>`;
+      html += `<select style="padding:4px 8px;border:1px solid #ddd;border-radius:4px;margin:0 5px;" onchange="changeAccountPageSize(this.value)">`;
+      html += `<option value="10" ${accountPageSize == 10 ? 'selected' : ''}>10</option>`;
+      html += `<option value="20" ${accountPageSize == 20 ? 'selected' : ''}>20</option>`;
+      html += `<option value="50" ${accountPageSize == 50 ? 'selected' : ''}>50</option>`;
+      html += `</select>`;
+      html += `<span style="font-size:14px;color:#666;">条</span>`;
+      $('#accountPagination').innerHTML = html;
+    }
+
+    function goToAccountPage(page) {
+      accountCurrentPage = page;
+      filterAccounts();
+    }
+
+    function changeAccountPageSize(size) {
+      accountPageSize = parseInt(size);
+      accountCurrentPage = 1;
+      filterAccounts();
+    }
+
+    function renderBindings() {
+      const bindingsRes = accountAllData.flatMap(a => a.bindings || []).map(b => {
+        const account = accountAllData.find(a => a.id === b.accountId);
+        return { ...b, accountName: account?.name || '-', username: account?.username || '-' };
+      });
+
+      $('#bindingsTableBody').innerHTML = bindingsRes.map(b => `
+        <tr>
+          <td>${b.id}</td>
+          <td>${b.accountName} (${b.username})</td>
+          <td>${b.companyName || `企业${b.customerId}`}</td>
+          <td><span class="status status-${b.role === 'admin' ? 'active' : 'pending'}">${b.role === 'admin' ? '管理员' : '成员'}</span></td>
+          <td><span class="status status-${b.status}">${b.status === 'active' ? '正常' : b.status === 'pending' ? '待审批' : '禁用'}</span></td>
+          <td>${new Date(b.createdAt).toLocaleString()}</td>
+          <td>
+            ${b.role === 'member' && b.status === 'active' ? `<button class="action-btn primary btn-small" onclick="changeBindingRole(${b.id}, 'admin')">设为管理员</button>` : ''}
+            ${b.role === 'admin' && b.status === 'active' ? `<button class="action-btn default btn-small" onclick="changeBindingRole(${b.id}, 'member')">取消管理员</button>` : ''}
+            <button class="action-btn danger btn-small" onclick="deleteBinding(${b.id})">删除</button>
+          </td>
+        </tr>
+      `).join('') || '<tr><td colspan="7" style="text-align:center;padding:20px;color:#999;">暂无数据</td></tr>';
+    }
+
+    async function showCreateAccountModal() {
+      document.body.insertAdjacentHTML('beforeend', `
+        <div id="modalOverlay" class="modal-overlay show" onclick="if(event.target===this)closeModal()">
+          <div style="background:white;padding:30px;border-radius:8px;width:400px;max-width:90%;">
+            <div class="modal-header">
+              <div class="modal-title">创建账号</div>
+              <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-body">
+              <div class="form-group">
+                <label>姓名</label>
+                <input type="text" id="newAccountName" placeholder="请输入姓名">
+              </div>
+              <div class="form-group">
+                <label>手机号</label>
+                <input type="text" id="newAccountUsername" placeholder="请输入手机号">
+              </div>
+              <div class="form-group">
+                <label>密码</label>
+                <input type="password" id="newAccountPassword" placeholder="请输入密码（至少6位）">
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn" style="background:#999;" onclick="closeModal()">取消</button>
+              <button class="btn" onclick="doCreateAccount()">创建</button>
+            </div>
+          </div>
+        </div>
+      `);
+    }
+
+    async function doCreateAccount() {
+      const name = $('#newAccountName').value;
+      const username = $('#newAccountUsername').value;
+      const password = $('#newAccountPassword').value;
+
+      if (!name || !username || !password) {
+        alert('请填写完整信息');
+        return;
+      }
+
+      if (!/^1[3-9]\d{9}$/.test(username)) {
+        alert('请输入正确的手机号');
+        return;
+      }
+
+      if (password.length < 6) {
+        alert('密码长度不能少于6位');
+        return;
+      }
+
+      const res = await fetchAPI('/accounts', {
+        method: 'POST',
+        body: JSON.stringify({ name, username, password })
+      });
+
+      if (res) {
+        alert('账号创建成功');
+        closeModal();
+        loadAccounts();
+      }
+    }
+
+    async function toggleAccountStatus(accountId, currentStatus) {
+      const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+      const res = await fetchAPI('/accounts/' + accountId, {
+        method: 'PUT',
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (res) {
+        alert(`账号已${newStatus === 'active' ? '启用' : '禁用'}`);
+        loadAccounts();
+      }
+    }
+
+    let selectedBindAccountId = null;
+
+    async function showBindAccountModal(accountId, accountName) {
+      selectedBindAccountId = accountId;
+      const customersRes = await fetchAPI('/customers');
+      const customers = customersRes || [];
+
+      document.body.insertAdjacentHTML('beforeend', `
+        <div id="modalOverlay" class="modal-overlay show" onclick="if(event.target===this)closeModal()">
+          <div style="background:white;padding:30px;border-radius:8px;width:400px;max-width:90%;">
+            <div class="modal-header">
+              <div class="modal-title">绑定账号 ${accountName} 到企业</div>
+              <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-body">
+              <div class="form-group">
+                <label>选择企业</label>
+                <select id="bindToCustomer" style="padding:10px;border:1px solid #ddd;border-radius:4px;width:100%;">
+                  ${customers.map(c => `<option value="${c.id}">${c.companyName} (ID:${c.id})</option>`).join('')}
+                </select>
+              </div>
+              <div class="form-group">
+                <label>角色</label>
+                <select id="bindRole" style="padding:10px;border:1px solid #ddd;border-radius:4px;width:100%;">
+                  <option value="member">成员</option>
+                  <option value="admin">管理员</option>
+                </select>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn" style="background:#999;" onclick="closeModal()">取消</button>
+              <button class="btn" onclick="doBindAccountToCustomer()">绑定</button>
+            </div>
+          </div>
+        </div>
+      `);
+    }
+
+    async function doBindAccountToCustomer() {
+      const customerId = parseInt($('#bindToCustomer').value);
+      const role = $('#bindRole').value;
+
+      const res = await fetchAPI('/account-customers', {
+        method: 'POST',
+        body: JSON.stringify({ accountId: selectedBindAccountId, customerId, role, status: 'active' })
+      });
+
+      if (res) {
+        alert('绑定成功');
+        closeModal();
+        loadAccounts();
+      }
+    }
+
+    async function changeBindingRole(bindingId, role) {
+      const res = await fetchAPI('/account-customers/' + bindingId, {
+        method: 'PUT',
+        body: JSON.stringify({ role })
+      });
+
+      if (res) {
+        alert(`已设为${role === 'admin' ? '管理员' : '成员'}`);
+        loadAccounts();
+      }
+    }
+
+    async function deleteBinding(bindingId) {
+      if (!confirm('确定要删除该绑定关系吗？')) return;
+
+      const res = await fetchAPI('/account-customers/' + bindingId, { method: 'DELETE' });
+      if (res !== null) {
+        alert('删除成功');
+        loadAccounts();
+      }
+    }
+
+    let approvalAllData = [];
+    let approvalCurrentPage = 1;
+    let approvalPageSize = 10;
+
+    async function loadBindApprovals() {
+      const bindingsRes = await fetchAPI('/account-customers?status=pending');
+      if (!bindingsRes) return;
+
+      approvalAllData = (bindingsRes || []).map(b => {
+        const account = accountAllData.find(a => a.id === b.accountId) || {};
+        return { ...b, accountName: account.name || '-', username: account.username || '-' };
+      });
+
+      if (typeof loadCustomersForApproval === 'undefined') {
+        const customersRes = await fetchAPI('/customers');
+        if (customersRes) {
+          approvalAllData = approvalAllData.map(b => {
+            const customer = (customersRes || []).find(c => c.id === b.customerId);
+            return { ...b, companyName: customer?.companyName || `企业${b.customerId}` };
+          });
+        }
+      }
+
+      approvalCurrentPage = 1;
+      $('#tabContent').innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">账号绑定审批</div>
+          </div>
+          <div id="approvalSearchResults">共 ${approvalAllData.length} 条</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>ID</th><th>账号</th><th>企业</th><th>申请时间</th><th>操作</th></tr></thead>
+              <tbody id="approvalsTableBody"></tbody>
+            </table>
+          </div>
+          <div id="approvalPagination" class="pagination" style="justify-content:flex-end;margin-top:15px;"></div>
+        </div>
+      `;
+      renderApprovals();
+    }
+
+    async function renderApprovals() {
+      const total = approvalAllData.length;
+      const start = (approvalCurrentPage - 1) * approvalPageSize;
+      const paginatedData = approvalAllData.slice(start, start + approvalPageSize);
+
+      for (const item of paginatedData) {
+        if (!item.companyName) {
+          const customersRes = await fetchAPI('/customers/' + item.customerId);
+          item.companyName = customersRes?.companyName || `企业${item.customerId}`;
+        }
+      }
+
+      $('#approvalsTableBody').innerHTML = paginatedData.map(a => `
+        <tr>
+          <td>${a.id}</td>
+          <td>${a.accountName} (${a.username})</td>
+          <td>${a.companyName}</td>
+          <td>${new Date(a.createdAt).toLocaleString()}</td>
+          <td>
+            <button class="action-btn primary btn-small" onclick="approveBinding(${a.id})">通过</button>
+            <button class="action-btn danger btn-small" onclick="rejectBinding(${a.id})">拒绝</button>
+          </td>
+        </tr>
+      `).join('') || '<tr><td colspan="5" style="text-align:center;padding:20px;color:#999;">暂无待审批的申请</td></tr>';
+
+      $('#approvalSearchResults').textContent = `共 ${total} 条`;
+      renderApprovalPagination(total);
+    }
+
+    function renderApprovalPagination(total) {
+      const totalPages = Math.ceil(total / approvalPageSize) || 1;
+      let html = `<button ${approvalCurrentPage <= 1 ? 'disabled' : ''} onclick="goToApprovalPage(${approvalCurrentPage - 1})">上一页</button>`;
+      for (let i = 1; i <= totalPages; i++) {
+        if (totalPages > 7 && i !== 1 && i !== totalPages && Math.abs(i - approvalCurrentPage) > 1) {
+          if (i === 2 || i === totalPages - 1) html += `<span style="padding:0 5px;">...</span>`;
+          continue;
+        }
+        html += `<button class="${i === approvalCurrentPage ? 'active' : ''}" onclick="goToApprovalPage(${i})">${i}</button>`;
+      }
+      html += `<button ${approvalCurrentPage >= totalPages ? 'disabled' : ''} onclick="goToApprovalPage(${approvalCurrentPage + 1})">下一页</button>`;
+      html += `<span style="margin-left:10px;font-size:14px;color:#666;">每页</span>`;
+      html += `<select style="padding:4px 8px;border:1px solid #ddd;border-radius:4px;margin:0 5px;" onchange="changeApprovalPageSize(this.value)">`;
+      html += `<option value="10" ${approvalPageSize == 10 ? 'selected' : ''}>10</option>`;
+      html += `<option value="20" ${approvalPageSize == 20 ? 'selected' : ''}>20</option>`;
+      html += `<option value="50" ${approvalPageSize == 50 ? 'selected' : ''}>50</option>`;
+      html += `</select>`;
+      html += `<span style="font-size:14px;color:#666;">条</span>`;
+      $('#approvalPagination').innerHTML = html;
+    }
+
+    function goToApprovalPage(page) {
+      approvalCurrentPage = page;
+      renderApprovals();
+    }
+
+    function changeApprovalPageSize(size) {
+      approvalPageSize = parseInt(size);
+      approvalCurrentPage = 1;
+      renderApprovals();
+    }
+
+    async function approveBinding(bindingId) {
+      const res = await fetchAPI('/account-customers/' + bindingId + '/approve', { method: 'POST' });
+      if (res !== null) {
+        alert('已通过');
+        loadBindApprovals();
+        loadAccounts();
+      }
+    }
+
+    async function rejectBinding(bindingId) {
+      if (!confirm('确定要拒绝该申请吗？')) return;
+      const res = await fetchAPI('/account-customers/' + bindingId, { method: 'DELETE' });
+      if (res !== null) {
+        alert('已拒绝');
+        loadBindApprovals();
+      }
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('modalOverlay');
+      if (modal) modal.remove();
     }
   </script>
 </body>

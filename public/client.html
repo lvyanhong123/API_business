@@ -30,6 +30,7 @@
     .status-pending { background: #fffbe6; color: #faad14; border: 1px solid #ffe58f; }
     .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
     .btn-primary { background: #1890ff; color: #fff; }
+    .btn-primary:hover { background: #40a9ff; }
     .btn-default { background: #fff; color: #333; border: 1px solid #d9d9d9; }
     .btn-danger { background: #ff4d4f; color: #fff; }
     .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
@@ -51,6 +52,22 @@
     .login-box .form-group { margin-bottom: 20px; }
     .login-box .btn { width: 100%; padding: 12px; font-size: 16px; }
     .hidden { display: none !important; }
+    .enterprise-selector { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.1); padding: 6px 12px; border-radius: 4px; }
+    .enterprise-selector select { border: none; background: transparent; font-size: 14px; cursor: pointer; color: #fff; }
+    .enterprise-selector span { color: rgba(255,255,255,0.7); font-size: 14px; }
+    .enterprise-badge { background: #1890ff; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
+    .enterprise-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid #e8e8e8; border-radius: 4px; margin-bottom: 10px; }
+    .enterprise-item:hover { border-color: #1890ff; }
+    .enterprise-item.current { border-color: #1890ff; background: #e6f7ff; }
+    .enterprise-name { font-weight: 500; }
+    .enterprise-role { font-size: 12px; color: #999; }
+    .enterprise-actions { display: flex; gap: 10px; }
+    .no-enterprise { text-align: center; padding: 60px 20px; }
+    .no-enterprise h3 { margin-bottom: 20px; color: #666; }
+    .no-enterprise p { color: #999; margin-bottom: 20px; }
+    .bind-enterprise-list { max-height: 300px; overflow-y: auto; }
+    .bind-enterprise-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #f0f0f0; }
+    .bind-enterprise-item:last-child { border-bottom: none; }
   </style>
 </head>
 <body>
@@ -58,8 +75,8 @@
     <div class="login-box">
       <h2>客户登录</h2>
       <div class="form-group">
-        <label>营业执照号</label>
-        <input type="text" id="loginLicense" placeholder="请输入营业执照号">
+        <label>手机号</label>
+        <input type="text" id="loginUsername" placeholder="请输入手机号">
       </div>
       <div class="form-group">
         <label>密码</label>
@@ -76,94 +93,136 @@
     <div class="header">
       <div class="logo">客户自助门户</div>
       <div class="user-info">
+        <div class="enterprise-selector hidden" id="enterpriseSelector">
+          <span>当前企业：</span>
+          <select id="currentEnterprise" onchange="switchEnterprise()"></select>
+        </div>
         <span id="userName"></span>
         <button class="logout-btn" onclick="logout()">退出</button>
       </div>
     </div>
 
-    <div class="container">
-      <div class="stat-grid">
-        <div class="stat-card">
-          <div class="stat-value" id="statBalance">¥0</div>
-          <div class="stat-label">账户余额</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value" id="statQuota">0</div>
-          <div class="stat-label">API配额</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value" id="statCalls">0</div>
-          <div class="stat-label">总调用次数</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value" id="statOrders">0</div>
-          <div class="stat-label">订单数</div>
+    <div class="container" id="mainContainer">
+      <div class="no-enterprise" id="noEnterprise">
+        <h3>您还没有绑定任何企业</h3>
+        <p>可以创建新企业或申请绑定已有企业</p>
+        <div style="display: flex; gap: 15px; justify-content: center;">
+          <button class="btn btn-primary" onclick="showCreateEnterpriseModal()">创建企业</button>
+          <button class="btn btn-default" onclick="showBindEnterpriseModal()">绑定已有企业</button>
         </div>
       </div>
 
-      <div class="tabs">
-        <div class="tab active" onclick="switchTab('products')">产品列表</div>
-        <div class="tab" onclick="switchTab('orders')">我的订单</div>
-        <div class="tab" onclick="switchTab('apikeys')">API密钥</div>
-        <div class="tab" onclick="switchTab('calllogs')">调用记录</div>
-      </div>
-
-      <div id="productsTab">
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">可购买产品</div>
+      <div class="hidden" id="enterpriseContent">
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-value" id="statBalance">¥0</div>
+            <div class="stat-label">账户余额</div>
           </div>
-          <div class="card-body">
-            <div class="table-wrap">
-              <table>
-                <thead><tr><th>产品编码</th><th>产品名称</th><th>计费方式</th><th>价格</th><th>操作</th></tr></thead>
-                <tbody id="productsTableBody"></tbody>
-              </table>
+          <div class="stat-card">
+            <div class="stat-value" id="statQuota">0</div>
+            <div class="stat-label">API配额</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statCalls">0</div>
+            <div class="stat-label">总调用次数</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="statOrders">0</div>
+            <div class="stat-label">订单数</div>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <div class="tab active" onclick="switchTab('products')">产品列表</div>
+          <div class="tab" onclick="switchTab('orders')">我的订单</div>
+          <div class="tab" onclick="switchTab('apikeys')">API密钥</div>
+          <div class="tab" onclick="switchTab('calllogs')">调用记录</div>
+          <div class="tab" onclick="switchTab('enterprise')">企业管理</div>
+        </div>
+
+        <div id="productsTab">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">可购买产品</div>
+            </div>
+            <div class="card-body">
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>产品编码</th><th>产品名称</th><th>计费方式</th><th>价格</th><th>操作</th></tr></thead>
+                  <tbody id="productsTableBody"></tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div id="ordersTab" class="hidden">
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">我的订单</div>
-          </div>
-          <div class="card-body">
-            <div class="table-wrap">
-              <table>
-                <thead><tr><th>订单号</th><th>产品</th><th>类型</th><th>金额</th><th>审核状态</th><th>支付状态</th><th>时间</th></tr></thead>
-                <tbody id="ordersTableBody"></tbody>
-              </table>
+        <div id="ordersTab" class="hidden">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">我的订单</div>
+            </div>
+            <div class="card-body">
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>订单号</th><th>产品</th><th>类型</th><th>金额</th><th>审核状态</th><th>支付状态</th><th>时间</th></tr></thead>
+                  <tbody id="ordersTableBody"></tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div id="apikeysTab" class="hidden">
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">我的API密钥</div>
-            <button class="btn btn-primary btn-small" onclick="showApiKeyModal()">查看密钥</button>
-          </div>
-          <div class="card-body">
-            <div id="apiKeyList"></div>
+        <div id="apikeysTab" class="hidden">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">我的API密钥</div>
+            </div>
+            <div class="card-body">
+              <div style="margin-bottom:15px;">
+                <select id="apiKeyType" onchange="loadApiKeys()" style="padding:6px 12px;border:1px solid #d9d9d9;border-radius:4px;">
+                  <option value="enterprise">企业API密钥</option>
+                  <option value="personal">个人API密钥</option>
+                </select>
+                <button class="btn btn-primary btn-small" onclick="showGenerateApiKeyModal()" style="margin-left:10px;">生成新密钥</button>
+              </div>
+              <div id="apiKeyList"></div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div id="calllogsTab" class="hidden">
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">调用记录</div>
-          </div>
-          <div class="card-body">
-            <div class="table-wrap">
-              <table>
-                <thead><tr><th>调用时间</th><th>产品</th><th>响应码</th><th>响应信息</th><th>耗时</th></tr></thead>
-                <tbody id="callLogsTableBody"></tbody>
-              </table>
+        <div id="calllogsTab" class="hidden">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">调用记录</div>
             </div>
+            <div class="card-body">
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>调用时间</th><th>产品</th><th>响应码</th><th>响应信息</th><th>耗时</th></tr></thead>
+                  <tbody id="callLogsTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="enterpriseTab" class="hidden">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">绑定的企业</div>
+              <div>
+                <button class="btn btn-default btn-small" onclick="showBindEnterpriseModal()">绑定新企业</button>
+                <button class="btn btn-primary btn-small" onclick="showCreateEnterpriseModal()">创建企业</button>
+              </div>
+            </div>
+            <div class="card-body" id="enterpriseList"></div>
+          </div>
+
+          <div class="card" id="pendingBindsCard" class="hidden">
+            <div class="card-header">
+              <div class="card-title">待审批的绑定申请</div>
+            </div>
+            <div class="card-body" id="pendingBindsList"></div>
           </div>
         </div>
       </div>
@@ -172,26 +231,67 @@
 
   <div id="registerModal" class="modal">
     <div class="modal-content">
-      <div class="modal-header">客户注册</div>
+      <div class="modal-header">账号注册</div>
       <div class="form-group">
-        <label>公司名称</label>
-        <input type="text" id="regCompanyName" placeholder="请输入公司名称">
+        <label>姓名</label>
+        <input type="text" id="regName" placeholder="请输入姓名">
       </div>
       <div class="form-group">
-        <label>营业执照号</label>
-        <input type="text" id="regLicense" placeholder="请输入营业执照号">
-      </div>
-      <div class="form-group">
-        <label>联系人</label>
-        <input type="text" id="regContact" placeholder="请输入联系人">
+        <label>手机号</label>
+        <input type="text" id="regUsername" placeholder="请输入手机号">
       </div>
       <div class="form-group">
         <label>密码</label>
-        <input type="password" id="regPassword" placeholder="请输入密码">
+        <input type="password" id="regPassword" placeholder="请输入密码（至少6位）">
       </div>
       <div class="modal-footer">
         <button class="btn btn-default" onclick="closeModal('registerModal')">取消</button>
         <button class="btn btn-primary" onclick="doRegister()">注册</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="createEnterpriseModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">创建企业</div>
+      <div class="form-group">
+        <label>公司名称</label>
+        <input type="text" id="createCompanyName" placeholder="请输入公司名称">
+      </div>
+      <div class="form-group">
+        <label>营业执照号</label>
+        <input type="text" id="createLicense" placeholder="请输入营业执照号">
+      </div>
+      <div class="form-group">
+        <label>联系人</label>
+        <input type="text" id="createContact" placeholder="请输入联系人">
+      </div>
+      <div class="form-group">
+        <label>联系人手机</label>
+        <input type="text" id="createContactPhone" placeholder="请输入联系人手机">
+      </div>
+      <div class="form-group">
+        <label>联系人邮箱</label>
+        <input type="text" id="createContactEmail" placeholder="请输入联系人邮箱">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-default" onclick="closeModal('createEnterpriseModal')">取消</button>
+        <button class="btn btn-primary" onclick="doCreateEnterprise()">创建</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="bindEnterpriseModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">绑定已有企业</div>
+      <div class="form-group">
+        <label>企业ID</label>
+        <input type="number" id="bindCustomerId" placeholder="请输入企业ID">
+      </div>
+      <p style="color:#999;font-size:12px;margin-bottom:15px;">请向企业管理员获取企业ID</p>
+      <div class="modal-footer">
+        <button class="btn btn-default" onclick="closeModal('bindEnterpriseModal')">取消</button>
+        <button class="btn btn-primary" onclick="doBindEnterprise()">申请绑定</button>
       </div>
     </div>
   </div>
@@ -228,20 +328,40 @@
     </div>
   </div>
 
-  <div id="apiKeyModal" class="modal">
+  <div id="generateApiKeyModal" class="modal">
     <div class="modal-content">
-      <div class="modal-header">我的API密钥</div>
-      <div id="apiKeyContent"></div>
-      <div class="modal-footer">
-        <button class="btn btn-default" onclick="closeModal('apiKeyModal')">关闭</button>
+      <div class="modal-header">生成API密钥</div>
+      <div class="form-group">
+        <label>密钥类型</label>
+        <select id="newApiKeyType">
+          <option value="enterprise">企业API密钥</option>
+          <option value="personal">个人API密钥</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>产品（可选）</label>
+        <select id="newApiKeyProduct">
+          <option value="">不限产品</option>
+        </select>
+      </div>
+      <div id="generatedApiKeyContent" style="display:none;">
+        <div class="api-key-box" id="generatedApiKeyBox"></div>
+      </div>
+      <div class="modal-footer" id="generateApiKeyFooter">
+        <button class="btn btn-default" onclick="closeModal('generateApiKeyModal')">关闭</button>
+        <button class="btn btn-primary" onclick="doGenerateApiKey()">生成</button>
       </div>
     </div>
   </div>
 
   <script>
     const API_BASE = 'http://localhost:3001/api';
-    let token = localStorage.getItem('customerToken');
-    let customerId = localStorage.getItem('customerId');
+    let token = localStorage.getItem('accountToken');
+    let accountId = localStorage.getItem('accountId');
+    let accountName = localStorage.getItem('accountName');
+    let currentEnterpriseId = localStorage.getItem('currentEnterpriseId');
+    let currentEnterpriseName = localStorage.getItem('currentEnterpriseName');
+    let enterprises = [];
     let currentProduct = null;
     let products = [];
 
@@ -255,30 +375,35 @@
 
     function closeModal(id) {
       document.getElementById(id).classList.remove('show');
+      if (id === 'generateApiKeyModal') {
+        document.getElementById('generatedApiKeyContent').style.display = 'none';
+        document.getElementById('generateApiKeyFooter').style.display = 'flex';
+      }
     }
 
     async function doLogin() {
-      const license = document.getElementById('loginLicense').value;
+      const username = document.getElementById('loginUsername').value;
       const password = document.getElementById('loginPassword').value;
 
-      if (!license || !password) {
+      if (!username || !password) {
         alert('请填写完整信息');
         return;
       }
 
-      const res = await fetch(API_BASE + '/customers/login', {
+      const res = await fetch(API_BASE + '/accounts/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ businessLicense: license, password })
+        body: JSON.stringify({ username, password })
       });
 
       const data = await res.json();
       if (res.ok) {
-        localStorage.setItem('customerToken', data.token);
-        localStorage.setItem('customerId', data.customer.id);
-        localStorage.setItem('customerName', data.customer.companyName);
+        localStorage.setItem('accountToken', data.token);
+        localStorage.setItem('accountId', data.account.id);
+        localStorage.setItem('accountName', data.account.name);
         token = data.token;
-        customerId = data.customer.id;
+        accountId = data.account.id;
+        accountName = data.account.name;
         showMainPage();
       } else {
         alert(data.message || '登录失败');
@@ -286,64 +411,222 @@
     }
 
     async function doRegister() {
-      const companyName = document.getElementById('regCompanyName').value;
-      const businessLicense = document.getElementById('regLicense').value;
-      const contact = document.getElementById('regContact').value;
+      const name = document.getElementById('regName').value;
+      const username = document.getElementById('regUsername').value;
       const password = document.getElementById('regPassword').value;
 
-      if (!companyName || !businessLicense || !contact || !password) {
+      if (!name || !username || !password) {
         alert('请填写完整信息');
         return;
       }
 
-      const res = await fetch(API_BASE + '/customers/register', {
+      if (!/^1[3-9]\d{9}$/.test(username)) {
+        alert('请输入正确的手机号');
+        return;
+      }
+
+      if (password.length < 6) {
+        alert('密码长度不能少于6位');
+        return;
+      }
+
+      const res = await fetch(API_BASE + '/accounts/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ companyName, businessLicense, contact, password })
+        body: JSON.stringify({ name, username, password })
       });
 
       const data = await res.json();
       if (res.ok) {
         alert('注册成功，请登录');
         closeModal('registerModal');
-        document.getElementById('loginLicense').value = businessLicense;
+        document.getElementById('loginUsername').value = username;
       } else {
         alert(data.message || '注册失败');
       }
     }
 
     function logout() {
-      localStorage.removeItem('customerToken');
-      localStorage.removeItem('customerId');
-      localStorage.removeItem('customerName');
+      localStorage.removeItem('accountToken');
+      localStorage.removeItem('accountId');
+      localStorage.removeItem('accountName');
+      localStorage.removeItem('currentEnterpriseId');
+      localStorage.removeItem('currentEnterpriseName');
       location.reload();
     }
 
-    function showMainPage() {
+    async function showMainPage() {
       document.getElementById('loginPage').classList.add('hidden');
       document.getElementById('mainPage').classList.remove('hidden');
-      document.getElementById('userName').textContent = localStorage.getItem('customerName') || '';
+      document.getElementById('userName').textContent = accountName;
+      await loadProfile();
+    }
+
+    async function loadProfile() {
+      try {
+        const res = await fetch(API_BASE + '/accounts/profile', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          alert(data.message || '获取信息失败');
+          logout();
+          return;
+        }
+
+        enterprises = data.customers || [];
+        renderEnterpriseSelector();
+        loadProducts();
+
+        if (enterprises.length === 0) {
+          document.getElementById('noEnterprise').classList.remove('hidden');
+          document.getElementById('enterpriseContent').classList.add('hidden');
+          document.getElementById('enterpriseSelector').classList.add('hidden');
+        } else {
+          document.getElementById('noEnterprise').classList.add('hidden');
+          document.getElementById('enterpriseContent').classList.remove('hidden');
+          document.getElementById('enterpriseSelector').classList.remove('hidden');
+
+          if (!currentEnterpriseId || !enterprises.find(e => e.customerId === parseInt(currentEnterpriseId))) {
+            currentEnterpriseId = enterprises[0].customerId;
+            currentEnterpriseName = enterprises[0].companyName;
+            localStorage.setItem('currentEnterpriseId', currentEnterpriseId);
+            localStorage.setItem('currentEnterpriseName', currentEnterpriseName);
+          }
+
+          renderEnterpriseSelector();
+          loadStats();
+        }
+      } catch (error) {
+        console.error('loadProfile error:', error);
+        alert('获取信息失败');
+        logout();
+      }
+    }
+
+    function renderEnterpriseSelector() {
+      const select = document.getElementById('currentEnterprise');
+      select.innerHTML = enterprises.map(e =>
+        `<option value="${e.customerId}" ${e.customerId === parseInt(currentEnterpriseId) ? 'selected' : ''}>${e.companyName}</option>`
+      ).join('');
+    }
+
+    function switchEnterprise() {
+      const select = document.getElementById('currentEnterprise');
+      currentEnterpriseId = select.value;
+      currentEnterpriseName = enterprises.find(e => e.customerId === parseInt(currentEnterpriseId))?.companyName || '';
+      localStorage.setItem('currentEnterpriseId', currentEnterpriseId);
+      localStorage.setItem('currentEnterpriseName', currentEnterpriseName);
       loadStats();
-      loadProducts();
+    }
+
+    function showCreateEnterpriseModal() {
+      document.getElementById('createCompanyName').value = '';
+      document.getElementById('createLicense').value = '';
+      document.getElementById('createContact').value = '';
+      document.getElementById('createContactPhone').value = '';
+      document.getElementById('createContactEmail').value = '';
+      document.getElementById('createEnterpriseModal').classList.add('show');
+    }
+
+    async function doCreateEnterprise() {
+      const companyName = document.getElementById('createCompanyName').value;
+      const businessLicense = document.getElementById('createLicense').value;
+      const contact = {
+        name: document.getElementById('createContact').value,
+        phone: document.getElementById('createContactPhone').value,
+        email: document.getElementById('createContactEmail').value
+      };
+
+      if (!companyName || !businessLicense || !contact.name || !contact.phone || !contact.email) {
+        alert('请填写完整信息');
+        return;
+      }
+
+      try {
+        const res = await fetch(API_BASE + '/accounts/customers', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
+          body: JSON.stringify({ companyName, businessLicense, contact })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          alert('企业创建成功');
+          closeModal('createEnterpriseModal');
+          await loadProfile();
+        } else {
+          alert(data.message || '创建失败');
+        }
+      } catch (error) {
+        console.error('doCreateEnterprise error:', error);
+        alert('创建失败');
+      }
+    }
+
+    function showBindEnterpriseModal() {
+      document.getElementById('bindCustomerId').value = '';
+      document.getElementById('bindEnterpriseModal').classList.add('show');
+    }
+
+    async function doBindEnterprise() {
+      const customerId = document.getElementById('bindCustomerId').value;
+
+      if (!customerId) {
+        alert('请输入企业ID');
+        return;
+      }
+
+      try {
+        const res = await fetch(API_BASE + '/accounts/bind-customer', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
+          body: JSON.stringify({ customerId: parseInt(customerId) })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          alert(data.message || '申请已提交');
+          closeModal('bindEnterpriseModal');
+        } else {
+          alert(data.message || '绑定失败');
+        }
+      } catch (error) {
+        console.error('doBindEnterprise error:', error);
+        alert('绑定失败');
+      }
     }
 
     async function loadStats() {
+      if (!currentEnterpriseId) return;
+
       const headers = { 'Authorization': 'Bearer ' + token };
 
-      const [accountRes, keysRes, ordersRes] = await Promise.all([
-        fetch(API_BASE + '/accounts/' + customerId, { headers }),
-        fetch(API_BASE + '/keys/customer', { headers }),
-        fetch(API_BASE + '/orders', { headers })
-      ]);
+      try {
+        const [accountRes, keysRes, ordersRes] = await Promise.all([
+          fetch(API_BASE + '/accounts/' + currentEnterpriseId, { headers }),
+          fetch(API_BASE + '/keys/customer?customerId=' + currentEnterpriseId, { headers }),
+          fetch(API_BASE + '/orders', { headers })
+        ]);
 
-      const account = accountRes.ok ? await accountRes.json() : { balance: 0, creditLimit: 0 };
-      const keys = keysRes.ok ? await keysRes.json() : { keys: [] };
-      const orders = ordersRes.ok ? await ordersRes.json() : { orders: [] };
+        const account = accountRes.ok ? await accountRes.json() : { balance: 0, creditLimit: 0 };
+        const keys = keysRes.ok ? await keysRes.json() : { keys: [] };
+        const orders = ordersRes.ok ? await ordersRes.json() : { orders: [] };
 
-      document.getElementById('statBalance').textContent = '¥' + (account.balance || 0);
-      document.getElementById('statQuota').textContent = keys.keys.length;
-      document.getElementById('statOrders').textContent = orders.orders?.length || 0;
-      document.getElementById('statCalls').textContent = '0';
+        document.getElementById('statBalance').textContent = '¥' + (account.balance || 0);
+        document.getElementById('statQuota').textContent = keys.keys?.length || 0;
+        document.getElementById('statOrders').textContent = orders.orders?.length || 0;
+        document.getElementById('statCalls').textContent = '0';
+      } catch (error) {
+        console.error('loadStats error:', error);
+      }
     }
 
     async function loadProducts() {
@@ -367,7 +650,7 @@
         headers: { 'Authorization': 'Bearer ' + token }
       });
       const data = await res.json();
-      const orders = data.orders || [];
+      const orders = (data.orders || []).filter(o => o.customerId === parseInt(currentEnterpriseId));
 
       document.getElementById('ordersTableBody').innerHTML = orders.map(o => `
         <tr>
@@ -383,22 +666,79 @@
     }
 
     async function loadApiKeys() {
-      const res = await fetch(API_BASE + '/keys/customer', {
-        headers: { 'Authorization': 'Bearer ' + token }
-      });
-      const data = await res.json();
-      const keys = data.keys || [];
+      const type = document.getElementById('apiKeyType').value;
+      const headers = { 'Authorization': 'Bearer ' + token };
 
-      if (keys.length === 0) {
-        document.getElementById('apiKeyList').innerHTML = '<div class="empty">暂无API密钥，请先购买产品</div>';
-      } else {
-        document.getElementById('apiKeyList').innerHTML = keys.map(k => `
-          <div style="padding:15px;border:1px solid #e8e8e8;border-radius:4px;margin-bottom:10px;">
-            <div style="margin-bottom:5px;"><strong>产品：</strong>${k.productName}</div>
-            <div style="margin-bottom:5px;"><strong>密钥：</strong><code style="background:#f5f5f5;padding:2px 6px;border-radius:3px;">${k.apiKey}</code></div>
-            <div><strong>状态：</strong><span class="status status-${k.status}">${k.status === 'active' ? '正常' : '已吊销'}</span></div>
-          </div>
-        `).join('');
+      try {
+        let url = API_BASE + '/accounts/apikeys?type=' + type;
+        if (type === 'enterprise' && currentEnterpriseId) {
+          url += '&customerId=' + currentEnterpriseId;
+        }
+
+        const res = await fetch(url, { headers });
+        const data = await res.json();
+        const keys = data.keys || [];
+
+        if (keys.length === 0) {
+          document.getElementById('apiKeyList').innerHTML = '<div class="empty">暂无API密钥</div>';
+        } else {
+          document.getElementById('apiKeyList').innerHTML = keys.map(k => `
+            <div style="padding:15px;border:1px solid #e8e8e8;border-radius:4px;margin-bottom:10px;">
+              <div style="margin-bottom:5px;"><strong>类型：</strong>${k.customerId ? '企业' : '个人'}</div>
+              <div style="margin-bottom:5px;"><strong>API Key：</strong><code style="background:#f5f5f5;padding:2px 6px;border-radius:3px;">${k.apiKey}</code></div>
+              ${k.apiSecret ? `<div style="margin-bottom:5px;"><strong>API Secret：</strong><code style="background:#f5f5f5;padding:2px 6px;border-radius:3px;">${k.apiSecret}</code></div>` : ''}
+              <div><strong>状态：</strong><span class="status status-${k.status}">${k.status === 'active' ? '正常' : '已吊销'}</span></div>
+            </div>
+          `).join('');
+        }
+      } catch (error) {
+        console.error('loadApiKeys error:', error);
+        document.getElementById('apiKeyList').innerHTML = '<div class="empty">加载失败</div>';
+      }
+    }
+
+    async function showGenerateApiKeyModal() {
+      const type = document.getElementById('apiKeyType').value;
+      document.getElementById('newApiKeyType').value = type;
+      document.getElementById('generatedApiKeyContent').style.display = 'none';
+      document.getElementById('generateApiKeyFooter').style.display = 'flex';
+      document.getElementById('generateApiKeyModal').classList.add('show');
+    }
+
+    async function doGenerateApiKey() {
+      const type = document.getElementById('newApiKeyType').value;
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token
+      };
+
+      const body = {};
+      if (type === 'enterprise' && currentEnterpriseId) {
+        body.customerId = currentEnterpriseId;
+      }
+
+      try {
+        const res = await fetch(API_BASE + '/accounts/regenerate-apikey', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(body)
+        });
+
+        const data = await res.json();
+        if (res.ok && data.key) {
+          document.getElementById('generatedApiKeyBox').innerHTML = `
+            <div><strong>API Key：</strong>${data.key.apiKey}</div>
+            <div style="margin-top:10px;"><strong>API Secret：</strong>${data.key.apiSecret}</div>
+          `;
+          document.getElementById('generatedApiKeyContent').style.display = 'block';
+          document.getElementById('generateApiKeyFooter').style.display = 'none';
+          loadApiKeys();
+        } else {
+          alert(data.message || '生成失败');
+        }
+      } catch (error) {
+        console.error('doGenerateApiKey error:', error);
+        alert('生成失败');
       }
     }
 
@@ -407,7 +747,7 @@
         headers: { 'Authorization': 'Bearer ' + token }
       });
       const data = await res.json();
-      const logs = data.logs || [];
+      const logs = (data.logs || []).filter(l => l.customerId === parseInt(currentEnterpriseId));
 
       document.getElementById('callLogsTableBody').innerHTML = logs.map(l => `
         <tr>
@@ -420,6 +760,61 @@
       `).join('') || '<tr><td colspan="5" class="empty">暂无调用记录</td></tr>';
     }
 
+    async function loadEnterpriseInfo() {
+      renderEnterpriseList();
+      await loadPendingBinds();
+    }
+
+    function renderEnterpriseList() {
+      const list = document.getElementById('enterpriseList');
+      if (enterprises.length === 0) {
+        list.innerHTML = '<div class="empty">暂无绑定的企业</div>';
+        return;
+      }
+
+      list.innerHTML = enterprises.map(e => `
+        <div class="enterprise-item ${e.customerId === parseInt(currentEnterpriseId) ? 'current' : ''}">
+          <div>
+            <div class="enterprise-name">${e.companyName}</div>
+            <div class="enterprise-role">${e.role === 'admin' ? '管理员' : '成员'}</div>
+          </div>
+          <div class="enterprise-actions">
+            ${e.customerId === parseInt(currentEnterpriseId) ? '<span class="enterprise-badge">当前</span>' : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function loadPendingBinds() {
+      try {
+        const res = await fetch(API_BASE + '/accounts/pending-binds', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const data = await res.json();
+        const pending = data.pendingBindings || [];
+
+        const card = document.getElementById('pendingBindsCard');
+        const list = document.getElementById('pendingBindsList');
+
+        if (pending.length === 0) {
+          card.classList.add('hidden');
+          return;
+        }
+
+        card.classList.remove('hidden');
+        list.innerHTML = pending.map(p => `
+          <div class="enterprise-item">
+            <div>
+              <div class="enterprise-name">${p.companyName}</div>
+              <div class="enterprise-role">等待管理员审批</div>
+            </div>
+          </div>
+        `).join('');
+      } catch (error) {
+        console.error('loadPendingBinds error:', error);
+      }
+    }
+
     function switchTab(tab) {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       event.target.classList.add('active');
@@ -428,6 +823,7 @@
       document.getElementById('ordersTab').classList.add('hidden');
       document.getElementById('apikeysTab').classList.add('hidden');
       document.getElementById('calllogsTab').classList.add('hidden');
+      document.getElementById('enterpriseTab').classList.add('hidden');
 
       if (tab === 'products') {
         document.getElementById('productsTab').classList.remove('hidden');
@@ -440,6 +836,9 @@
       } else if (tab === 'calllogs') {
         document.getElementById('calllogsTab').classList.remove('hidden');
         loadCallLogs();
+      } else if (tab === 'enterprise') {
+        document.getElementById('enterpriseTab').classList.remove('hidden');
+        loadEnterpriseInfo();
       }
     }
 
@@ -505,29 +904,6 @@
       } else {
         alert(data.message || '订单提交失败');
       }
-    }
-
-    async function showApiKeyModal() {
-      const res = await fetch(API_BASE + '/keys/customer', {
-        headers: { 'Authorization': 'Bearer ' + token }
-      });
-      const data = await res.json();
-      const keys = data.keys || [];
-
-      if (keys.length === 0) {
-        document.getElementById('apiKeyContent').innerHTML = '<p>暂无API密钥，请先购买产品并等待审核通过</p>';
-      } else {
-        document.getElementById('apiKeyContent').innerHTML = keys.map(k => `
-          <div style="margin-bottom:15px;">
-            <div style="margin-bottom:5px;"><strong>产品：</strong>${k.productName}</div>
-            <div class="api-key-box">
-              <strong>API Key：</strong>${k.apiKey}
-            </div>
-          </div>
-        `).join('');
-      }
-
-      document.getElementById('apiKeyModal').classList.add('show');
     }
   </script>
 </body>

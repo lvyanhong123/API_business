@@ -14,8 +14,8 @@ async function proxyRequest(supplier, requestParams) {
     headers['Authorization'] = `Bearer ${authConfig}`;
   }
 
+  const startTime = Date.now();
   try {
-    const startTime = Date.now();
     const response = await axios({
       method: 'POST',
       url: apiUrl,
