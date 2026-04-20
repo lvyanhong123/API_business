@@ -192,6 +192,38 @@ exports.approveOrder = async (req, res) => {
         }
         db.customerAccounts.update(account.id, { creditLimit: account.creditLimit - order.amount });
       }
+
+      if (order.accountId && order.orderType === 'per_call') {
+        let quota = db.accountProductQuotas.findOne({ accountId: order.accountId, productId: order.productId });
+        if (quota) {
+          db.accountProductQuotas.update(quota.id, { prepayRemaining: quota.prepayRemaining + order.quantity });
+        } else {
+          db.accountProductQuotas.create({
+            accountId: order.accountId,
+            productId: order.productId,
+            customerId: order.customerId,
+            prepayRemaining: order.quantity,
+            postpayConsumed: 0
+          });
+        }
+      }
+    }
+
+    if (order.paymentType === 'postpay') {
+      if (order.accountId && order.orderType === 'per_call') {
+        let quota = db.accountProductQuotas.findOne({ accountId: order.accountId, productId: order.productId });
+        if (quota) {
+          db.accountProductQuotas.update(quota.id, { postpayConsumed: quota.postpayConsumed });
+        } else {
+          db.accountProductQuotas.create({
+            accountId: order.accountId,
+            productId: order.productId,
+            customerId: order.customerId,
+            prepayRemaining: 0,
+            postpayConsumed: 0
+          });
+        }
+      }
     }
 
     const updatedOrder = db.orders.findById(parseInt(id));

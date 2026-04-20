@@ -134,6 +134,7 @@
 
         <div class="tabs">
           <div class="tab active" onclick="switchTab('products')">产品列表</div>
+          <div class="tab" onclick="switchTab('services')">我的API服务</div>
           <div class="tab" onclick="switchTab('orders')">我的订单</div>
           <div class="tab" onclick="switchTab('apikeys')">API密钥</div>
           <div class="tab" onclick="switchTab('calllogs')">调用记录</div>
@@ -151,6 +152,22 @@
                 <table>
                   <thead><tr><th>产品编码</th><th>产品名称</th><th>计费方式</th><th>价格</th><th>操作</th></tr></thead>
                   <tbody id="productsTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="servicesTab" class="hidden">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">我的API服务</div>
+            </div>
+            <div class="card-body">
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>产品</th><th>预付配额</th><th>后付配额</th><th>自动续订</th><th>操作</th></tr></thead>
+                  <tbody id="servicesTableBody"></tbody>
                 </table>
               </div>
             </div>
@@ -393,6 +410,40 @@
       <div class="modal-footer" id="generateApiKeyFooter">
         <button class="btn btn-default" onclick="closeModal('generateApiKeyModal')">关闭</button>
         <button class="btn btn-primary" onclick="doGenerateApiKey()">生成</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="autoRenewalModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">自动续订配置</div>
+      <div class="form-group">
+        <label>产品</label>
+        <div id="autoRenewalProductName" style="padding:8px;background:#f5f5f5;border-radius:4px;"></div>
+      </div>
+      <div class="form-group">
+        <label>触发条件</label>
+        <select id="autoRenewalTriggerType" onchange="toggleRenewalTrigger()">
+          <option value="ratio">配额剩余比例低于</option>
+          <option value="count">配额剩余次数低于</option>
+        </select>
+      </div>
+      <div class="form-group" id="renewalRatioGroup">
+        <label>触发比例（%）</label>
+        <input type="number" id="autoRenewalTriggerValue" value="10" min="1" max="100">
+      </div>
+      <div class="form-group hidden" id="renewalCountGroup">
+        <label>触发次数</label>
+        <input type="number" id="autoRenewalTriggerCount" value="10" min="1">
+      </div>
+      <div class="form-group">
+        <label>续订数量</label>
+        <input type="number" id="autoRenewalQuantity" value="100" min="1">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-default" onclick="closeModal('autoRenewalModal')">取消</button>
+        <button class="btn btn-danger" onclick="disableAutoRenewal()">关闭自动续订</button>
+        <button class="btn btn-primary" onclick="saveAutoRenewal()">保存</button>
       </div>
     </div>
   </div>
@@ -695,6 +746,158 @@
           <td><button class="btn btn-primary btn-small" onclick="showOrderModal(${p.id})">购买</button></td>
         </tr>
       `).join('') || '<tr><td colspan="5" class="empty">暂无可购买产品</td></tr>';
+    }
+
+    async function loadServices() {
+      const headers = { 'Authorization': 'Bearer ' + token };
+
+      try {
+        const res = await fetch(API_BASE + '/my/quotas', { headers });
+        const data = await res.json();
+        const services = data.quotas || [];
+
+        if (services.length === 0) {
+          document.getElementById('servicesTableBody').innerHTML = '<tr><td colspan="5" class="empty">您还没有购买任何API服务</td></tr>';
+          return;
+        }
+
+        document.getElementById('servicesTableBody').innerHTML = services.map(s => `
+          <tr>
+            <td>${s.productName}</td>
+            <td>
+              ${s.prepayQuota.total > 0 ? `
+                <span style="color:#52c41a;">${s.prepayQuota.remaining}</span> / ${s.prepayQuota.total}
+              ` : '-'}
+            </td>
+            <td>
+              ${s.postpayQuota.total > 0 ? `
+                <span style="color:#1890ff;">${s.postpayQuota.remaining}</span> / ${s.postpayQuota.total}
+              ` : '-'}
+            </td>
+            <td>
+              ${s.autoRenewal ? `
+                <span class="status status-active">已开启</span>
+              ` : `
+                <span class="status status-inactive">未开启</span>
+              `}
+            </td>
+            <td>
+              <button class="btn btn-default btn-small" onclick="showAutoRenewalModal(${s.productId}, '${s.productName}')">
+                配置自动续订
+              </button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (error) {
+        console.error('loadServices error:', error);
+        document.getElementById('servicesTableBody').innerHTML = '<tr><td colspan="5" class="empty">加载失败</td></tr>';
+      }
+    }
+
+    let currentAutoRenewalProductId = null;
+
+    function showAutoRenewalModal(productId, productName) {
+      currentAutoRenewalProductId = productId;
+      document.getElementById('autoRenewalProductName').textContent = productName;
+      document.getElementById('autoRenewalTriggerType').value = 'ratio';
+      document.getElementById('autoRenewalTriggerValue').value = 10;
+      document.getElementById('autoRenewalQuantity').value = 100;
+      toggleRenewalTrigger();
+      loadAutoRenewalConfig(productId);
+      document.getElementById('autoRenewalModal').classList.add('show');
+    }
+
+    async function loadAutoRenewalConfig(productId) {
+      const headers = { 'Authorization': 'Bearer ' + token };
+      try {
+        const res = await fetch(API_BASE + '/my/quotas', { headers });
+        const data = await res.json();
+        const quota = data.quotas?.find(q => q.productId === productId);
+        if (quota && quota.autoRenewal) {
+          document.getElementById('autoRenewalTriggerType').value = quota.autoRenewal.triggerType;
+          if (quota.autoRenewal.triggerType === 'ratio') {
+            document.getElementById('autoRenewalTriggerValue').value = quota.autoRenewal.triggerValue;
+          } else {
+            document.getElementById('autoRenewalTriggerCount').value = quota.autoRenewal.triggerValue;
+          }
+          document.getElementById('autoRenewalQuantity').value = quota.autoRenewal.renewQuantity;
+          toggleRenewalTrigger();
+        }
+      } catch (error) {
+        console.error('loadAutoRenewalConfig error:', error);
+      }
+    }
+
+    function toggleRenewalTrigger() {
+      const type = document.getElementById('autoRenewalTriggerType').value;
+      document.getElementById('renewalRatioGroup').classList.toggle('hidden', type !== 'ratio');
+      document.getElementById('renewalCountGroup').classList.toggle('hidden', type !== 'count');
+    }
+
+    async function saveAutoRenewal() {
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token
+      };
+
+      const triggerType = document.getElementById('autoRenewalTriggerType').value;
+      const triggerValue = triggerType === 'ratio'
+        ? parseInt(document.getElementById('autoRenewalTriggerValue').value)
+        : parseInt(document.getElementById('autoRenewalTriggerCount').value);
+      const renewQuantity = parseInt(document.getElementById('autoRenewalQuantity').value);
+
+      try {
+        const res = await fetch(API_BASE + '/my/auto-renewal', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            productId: currentAutoRenewalProductId,
+            triggerType,
+            triggerValue,
+            renewQuantity
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          alert('自动续订已保存');
+          closeModal('autoRenewalModal');
+          loadServices();
+        } else {
+          alert(data.message || '保存失败');
+        }
+      } catch (error) {
+        console.error('saveAutoRenewal error:', error);
+        alert('保存失败');
+      }
+    }
+
+    async function disableAutoRenewal() {
+      if (!currentAutoRenewalProductId) return;
+
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token
+      };
+
+      try {
+        const res = await fetch(API_BASE + '/my/auto-renewal/' + currentAutoRenewalProductId, {
+          method: 'DELETE',
+          headers
+        });
+
+        if (res.ok) {
+          alert('自动续订已关闭');
+          closeModal('autoRenewalModal');
+          loadServices();
+        } else {
+          const data = await res.json();
+          alert(data.message || '操作失败');
+        }
+      } catch (error) {
+        console.error('disableAutoRenewal error:', error);
+        alert('操作失败');
+      }
     }
 
     async function loadOrders() {
@@ -1033,6 +1236,7 @@
       }
 
       document.getElementById('productsTab').classList.add('hidden');
+      document.getElementById('servicesTab').classList.add('hidden');
       document.getElementById('ordersTab').classList.add('hidden');
       document.getElementById('apikeysTab').classList.add('hidden');
       document.getElementById('calllogsTab').classList.add('hidden');
@@ -1041,6 +1245,9 @@
 
       if (tab === 'products') {
         document.getElementById('productsTab').classList.remove('hidden');
+      } else if (tab === 'services') {
+        document.getElementById('servicesTab').classList.remove('hidden');
+        loadServices();
       } else if (tab === 'orders') {
         document.getElementById('ordersTab').classList.remove('hidden');
         loadOrders();

@@ -6,12 +6,15 @@ const customerAuth = require('./middleware/customerAuth');
 const { accountAuth } = require('./middleware/accountAuth');
 const db = require('./config/database');
 const accountRoutes = require('./routes/accountRoutes');
+const accountQuotaRoutes = require('./routes/accountQuotaRoutes');
 
 const customerApp = express();
 customerApp.use(express.json());
 customerApp.use(express.static(path.join(__dirname, '../public')));
 
 customerApp.use('/api/accounts', accountRoutes);
+
+customerApp.use('/api/my', accountQuotaRoutes);
 
 customerApp.post('/api/customers/register', customerController.register);
 customerApp.post('/api/customers/login', customerController.login);
@@ -93,6 +96,7 @@ customerApp.post('/api/orders', accountAuth, async (req, res) => {
     const order = db.orders.create({
       orderNo,
       customerId,
+      accountId: req.account.id,
       productId: product,
       orderType,
       quantity,

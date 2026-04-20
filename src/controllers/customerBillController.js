@@ -20,33 +20,60 @@ exports.generateBill = async (req, res) => {
 
     const logs = db.apiLogs.findAll().filter(l => {
       if (l.customerId !== customerId) return false;
-      const callTime = new Date(l.callTime);
+      const callTime = new Date(l.createdAt || l.callTime);
       return callTime >= startDate && callTime <= endDate;
     });
 
     let totalAmount = 0;
-    const productStats = {};
+    let prepayAmount = 0;
+    let postpayAmount = 0;
+
+    const accountStats = {};
 
     for (const log of logs) {
       if (!log.success) continue;
       const product = db.products.findById(log.productId);
       if (!product) continue;
 
-      const price = product.pricingType === 'per_call' ? product.pricePerCall : product.subscriptionPrice;
+      const accountId = log.accountId || 'unknown';
+      const paymentType = log.paymentType || 'postpay';
 
-      if (!productStats[product.id]) {
-        productStats[product.id] = {
+      if (!accountStats[accountId]) {
+        accountStats[accountId] = {
+          accountId,
+          accountName: accountId === 'unknown' ? '未知' : (db.accounts.findById(accountId)?.name || '账号' + accountId),
+          prepay: {},
+          postpay: {},
+          prepayTotal: 0,
+          postpayTotal: 0
+        };
+      }
+
+      const stats = accountStats[accountId];
+      const paymentStats = paymentType === 'prepay' ? stats.prepay : stats.postpay;
+      const paymentTotal = paymentType === 'prepay' ? 'prepayTotal' : 'postpayTotal';
+
+      if (!paymentStats[product.id]) {
+        paymentStats[product.id] = {
           productId: product.id,
           productName: product.name,
           productCode: product.code,
           callCount: 0,
-          pricePerCall: price,
+          pricePerCall: product.pricePerCall,
           amount: 0
         };
       }
 
-      productStats[product.id].callCount++;
-      productStats[product.id].amount += price;
+      const price = product.pricingType === 'per_call' ? product.pricePerCall : product.subscriptionPrice;
+      paymentStats[product.id].callCount++;
+      paymentStats[product.id].amount += price;
+      stats[paymentTotal] += price;
+
+      if (paymentType === 'prepay') {
+        prepayAmount += price;
+      } else {
+        postpayAmount += price;
+      }
       totalAmount += price;
     }
 
@@ -54,26 +81,52 @@ exports.generateBill = async (req, res) => {
       customerId,
       period,
       totalAmount,
+      prepayAmount,
+      postpayAmount,
       status: 'pending',
       generatedAt: new Date().toISOString()
     });
 
-    for (const productId in productStats) {
-      const stats = productStats[productId];
-      db.customerBillItems.create({
-        billId: bill.id,
-        productId: stats.productId,
-        productName: stats.productName,
-        productCode: stats.productCode,
-        callCount: stats.callCount,
-        pricePerCall: stats.pricePerCall,
-        amount: stats.amount
-      });
+    for (const accountId in accountStats) {
+      const stats = accountStats[accountId];
+
+      for (const productId in stats.prepay) {
+        const pStats = stats.prepay[productId];
+        db.customerBillItems.create({
+          billId: bill.id,
+          accountId: stats.accountId,
+          accountName: stats.accountName,
+          productId: pStats.productId,
+          productName: pStats.productName,
+          productCode: pStats.productCode,
+          paymentType: 'prepay',
+          callCount: pStats.callCount,
+          pricePerCall: pStats.pricePerCall,
+          amount: pStats.amount
+        });
+      }
+
+      for (const productId in stats.postpay) {
+        const pStats = stats.postpay[productId];
+        db.customerBillItems.create({
+          billId: bill.id,
+          accountId: stats.accountId,
+          accountName: stats.accountName,
+          productId: pStats.productId,
+          productName: pStats.productName,
+          productCode: pStats.productCode,
+          paymentType: 'postpay',
+          callCount: pStats.callCount,
+          pricePerCall: pStats.pricePerCall,
+          amount: pStats.amount
+        });
+      }
     }
 
     res.status(201).json({ message: '账单生成成功', bill });
 
   } catch (error) {
+    console.error('generateBill error:', error);
     res.status(500).json({ message: '服务器错误' });
   }
 };
@@ -123,15 +176,37 @@ exports.getBillDetail = async (req, res) => {
     const customer = db.customers.findById(bill.customerId);
     const items = db.customerBillItems.findByBillId(bill.id);
 
+    const accountSummary = {};
+    for (const item of items) {
+      const aid = item.accountId || 'unknown';
+      if (!accountSummary[aid]) {
+        accountSummary[aid] = {
+          accountId: aid,
+          accountName: item.accountName || '未知账号',
+          prepayTotal: 0,
+          postpayTotal: 0,
+          items: []
+        };
+      }
+      if (item.paymentType === 'prepay') {
+        accountSummary[aid].prepayTotal += item.amount;
+      } else {
+        accountSummary[aid].postpayTotal += item.amount;
+      }
+      accountSummary[aid].items.push(item);
+    }
+
     res.status(200).json({
       bill: {
         ...bill,
         customerName: customer ? customer.companyName || customer.name : '-'
       },
-      items
+      items,
+      accountSummary: Object.values(accountSummary)
     });
 
   } catch (error) {
+    console.error('getBillDetail error:', error);
     res.status(500).json({ message: '服务器错误' });
   }
 };
@@ -178,7 +253,7 @@ exports.autoGenerateMonthlyBills = async (req, res) => {
 
       const logs = db.apiLogs.findAll().filter(l => {
         if (l.customerId !== customer.id) return false;
-        const callTime = new Date(l.callTime);
+        const callTime = new Date(l.createdAt || l.callTime);
         return callTime >= startDate && callTime <= endDate;
       });
 
@@ -188,12 +263,22 @@ exports.autoGenerateMonthlyBills = async (req, res) => {
       }
 
       let totalAmount = 0;
+      let prepayAmount = 0;
+      let postpayAmount = 0;
 
       for (const log of logs) {
         if (!log.success) continue;
         const product = db.products.findById(log.productId);
         if (product && product.pricingType === 'per_call') {
-          totalAmount += product.pricePerCall;
+          const price = product.pricePerCall;
+          totalAmount += price;
+
+          const paymentType = log.paymentType || 'postpay';
+          if (paymentType === 'prepay') {
+            prepayAmount += price;
+          } else {
+            postpayAmount += price;
+          }
         }
       }
 
@@ -206,6 +291,8 @@ exports.autoGenerateMonthlyBills = async (req, res) => {
         customerId: customer.id,
         period,
         totalAmount,
+        prepayAmount,
+        postpayAmount,
         status: 'pending',
         generatedAt: new Date().toISOString()
       });
@@ -216,6 +303,7 @@ exports.autoGenerateMonthlyBills = async (req, res) => {
     res.status(200).json({ message: '批量生成完成', results });
 
   } catch (error) {
+    console.error('autoGenerateMonthlyBills error:', error);
     res.status(500).json({ message: '服务器错误' });
   }
 };

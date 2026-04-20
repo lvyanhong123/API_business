@@ -22,7 +22,9 @@ const defaultData = {
   withdrawOrders: [],
   customerBills: [],
   customerBillItems: [],
-  adminChangeRequests: []
+  adminChangeRequests: [],
+  accountProductQuotas: [],
+  autoRenewalConfigs: []
 };
 
 let db = null;
@@ -808,6 +810,88 @@ const dbUtils = {
       const index = newData.adminChangeRequests?.findIndex(r => r.id === id);
       if (index === -1 || index === undefined) return false;
       newData.adminChangeRequests.splice(index, 1);
+      saveDb();
+      return true;
+    }
+  },
+
+  accountProductQuotas: {
+    findAll: () => loadDb().accountProductQuotas || [],
+    findById: (id) => loadDb().accountProductQuotas?.find(q => q.id === id),
+    findByAccountId: (accountId) => (loadDb().accountProductQuotas || []).filter(q => q.accountId === accountId),
+    findByProductId: (productId) => (loadDb().accountProductQuotas || []).filter(q => q.productId === productId),
+    findOne: (where) => {
+      const data = loadDb();
+      return data.accountProductQuotas?.find(q => {
+        for (const key in where) {
+          if (q[key] !== where[key]) return false;
+        }
+        return true;
+      });
+    },
+    create: (data) => {
+      const newData = loadDb();
+      if (!newData.accountProductQuotas) newData.accountProductQuotas = [];
+      const id = getNextId(newData, 'accountProductQuotas');
+      const item = { id, ...data, createdAt: new Date(), updatedAt: new Date() };
+      newData.accountProductQuotas.push(item);
+      saveDb();
+      return item;
+    },
+    update: (id, data) => {
+      const newData = loadDb();
+      const index = newData.accountProductQuotas?.findIndex(q => q.id === id);
+      if (index === -1 || index === undefined) return null;
+      newData.accountProductQuotas[index] = { ...newData.accountProductQuotas[index], ...data, updatedAt: new Date() };
+      saveDb();
+      return newData.accountProductQuotas[index];
+    },
+    delete: (id) => {
+      const newData = loadDb();
+      const index = newData.accountProductQuotas?.findIndex(q => q.id === id);
+      if (index === -1 || index === undefined) return false;
+      newData.accountProductQuotas.splice(index, 1);
+      saveDb();
+      return true;
+    }
+  },
+
+  autoRenewalConfigs: {
+    findAll: () => loadDb().autoRenewalConfigs || [],
+    findById: (id) => loadDb().autoRenewalConfigs?.find(c => c.id === id),
+    findByAccountId: (accountId) => (loadDb().autoRenewalConfigs || []).filter(c => c.accountId === accountId),
+    findByProductId: (productId) => (loadDb().autoRenewalConfigs || []).filter(c => c.productId === productId),
+    findOne: (where) => {
+      const data = loadDb();
+      return data.autoRenewalConfigs?.find(c => {
+        for (const key in where) {
+          if (c[key] !== where[key]) return false;
+        }
+        return true;
+      });
+    },
+    create: (data) => {
+      const newData = loadDb();
+      if (!newData.autoRenewalConfigs) newData.autoRenewalConfigs = [];
+      const id = getNextId(newData, 'autoRenewalConfigs');
+      const item = { id, ...data, createdAt: new Date(), updatedAt: new Date() };
+      newData.autoRenewalConfigs.push(item);
+      saveDb();
+      return item;
+    },
+    update: (id, data) => {
+      const newData = loadDb();
+      const index = newData.autoRenewalConfigs?.findIndex(c => c.id === id);
+      if (index === -1 || index === undefined) return null;
+      newData.autoRenewalConfigs[index] = { ...newData.autoRenewalConfigs[index], ...data, updatedAt: new Date() };
+      saveDb();
+      return newData.autoRenewalConfigs[index];
+    },
+    delete: (id) => {
+      const newData = loadDb();
+      const index = newData.autoRenewalConfigs?.findIndex(c => c.id === id);
+      if (index === -1 || index === undefined) return false;
+      newData.autoRenewalConfigs.splice(index, 1);
       saveDb();
       return true;
     }

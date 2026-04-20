@@ -1739,6 +1739,15 @@
       "status": "pending",
       "generatedAt": "2026-04-16T10:30:20.551Z",
       "createdAt": "2026-04-16T10:30:20.551Z"
+    },
+    {
+      "id": 2,
+      "customerId": 1,
+      "period": "2026-05",
+      "totalAmount": 0,
+      "status": "pending",
+      "generatedAt": "2026-04-20T17:36:54.424Z",
+      "createdAt": "2026-04-20T17:36:54.425Z"
     }
   ],
   "customerBillItems": [
