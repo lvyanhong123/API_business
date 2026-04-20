@@ -6,10 +6,14 @@ function generateOrderNo() {
 }
 
 exports.createOrder = async (req, res) => {
-  const { product, orderType, quantity = 1 } = req.body;
+  const { product, orderType, quantity = 1, paymentType } = req.body;
 
   if (!product || !orderType) {
     return res.status(400).json({ message: '请选择产品和订单类型' });
+  }
+
+  if (!paymentType || !['prepay', 'postpay'].includes(paymentType)) {
+    return res.status(400).json({ message: '请选择支付类型（prepay 或 postpay）' });
   }
 
   try {
@@ -42,6 +46,7 @@ exports.createOrder = async (req, res) => {
       orderType,
       quantity,
       amount,
+      paymentType,
       validFrom,
       validTo,
       reviewStatus: 'pending',

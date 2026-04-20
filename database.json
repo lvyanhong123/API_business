@@ -17,7 +17,16 @@
       "password": "$2a$10$hYPId3tObBJa0SNXMinoCOXNw0EGDVEfG5TIwnN0lh8pDor3GUsI.",
       "status": "active",
       "createdAt": "2026-04-17T08:00:00.000Z",
-      "updatedAt": "2026-04-17T08:00:00.000Z"
+      "updatedAt": "2026-04-17T07:40:12.103Z"
+    },
+    {
+      "id": 2,
+      "name": "张三",
+      "username": "15738878179",
+      "password": "$2a$10$/sjq6O1/SwMiEHYMpBF4cuOq0V.FwEzOlnj7hBemgQkK8wDD.B9My",
+      "status": "active",
+      "createdAt": "2026-04-20T02:24:44.257Z",
+      "updatedAt": "2026-04-20T02:24:44.257Z"
     }
   ],
   "accountCustomers": [
@@ -28,7 +37,7 @@
       "role": "admin",
       "status": "active",
       "createdAt": "2026-04-17T08:00:00.000Z",
-      "updatedAt": "2026-04-17T08:00:00.000Z"
+      "updatedAt": "2026-04-20T07:22:38.678Z"
     }
   ],
   "suppliers": [
@@ -43,7 +52,7 @@
       "channelContact": "李小姐",
       "status": "active",
       "createdAt": "2026-04-13T06:32:51.440Z",
-      "updatedAt": "2026-04-13T06:32:51.440Z"
+      "updatedAt": "2026-04-20T08:30:02.619Z"
     },
     {
       "id": 2,
@@ -210,29 +219,41 @@
         "phone": "13800138000",
         "email": "test@example.com"
       },
-      "password": "$2a$10$iGlGeirk/vCIrC4offyLMOEfKOsO8jf5YnFfrR4ve.nNMNQpZU.J2",
-      "quota": 100,
+      "address": "",
+      "salesId": null,
       "status": "active",
       "createdAt": "2026-04-13T06:33:19.074Z",
-      "updatedAt": "2026-04-13T06:34:02.806Z",
-      "appId": "APP17760620428050hcna9hdv",
-      "appSecret": "SKlh4yfqatwf"
+      "updatedAt": "2026-04-13T06:34:02.806Z"
     },
     {
       "id": 2,
-      "companyName": "测试公司",
+      "companyName": "测试公司2",
       "businessLicense": "91110000123456789X",
       "contact": {
         "name": "张三",
         "phone": "13900001111",
         "email": "test@test.com"
       },
-      "password": "$2a$10$Jk93dn7B.qwgXyInMzQhv.UbKdsVCbIa3oJgY1wjGG9PO7HQrlKAC",
-      "quota": 100,
+      "address": "",
+      "salesId": null,
       "status": "active",
-      "paymentType": "prepay",
       "createdAt": "2026-04-15T09:16:56.719Z",
       "updatedAt": "2026-04-15T09:51:48.457Z"
+    },
+    {
+      "id": 3,
+      "companyName": "湖北大数据集团",
+      "businessLicense": "91420106MAEM9PBW1W",
+      "contact": {
+        "name": "lyon19961122",
+        "phone": "15738878179",
+        "email": "805477418@qq.com"
+      },
+      "address": "",
+      "salesId": null,
+      "status": "active",
+      "createdAt": "2026-04-20T02:23:26.019Z",
+      "updatedAt": "2026-04-20T02:23:26.019Z"
     }
   ],
   "orders": [
@@ -1549,6 +1570,15 @@
       "paymentType": "prepay",
       "createdAt": "2026-04-15T09:42:20.787Z",
       "updatedAt": "2026-04-15T09:42:20.787Z"
+    },
+    {
+      "id": 3,
+      "customerId": 3,
+      "balance": 0,
+      "creditLimit": 0,
+      "paymentType": "prepay",
+      "createdAt": "2026-04-20T02:23:26.021Z",
+      "updatedAt": "2026-04-20T02:23:26.021Z"
     }
   ],
   "apiKeys": [

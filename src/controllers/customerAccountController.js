@@ -14,8 +14,7 @@ exports.getAccount = async (req, res) => {
       account = db.customerAccounts.create({
         customerId: parseInt(customerId),
         balance: 0,
-        creditLimit: 0,
-        paymentType: customer.paymentType || 'prepay'
+        creditLimit: 0
       });
     }
 
@@ -27,7 +26,7 @@ exports.getAccount = async (req, res) => {
 
 exports.updateAccount = async (req, res) => {
   const { customerId } = req.params;
-  const { balance, creditLimit, paymentType } = req.body;
+  const { balance, creditLimit } = req.body;
 
   try {
     let account = db.customerAccounts.findByCustomerId(parseInt(customerId));
@@ -35,14 +34,12 @@ exports.updateAccount = async (req, res) => {
       account = db.customerAccounts.create({
         customerId: parseInt(customerId),
         balance: balance || 0,
-        creditLimit: creditLimit || 0,
-        paymentType: paymentType || 'prepay'
+        creditLimit: creditLimit || 0
       });
     } else {
       const updateData = {};
       if (balance !== undefined) updateData.balance = balance;
       if (creditLimit !== undefined) updateData.creditLimit = creditLimit;
-      if (paymentType !== undefined) updateData.paymentType = paymentType;
       account = db.customerAccounts.update(account.id, updateData);
     }
 
@@ -90,8 +87,7 @@ exports.addBalance = async (req, res) => {
       account = db.customerAccounts.create({
         customerId: parseInt(customerId),
         balance: 0,
-        creditLimit: 0,
-        paymentType: customer.paymentType || 'prepay'
+        creditLimit: 0
       });
     }
 
@@ -191,8 +187,7 @@ exports.getAllAccounts = async (req, res) => {
         account = db.customerAccounts.create({
           customerId: c.id,
           balance: 0,
-          creditLimit: 0,
-          paymentType: c.paymentType || 'prepay'
+          creditLimit: 0
         });
       }
       return {

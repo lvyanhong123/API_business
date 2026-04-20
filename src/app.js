@@ -66,12 +66,11 @@ app.get('/api/customers', adminAuth, (req, res) => {
   const customers = db.customers.findAll().map(c => ({
     id: c.id,
     companyName: c.companyName,
-    name: c.companyName,
     businessLicense: c.businessLicense,
     contact: c.contact,
+    address: c.address,
+    salesId: c.salesId,
     status: c.status,
-    quota: c.quota,
-    paymentType: c.paymentType,
     createdAt: c.createdAt
   }));
   res.json({ customers });
@@ -84,7 +83,7 @@ app.get('/api/customers/:id', adminAuth, (req, res) => {
 });
 
 app.post('/api/customers', adminAuth, (req, res) => {
-  const { companyName, businessLicense, contact } = req.body;
+  const { companyName, businessLicense, contact, address, salesId } = req.body;
   if (!companyName || !businessLicense || !contact?.name || !contact?.phone || !contact?.email) {
     return res.status(400).json({ message: '请填写完整信息' });
   }
@@ -96,16 +95,31 @@ app.post('/api/customers', adminAuth, (req, res) => {
     companyName,
     businessLicense,
     contact,
-    status: 'active',
-    paymentType: 'prepay'
+    address: address || '',
+    salesId: salesId || null,
+    status: 'active'
   });
   db.customerAccounts.create({
     customerId: customer.id,
     balance: 0,
-    creditLimit: 0,
-    paymentType: 'prepay'
+    creditLimit: 0
   });
   res.status(201).json(customer);
+});
+
+app.put('/api/customers/:id', adminAuth, (req, res) => {
+  const { companyName, businessLicense, contact, address, salesId, status } = req.body;
+  const customer = db.customers.findById(parseInt(req.params.id));
+  if (!customer) return res.status(404).json({ message: '客户不存在' });
+  const updated = db.customers.update(parseInt(req.params.id), {
+    companyName: companyName || customer.companyName,
+    businessLicense: businessLicense || customer.businessLicense,
+    contact: contact || customer.contact,
+    address: address !== undefined ? address : customer.address,
+    salesId: salesId !== undefined ? salesId : customer.salesId,
+    status: status || customer.status
+  });
+  res.json(updated);
 });
 
 app.get('/api/accounts', adminAuth, (req, res) => {

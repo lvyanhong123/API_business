@@ -23,14 +23,16 @@
   - 绑定企业：使用所绑定企业的资金账户
 
 ### 1.1 客户 / 企业 (customers)
-- 代表一个**企业客户**
+- 代表一个**企业客户**（实际存在的主体）
+- **表字段**：companyName（客户名称）、businessLicense（营业执照）、contact（联系人信息）、address（公司地址）、salesId（关联销售）、status（状态）
 - 一个企业下有多个部门，每个部门有多名员工
 - 每个企业客户对应**一个资金账户**
 
 ### 1.2 企业资金账户 (customerAccounts)
 - **企业层面**的财务账户，用于计费、结算
-- 包含：余额、信用额度、支付类型（预付费/后付费）
+- 包含：余额、信用额度
 - 一个企业客户对应一个资金账户
+- **不包含**：paymentType（订单属性）、status（客户级别属性）
 
 ### 1.3 账号与企业绑定关系 (accountCustomers)
 - 实现**账号与企业的多对多关系**
@@ -189,7 +191,8 @@
 | accounts | 账号（员工/个人登录账号） | 主表 |
 | accountCustomers | 账号与企业绑定关系 | accountId → accounts, customerId → customers |
 | customers | 企业客户基本信息 | 主表 |
-| customerAccounts | 企业资金账户（余额、信用额度、支付类型） | customerId → customers |
+| customerAccounts | 企业资金账户（余额、信用额度） | customerId → customers |
+| adminChangeRequests | 管理员变更申请表 | customerId → customers, currentAdminAccountId → accounts, newAdminAccountId → accounts |
 | orders | 客户购买API的订单 | customerId → customers |
 | apiKeys | API密钥（分企业API Key和个人API Key） | customerId → customers, accountId → accounts |
 | products | 产品信息（名称、定价、状态） | 主表 |
@@ -292,7 +295,8 @@
 ## 八、待完善功能
 
 - [x] **账号体系**：独立账号表，支持多对多绑定企业（账号可以绑定多个企业）
-- [ ] **管理员创建客户**：目前只有客户自助注册，管理员如何创建企业客户和账户
+- [x] **管理员创建客户**：管理员可在后台创建企业客户和账户
+- [x] **账号体系审批流程**：明确审批职责（企业管理员审批绑定，平台管理员审批更换管理员）
 - [ ] **分销模块**：相对独立的业务，暂不纳入主线
 - [ ] **智能路由模块**：根据路由策略自动选择通道，尚未实现
 - [ ] **计费方式扩展**：按调用次数/包天包月的完整产品化
@@ -304,4 +308,8 @@
 
 | 版本 | 日期 | 更新内容 |
 |------|------|----------|
+| v1.3.4 | 2026-04-20 | 业务逻辑完善：资金账户移除paymentType和status字段；订单级别添加paymentType必填；删除废弃代码showAccountModal；修复账户详情页刷新空白BUG |
+| v1.3.3 | 2026-04-20 | 修复账户详情页刷新空白BUG：auth.js添加adminAuth导出，删除app.js中重复路由 |
+| v1.3.2 | 2026-04-20 | 客户表结构改造：清理不相关字段（password/appId/appSecret/quota），添加 address/salesId；客户列表与资金账户分离；账户详情页整合充值退款记录 |
+| v1.3.1 | 2026-04-20 | 账号体系审批流程改造：明确审批职责、企业管理员审批Tab、申请更换管理员功能 |
 | v1.2.3 | 2026-04-17 | 补全账号体系概念：账号(accounts)、账号企业绑定(accountCustomers)、企业管理员机制 |

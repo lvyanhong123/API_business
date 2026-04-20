@@ -138,6 +138,7 @@
           <div class="tab" onclick="switchTab('apikeys')">API密钥</div>
           <div class="tab" onclick="switchTab('calllogs')">调用记录</div>
           <div class="tab" onclick="switchTab('enterprise')">企业管理</div>
+          <div class="tab" onclick="switchTab('approvals')" id="approvalsTabBtn" style="display:none;">审批管理</div>
         </div>
 
         <div id="productsTab">
@@ -220,9 +221,18 @@
 
           <div class="card" id="pendingBindsCard" class="hidden">
             <div class="card-header">
+              <div class="card-title">我的申请记录</div>
+            </div>
+            <div class="card-body" id="myApplicationsList"></div>
+          </div>
+        </div>
+
+        <div id="approvalsTab" class="hidden">
+          <div class="card">
+            <div class="card-header">
               <div class="card-title">待审批的绑定申请</div>
             </div>
-            <div class="card-body" id="pendingBindsList"></div>
+            <div class="card-body" id="pendingApprovalsList"></div>
           </div>
         </div>
       </div>
@@ -296,6 +306,25 @@
     </div>
   </div>
 
+  <div id="changeAdminModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">申请更换管理员</div>
+      <div class="form-group">
+        <label>当前企业</label>
+        <div id="changeAdminCompanyName" style="padding:8px;background:#f5f5f5;border-radius:4px;"></div>
+      </div>
+      <div class="form-group">
+        <label>选择新管理员</label>
+        <select id="newAdminAccountId" style="padding:10px;border:1px solid #d9d9d9;border-radius:4px;width:100%;"></select>
+      </div>
+      <p style="color:#999;font-size:12px;margin-bottom:15px;">提交后需等待平台管理员审批</p>
+      <div class="modal-footer">
+        <button class="btn btn-default" onclick="closeModal('changeAdminModal')">取消</button>
+        <button class="btn btn-primary" onclick="doChangeAdmin()">提交申请</button>
+      </div>
+    </div>
+  </div>
+
   <div id="orderModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">购买产品</div>
@@ -317,6 +346,13 @@
       <div class="form-group" id="monthsGroup" style="display:none;">
         <label>订阅月数</label>
         <input type="number" id="orderMonths" value="1" min="1">
+      </div>
+      <div class="form-group">
+        <label>支付类型</label>
+        <select id="orderPaymentType">
+          <option value="prepay">预付费（先充值后消费）</option>
+          <option value="postpay">后付费（月底结算）</option>
+        </select>
       </div>
       <div style="padding:10px;background:#e6f7ff;border-radius:4px;margin-bottom:15px;">
         应付金额：<span id="orderAmount" style="font-size:20px;font-weight:bold;color:#1890ff;">¥0</span>
@@ -478,6 +514,13 @@
         enterprises = data.customers || [];
         renderEnterpriseSelector();
         loadProducts();
+
+        const isAdmin = enterprises.some(e => e.role === 'admin');
+        if (isAdmin) {
+          document.getElementById('approvalsTabBtn').style.display = 'block';
+        } else {
+          document.getElementById('approvalsTabBtn').style.display = 'none';
+        }
 
         if (enterprises.length === 0) {
           document.getElementById('noEnterprise').classList.remove('hidden');
@@ -772,46 +815,195 @@
         return;
       }
 
-      list.innerHTML = enterprises.map(e => `
-        <div class="enterprise-item ${e.customerId === parseInt(currentEnterpriseId) ? 'current' : ''}">
+      const currentEnterprise = enterprises.find(e => e.customerId === parseInt(currentEnterpriseId));
+      const isAdmin = currentEnterprise?.role === 'admin';
+
+      let actionButtons = '';
+      if (isAdmin) {
+        actionButtons = `<button class="btn btn-default btn-small" onclick="showChangeAdminModal()">申请更换管理员</button>`;
+      }
+
+      list.innerHTML = `
+        <div class="enterprise-item current">
           <div>
-            <div class="enterprise-name">${e.companyName}</div>
-            <div class="enterprise-role">${e.role === 'admin' ? '管理员' : '成员'}</div>
+            <div class="enterprise-name">${currentEnterprise?.companyName || '-'}</div>
+            <div class="enterprise-role">${currentEnterprise?.role === 'admin' ? '管理员' : '成员'}</div>
           </div>
           <div class="enterprise-actions">
-            ${e.customerId === parseInt(currentEnterpriseId) ? '<span class="enterprise-badge">当前</span>' : ''}
+            <span class="enterprise-badge">当前</span>
           </div>
         </div>
-      `).join('');
+        <div style="margin-top:15px;padding-top:15px;border-top:1px solid #e8e8e8;">
+          ${actionButtons}
+        </div>
+      `;
     }
 
     async function loadPendingBinds() {
       try {
-        const res = await fetch(API_BASE + '/accounts/pending-binds', {
+        const res = await fetch(API_BASE + '/accounts/pending-binds?customerId=' + currentEnterpriseId, {
           headers: { 'Authorization': 'Bearer ' + token }
         });
         const data = await res.json();
-        const pending = data.pendingBindings || [];
 
-        const card = document.getElementById('pendingBindsCard');
-        const list = document.getElementById('pendingBindsList');
-
-        if (pending.length === 0) {
-          card.classList.add('hidden');
-          return;
+        if (res.ok) {
+          const pending = data.pendingBindings || [];
+          const list = document.getElementById('pendingApprovalsList');
+          if (pending.length === 0) {
+            list.innerHTML = '<div class="empty">暂无待审批的申请</div>';
+          } else {
+            list.innerHTML = pending.map(p => `
+              <div class="enterprise-item">
+                <div>
+                  <div class="enterprise-name">${p.accountName} (${p.username})</div>
+                  <div class="enterprise-role">申请时间：${new Date(p.createdAt).toLocaleString()}</div>
+                </div>
+                <div class="enterprise-actions">
+                  <button class="btn btn-primary btn-small" onclick="approveBinding(${p.bindingId})">通过</button>
+                  <button class="btn btn-danger btn-small" onclick="rejectBinding(${p.bindingId})">拒绝</button>
+                </div>
+              </div>
+            `).join('');
+          }
         }
-
-        card.classList.remove('hidden');
-        list.innerHTML = pending.map(p => `
-          <div class="enterprise-item">
-            <div>
-              <div class="enterprise-name">${p.companyName}</div>
-              <div class="enterprise-role">等待管理员审批</div>
-            </div>
-          </div>
-        `).join('');
       } catch (error) {
         console.error('loadPendingBinds error:', error);
+      }
+    }
+
+    async function loadMyApplications() {
+      try {
+        const res = await fetch(API_BASE + '/accounts/my-applications', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const data = await res.json();
+
+        const list = document.getElementById('myApplicationsList');
+        const applications = data.applications || [];
+
+        if (applications.length === 0) {
+          list.innerHTML = '<div class="empty">暂无申请记录</div>';
+        } else {
+          list.innerHTML = applications.map(a => `
+            <div class="enterprise-item">
+              <div>
+                <div class="enterprise-name">${a.companyName}</div>
+                <div class="enterprise-role">${a.type === 'bind' ? '绑定申请' : '更换管理员申请'} - ${a.status === 'pending' ? '等待审批' : a.status}</div>
+              </div>
+              <div class="enterprise-actions">
+                <span class="status status-${a.status === 'pending' ? 'pending' : a.status === 'approved' ? 'active' : 'inactive'}">${a.status === 'pending' ? '待审批' : a.status === 'approved' ? '已通过' : '已拒绝'}</span>
+              </div>
+            </div>
+          `).join('');
+        }
+      } catch (error) {
+        console.error('loadMyApplications error:', error);
+      }
+    }
+
+    async function loadApprovals() {
+      await loadPendingBinds();
+    }
+
+    async function approveBinding(bindingId) {
+      try {
+        const res = await fetch(API_BASE + '/accounts/approve-bind/' + bindingId, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
+          body: JSON.stringify({ customerId: parseInt(currentEnterpriseId) })
+        });
+
+        if (res.ok) {
+          alert('已通过审批');
+          loadApprovals();
+        } else {
+          const data = await res.json();
+          alert(data.message || '操作失败');
+        }
+      } catch (error) {
+        console.error('approveBinding error:', error);
+        alert('操作失败');
+      }
+    }
+
+    async function rejectBinding(bindingId) {
+      try {
+        const res = await fetch(API_BASE + '/accounts/reject-bind/' + bindingId, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
+          body: JSON.stringify({ customerId: parseInt(currentEnterpriseId) })
+        });
+
+        if (res.ok) {
+          alert('已拒绝');
+          loadApprovals();
+        } else {
+          const data = await res.json();
+          alert(data.message || '操作失败');
+        }
+      } catch (error) {
+        console.error('rejectBinding error:', error);
+        alert('操作失败');
+      }
+    }
+
+    async function showChangeAdminModal() {
+      const currentEnterprise = enterprises.find(e => e.customerId === parseInt(currentEnterpriseId));
+      if (!currentEnterprise) return;
+
+      document.getElementById('changeAdminCompanyName').textContent = currentEnterprise.companyName;
+
+      const membersRes = await fetch(API_BASE + '/accounts/customers/' + currentEnterpriseId + '/accounts', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const membersData = await membersRes.json();
+      const members = (membersData.accounts || []).filter(a => a.role === 'member' && a.status === 'active');
+
+      const select = document.getElementById('newAdminAccountId');
+      select.innerHTML = members.map(m =>
+        `<option value="${m.accountId}">${m.name || m.username}</option>`
+      ).join('');
+
+      document.getElementById('changeAdminModal').classList.add('show');
+    }
+
+    async function doChangeAdmin() {
+      const newAdminAccountId = document.getElementById('newAdminAccountId').value;
+      if (!newAdminAccountId) {
+        alert('请选择新管理员');
+        return;
+      }
+
+      try {
+        const res = await fetch(API_BASE + '/accounts/change-admin', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
+          body: JSON.stringify({
+            customerId: parseInt(currentEnterpriseId),
+            newAdminAccountId: parseInt(newAdminAccountId)
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          alert(data.message || '申请已提交');
+          closeModal('changeAdminModal');
+          loadMyApplications();
+        } else {
+          alert(data.message || '申请失败');
+        }
+      } catch (error) {
+        console.error('doChangeAdmin error:', error);
+        alert('申请失败');
       }
     }
 
@@ -824,6 +1016,7 @@
       document.getElementById('apikeysTab').classList.add('hidden');
       document.getElementById('calllogsTab').classList.add('hidden');
       document.getElementById('enterpriseTab').classList.add('hidden');
+      document.getElementById('approvalsTab').classList.add('hidden');
 
       if (tab === 'products') {
         document.getElementById('productsTab').classList.remove('hidden');
@@ -839,6 +1032,10 @@
       } else if (tab === 'enterprise') {
         document.getElementById('enterpriseTab').classList.remove('hidden');
         loadEnterpriseInfo();
+        loadMyApplications();
+      } else if (tab === 'approvals') {
+        document.getElementById('approvalsTab').classList.remove('hidden');
+        loadApprovals();
       }
     }
 
@@ -882,6 +1079,7 @@
       const orderType = document.getElementById('orderType').value;
       const quantity = parseInt(document.getElementById('orderQuantity').value) || 100;
       const months = parseInt(document.getElementById('orderMonths').value) || 1;
+      const paymentType = document.getElementById('orderPaymentType').value;
 
       const res = await fetch(API_BASE + '/orders', {
         method: 'POST',
@@ -892,7 +1090,8 @@
         body: JSON.stringify({
           product: currentProduct.id,
           orderType,
-          quantity: orderType === 'per_call' ? quantity : months
+          quantity: orderType === 'per_call' ? quantity : months,
+          paymentType
         })
       });
 

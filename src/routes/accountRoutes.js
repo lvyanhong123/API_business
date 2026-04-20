@@ -29,4 +29,6 @@ router.get('/apikeys', accountAuth, accountController.getApiKeys);
 
 router.post('/regenerate-apikey', accountAuth, accountController.regenerateApiKey);
 
+router.get('/my-applications', accountAuth, accountController.getMyPendingApplications);
+
 module.exports = router;

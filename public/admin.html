@@ -142,6 +142,7 @@
     let tabs = JSON.parse(localStorage.getItem('adminTabs') || '[]');
     let activeTabId = localStorage.getItem('adminActiveTab') || '';
     let activeMenuGroup = localStorage.getItem('adminActiveMenuGroup') || '';
+    let customerAccountId = null;
 
     function saveTabState() {
       localStorage.setItem('adminTabs', JSON.stringify(tabs));
@@ -288,10 +289,8 @@
                 </div>
                 <div class="menu-sub ${activeMenuGroup === 'customers' ? 'open' : ''}" id="menuCustomersSub">
                   <div class="menu-sub-item ${activeTabId === 'customers' ? 'active' : ''}" data-tab-id="customers" onclick="openTab('customers', '客户列表')">客户列表</div>
-                  <div class="menu-sub-item ${activeTabId === 'payment-records' ? 'active' : ''}" data-tab-id="payment-records" onclick="openTab('payment-records', '支付记录')">支付记录</div>
-                  <div class="menu-sub-item ${activeTabId === 'refund-records' ? 'active' : ''}" data-tab-id="refund-records" onclick="openTab('refund-records', '退款记录')">退款记录</div>
                   <div class="menu-sub-item ${activeTabId === 'accounts' ? 'active' : ''}" data-tab-id="accounts" onclick="openTab('accounts', '账号列表')">账号列表</div>
-                  <div class="menu-sub-item ${activeTabId === 'bind-approvals' ? 'active' : ''}" data-tab-id="bind-approvals" onclick="openTab('bind-approvals', '绑定审批')">绑定审批</div>
+                  <div class="menu-sub-item ${activeTabId === 'bind-approvals' ? 'active' : ''}" data-tab-id="bind-approvals" onclick="openTab('bind-approvals', '管理员变更审批')">管理员变更审批</div>
                 </div>
               </div>
             </div>
@@ -366,13 +365,10 @@
           tabs.push({ id: tabId, name: '账号列表' });
           activeMenuGroup = 'customers';
         } else if (tabId === 'bind-approvals') {
-          tabs.push({ id: tabId, name: '绑定审批' });
+          tabs.push({ id: tabId, name: '管理员变更审批' });
           activeMenuGroup = 'customers';
-        } else if (tabId === 'payment-records') {
-          tabs.push({ id: tabId, name: '支付记录' });
-          activeMenuGroup = 'customers';
-        } else if (tabId === 'refund-records') {
-          tabs.push({ id: tabId, name: '退款记录' });
+        } else if (tabId.startsWith('customer-account-')) {
+          tabs.push({ id: tabId, name: '账户详情' });
           activeMenuGroup = 'customers';
         } else if (tabId.startsWith('bill-detail-')) {
           tabs.push({ id: tabId, name: '账单详情' });
@@ -384,7 +380,7 @@
       } else {
         if (tabId === 'suppliers' || tabId === 'channels-all' || tabId === 'scripts-all') {
           activeMenuGroup = 'suppliers';
-        } else if (tabId === 'customers' || tabId === 'payment-records' || tabId === 'refund-records' || tabId === 'accounts' || tabId === 'bind-approvals') {
+        } else if (tabId === 'customers' || tabId === 'accounts' || tabId === 'bind-approvals' || tabId.startsWith('customer-account-')) {
           activeMenuGroup = 'customers';
         } else if (tabId === 'call-logs' || tabId === 'customer-bills' || tabId === 'supplier-bills') {
           activeMenuGroup = 'bill-management';
@@ -589,8 +585,10 @@
       else if (tabId === 'customer-bills') loadCustomerBills();
       else if (tabId === 'accounts') loadAccounts();
       else if (tabId === 'bind-approvals') loadBindApprovals();
-      else if (tabId === 'payment-records') loadPaymentRecords();
-      else if (tabId === 'refund-records') loadRefundRecords();
+      else if (tabId.startsWith('customer-account-')) {
+        const customerId = tabId.replace('customer-account-', '');
+        loadCustomerAccount(customerId);
+      }
       else if (tabId.startsWith('script-version-')) {
         const supplierId = tabId.replace('script-version-', '');
         loadScriptVersions(supplierId);
@@ -1955,29 +1953,35 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
     let customerPageSize = 20;
 
     async function loadCustomers() {
-      const statsRes = await fetchAPI('/stats/customers');
-      const accountsRes = await fetchAPI('/customers/accounts');
-      if (!statsRes) return;
-      const statsData = statsRes || [];
-      const accountsData = accountsRes ? accountsRes.accounts || [] : [];
-      const accountMap = {};
-      accountsData.forEach(a => accountMap[a.customerId] = a);
-      customerAllData = statsData.map(s => ({
-        ...s,
-        balance: accountMap[s.id]?.balance || 0,
-        creditLimit: accountMap[s.id]?.creditLimit || 0
-      }));
+      const res = await fetchAPI('/customers');
+      if (!res) return;
+      customerAllData = res.customers || [];
       customerCurrentPage = 1;
       $('#tabContent').innerHTML = `
         <div class="card">
           <div class="card-header">
+            <div class="card-title">搜索项</div>
+          </div>
+          <div class="search-bar">
+            <input type="text" class="search-input" id="customerSearchInput" placeholder="公司名称/联系人/电话" style="width:200px;">
+            <select class="search-input" id="customerStatusSelect" style="min-width:100px;">
+              <option value="">全部状态</option>
+              <option value="active">正常</option>
+              <option value="frozen">冻结</option>
+            </select>
+            <button class="btn btn-small" onclick="filterCustomers()">搜索</button>
+            <button class="btn btn-small cancel-btn" onclick="resetCustomerFilter()">重置</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
             <div class="card-title">客户列表</div>
-            <button class="btn btn-small" onclick="showCreateCustomerModal()">创建客户</button>
+            <button class="btn" onclick="showCreateCustomerModal()">+ 创建客户</button>
           </div>
           <div class="search-results" id="customerSearchResults">共 0 条</div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>ID</th><th>公司名称</th><th>账户余额</th><th>信用额度</th><th>总调用</th><th>操作</th></tr></thead>
+              <thead><tr><th>ID</th><th>公司名称</th><th>联系人</th><th>联系电话</th><th>邮箱</th><th>公司地址</th><th>关联销售</th><th>状态</th><th>操作</th></tr></thead>
               <tbody id="customersTableBody"></tbody>
             </table>
           </div>
@@ -2021,21 +2025,43 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
       filterCustomers();
     }
 
+    function resetCustomerFilter() {
+      $('#customerSearchInput').value = '';
+      $('#customerStatusSelect').value = '';
+      customerCurrentPage = 1;
+      filterCustomers();
+    }
+
     function filterCustomers() {
-      const total = customerAllData.length;
+      const keyword = ($('#customerSearchInput').value || '').toLowerCase();
+      const status = $('#customerStatusSelect').value;
+
+      const filtered = customerAllData.filter(c => {
+        const matchKeyword = !keyword ||
+          (c.companyName || '').toLowerCase().includes(keyword) ||
+          (c.contact?.name || '').toLowerCase().includes(keyword) ||
+          (c.contact?.phone || '').toLowerCase().includes(keyword);
+        const matchStatus = !status || c.status === status;
+        return matchKeyword && matchStatus;
+      });
+
+      const total = filtered.length;
       const start = (customerCurrentPage - 1) * customerPageSize;
-      const paginatedData = customerAllData.slice(start, start + customerPageSize);
+      const paginatedData = filtered.slice(start, start + customerPageSize);
 
       $('#customersTableBody').innerHTML = paginatedData.map(c => `
         <tr>
           <td>${c.id || '-'}</td>
           <td>${c.companyName || '-'}</td>
-          <td style="color:${c.balance > 0 ? '#52c41a' : '#ff4d4f'};">¥${c.balance || 0}</td>
-          <td>¥${c.creditLimit || 0}</td>
-          <td>${c.totalCalls || 0}</td>
+          <td>${c.contact?.name || '-'}</td>
+          <td>${c.contact?.phone || '-'}</td>
+          <td>${c.contact?.email || '-'}</td>
+          <td>${c.address || '-'}</td>
+          <td>${c.salesId || '-'}</td>
+          <td>${c.status === 'active' ? '正常' : c.status === 'frozen' ? '冻结' : '-'}</td>
           <td>
-            <button class="action-btn primary btn-small" onclick="showRechargeModal(${c.id}, '${c.companyName || ''}')">充值</button>
-            <button class="action-btn default btn-small" onclick="showRefundModal(${c.id}, '${c.companyName || ''}')">退款</button>
+            <button class="action-btn primary btn-small" onclick="openTab('customer-account-${c.id}', '账户详情')">账户</button>
+            <button class="action-btn default btn-small" onclick="showEditCustomerModal(${c.id})">编辑</button>
           </td>
         </tr>
       `).join('');
@@ -2068,7 +2094,7 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
             <input type="text" id="rechargeRemark" placeholder="可选">
           </div>
           <div style="text-align:right;margin-top:20px;">
-            <button class="btn btn-small" onclick="closeRechargeModal()">取消</button>
+            <button class="btn" onclick="closeRechargeModal()">取消</button>
             <button class="btn" onclick="doRecharge(${customerId})">确定充值</button>
           </div>
         </div>
@@ -2091,7 +2117,8 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
       if (res) {
         alert('充值成功');
         closeRechargeModal();
-        loadCustomers();
+        if (customerAccountId) loadCustomerAccount(customerAccountId);
+        else loadCustomers();
       }
     }
 
@@ -2122,7 +2149,7 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
             <input type="text" id="refundReason" placeholder="请输入原因">
           </div>
           <div style="text-align:right;margin-top:20px;">
-            <button class="btn btn-small" onclick="closeRefundModal()">取消</button>
+            <button class="btn" onclick="closeRefundModal()">取消</button>
             <button class="btn" onclick="doRefund(${customerId})">确定退款</button>
           </div>
         </div>
@@ -2144,7 +2171,8 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
       if (res) {
         alert('退款成功');
         closeRefundModal();
-        loadCustomers();
+        if (customerAccountId) loadCustomerAccount(customerAccountId);
+        else loadCustomers();
       }
     }
 
@@ -3735,216 +3763,6 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
       if (modal) modal.remove();
     }
 
-    let paymentRecordsData = [];
-    let paymentRecordsCurrentPage = 1;
-    let paymentRecordsPageSize = 20;
-
-    async function loadPaymentRecords() {
-      const customersRes = await fetchAPI('/admin/customers');
-      const customers = customersRes ? customersRes.customers || [] : [];
-      const customerOptions = '<option value="">全部客户</option>' + customers.map(c => `<option value="${c.id}">${c.companyName || c.name}</option>`).join('');
-
-      paymentRecordsCurrentPage = 1;
-
-      $('#tabContent').innerHTML = `
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">搜索项</div>
-          </div>
-          <div class="search-bar">
-            <select id="paymentRecordCustomerFilter" class="search-input" style="min-width:150px;">${customerOptions}</select>
-            <button class="btn btn-small" onclick="filterPaymentRecords()">搜索</button>
-            <button class="btn btn-small cancel-btn" onclick="resetPaymentRecordFilter()">重置</button>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">支付记录</div>
-          </div>
-          <div class="search-results" id="paymentRecordsSearchResults">共 0 条</div>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>记录ID</th><th>客户名称</th><th>金额</th><th>支付方式</th><th>状态</th><th>创建时间</th></tr></thead>
-              <tbody id="paymentRecordsTableBody"></tbody>
-            </table>
-          </div>
-          <div id="paymentRecordsPagination" class="pagination" style="justify-content:flex-end;margin-top:15px;"></div>
-        </div>
-      `;
-      filterPaymentRecords();
-    }
-
-    async function filterPaymentRecords() {
-      const customerId = $('#paymentRecordCustomerFilter')?.value || '';
-
-      let allRecords = [];
-      const customersRes = await fetchAPI('/admin/customers');
-      const customers = customersRes ? customersRes.customers || [] : [];
-
-      for (const c of customers) {
-        const res = await fetchAPI('/customers/accounts/' + c.id + '/payments');
-        if (res && Array.isArray(res.payments)) {
-          res.payments.forEach(p => {
-            allRecords.push({ ...p, customerName: c.companyName || c.name });
-          });
-        }
-      }
-
-      if (customerId) {
-        allRecords = allRecords.filter(r => r.customerId === parseInt(customerId));
-      }
-
-      allRecords.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-      const total = allRecords.length;
-      const start = (paymentRecordsCurrentPage - 1) * paymentRecordsPageSize;
-      const paginatedRecords = allRecords.slice(start, start + paymentRecordsPageSize);
-
-      paymentRecordsData = paginatedRecords;
-
-      $('#paymentRecordsSearchResults').innerHTML = `共 ${total} 条`;
-      $('#paymentRecordsTableBody').innerHTML = paginatedRecords.length === 0
-        ? '<tr><td colspan="6" style="text-align:center;color:#999;">暂无数据</td></tr>'
-        : paginatedRecords.map(r => `
-          <tr>
-            <td>${r.id}</td>
-            <td>${r.customerName || '-'}</td>
-            <td style="color:#ff4d4f;font-weight:500;">¥${(r.amount || 0).toFixed(2)}</td>
-            <td>${r.paymentMethod || '-'}</td>
-            <td><span class="status ${r.status === 'completed' ? 'status-active' : 'status-pending'}">${r.status === 'completed' ? '已完成' : '处理中'}</span></td>
-            <td>${new Date(r.createdAt).toLocaleString()}</td>
-          </tr>
-        `).join('');
-
-      const totalPages = Math.ceil(total / paymentRecordsPageSize) || 1;
-      let pageHtml = `<button ${paymentRecordsCurrentPage <= 1 ? 'disabled' : ''} onclick="goToPaymentRecordPage(${paymentRecordsCurrentPage - 1})">上一页</button>`;
-      for (let i = 1; i <= totalPages; i++) {
-        if (totalPages > 7 && i !== 1 && i !== totalPages && Math.abs(i - paymentRecordsCurrentPage) > 1) {
-          if (i === 2 || i === totalPages - 1) pageHtml += `<span style="padding:0 5px;">...</span>`;
-          continue;
-        }
-        pageHtml += `<button class="${i === paymentRecordsCurrentPage ? 'active' : ''}" onclick="goToPaymentRecordPage(${i})">${i}</button>`;
-      }
-      pageHtml += `<button ${paymentRecordsCurrentPage >= totalPages ? 'disabled' : ''} onclick="goToPaymentRecordPage(${paymentRecordsCurrentPage + 1})">下一页</button>`;
-      $('#paymentRecordsPagination').innerHTML = pageHtml;
-    }
-
-    function goToPaymentRecordPage(page) {
-      paymentRecordsCurrentPage = page;
-      filterPaymentRecords();
-    }
-
-    function resetPaymentRecordFilter() {
-      paymentRecordsCurrentPage = 1;
-      if ($('#paymentRecordCustomerFilter')) $('#paymentRecordCustomerFilter').value = '';
-      filterPaymentRecords();
-    }
-
-    let refundRecordsData = [];
-    let refundRecordsCurrentPage = 1;
-    let refundRecordsPageSize = 20;
-
-    async function loadRefundRecords() {
-      const customersRes = await fetchAPI('/admin/customers');
-      const customers = customersRes ? customersRes.customers || [] : [];
-      const customerOptions = '<option value="">全部客户</option>' + customers.map(c => `<option value="${c.id}">${c.companyName || c.name}</option>`).join('');
-
-      refundRecordsCurrentPage = 1;
-
-      $('#tabContent').innerHTML = `
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">搜索项</div>
-          </div>
-          <div class="search-bar">
-            <select id="refundRecordCustomerFilter" class="search-input" style="min-width:150px;">${customerOptions}</select>
-            <button class="btn btn-small" onclick="filterRefundRecords()">搜索</button>
-            <button class="btn btn-small cancel-btn" onclick="resetRefundRecordFilter()">重置</button>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">退款记录</div>
-          </div>
-          <div class="search-results" id="refundRecordsSearchResults">共 0 条</div>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>记录ID</th><th>客户名称</th><th>退款金额</th><th>原因</th><th>状态</th><th>创建时间</th></tr></thead>
-              <tbody id="refundRecordsTableBody"></tbody>
-            </table>
-          </div>
-          <div id="refundRecordsPagination" class="pagination" style="justify-content:flex-end;margin-top:15px;"></div>
-        </div>
-      `;
-      filterRefundRecords();
-    }
-
-    async function filterRefundRecords() {
-      const customerId = $('#refundRecordCustomerFilter')?.value || '';
-
-      let allRecords = [];
-      const customersRes = await fetchAPI('/admin/customers');
-      const customers = customersRes ? customersRes.customers || [] : [];
-
-      for (const c of customers) {
-        const res = await fetchAPI('/customers/accounts/' + c.id + '/refunds');
-        if (res && Array.isArray(res.refunds)) {
-          res.refunds.forEach(r => {
-            allRecords.push({ ...r, customerName: c.companyName || c.name });
-          });
-        }
-      }
-
-      if (customerId) {
-        allRecords = allRecords.filter(r => r.customerId === parseInt(customerId));
-      }
-
-      allRecords.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-      const total = allRecords.length;
-      const start = (refundRecordsCurrentPage - 1) * refundRecordsPageSize;
-      const paginatedRecords = allRecords.slice(start, start + refundRecordsPageSize);
-
-      refundRecordsData = paginatedRecords;
-
-      $('#refundRecordsSearchResults').innerHTML = `共 ${total} 条`;
-      $('#refundRecordsTableBody').innerHTML = paginatedRecords.length === 0
-        ? '<tr><td colspan="6" style="text-align:center;color:#999;">暂无数据</td></tr>'
-        : paginatedRecords.map(r => `
-          <tr>
-            <td>${r.id}</td>
-            <td>${r.customerName || '-'}</td>
-            <td style="color:#52c41a;font-weight:500;">¥${(r.amount || 0).toFixed(2)}</td>
-            <td>${r.reason || '-'}</td>
-            <td><span class="status ${r.status === 'completed' ? 'status-active' : 'status-pending'}">${r.status === 'completed' ? '已完成' : '处理中'}</span></td>
-            <td>${new Date(r.createdAt).toLocaleString()}</td>
-          </tr>
-        `).join('');
-
-      const totalPages = Math.ceil(total / refundRecordsPageSize) || 1;
-      let pageHtml = `<button ${refundRecordsCurrentPage <= 1 ? 'disabled' : ''} onclick="goToRefundRecordPage(${refundRecordsCurrentPage - 1})">上一页</button>`;
-      for (let i = 1; i <= totalPages; i++) {
-        if (totalPages > 7 && i !== 1 && i !== totalPages && Math.abs(i - refundRecordsCurrentPage) > 1) {
-          if (i === 2 || i === totalPages - 1) pageHtml += `<span style="padding:0 5px;">...</span>`;
-          continue;
-        }
-        pageHtml += `<button class="${i === refundRecordsCurrentPage ? 'active' : ''}" onclick="goToRefundRecordPage(${i})">${i}</button>`;
-      }
-      pageHtml += `<button ${refundRecordsCurrentPage >= totalPages ? 'disabled' : ''} onclick="goToRefundRecordPage(${refundRecordsCurrentPage + 1})">下一页</button>`;
-      $('#refundRecordsPagination').innerHTML = pageHtml;
-    }
-
-    function goToRefundRecordPage(page) {
-      refundRecordsCurrentPage = page;
-      filterRefundRecords();
-    }
-
-    function resetRefundRecordFilter() {
-      refundRecordsCurrentPage = 1;
-      if ($('#refundRecordCustomerFilter')) $('#refundRecordCustomerFilter').value = '';
-      filterRefundRecords();
-    }
-
     async function loadBillDetail(billId) {
       const res = await fetchAPI('/admin/bills/' + billId);
       if (!res) return;
@@ -4070,6 +3888,14 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
                 <label>联系人邮箱</label>
                 <input type="email" id="createCustomerContactEmail" placeholder="请输入联系人邮箱">
               </div>
+              <div class="form-group">
+                <label>公司地址</label>
+                <input type="text" id="createCustomerAddress" placeholder="请输入公司地址">
+              </div>
+              <div class="form-group">
+                <label>关联销售</label>
+                <input type="number" id="createCustomerSalesId" placeholder="请输入销售管理员ID">
+              </div>
             </div>
             <div class="modal-footer">
               <button class="btn" style="background:#999;" onclick="closeModal()">取消</button>
@@ -4086,6 +3912,8 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
       const contactName = $('#createCustomerContactName').value;
       const contactPhone = $('#createCustomerContactPhone').value;
       const contactEmail = $('#createCustomerContactEmail').value;
+      const address = $('#createCustomerAddress').value;
+      const salesId = $('#createCustomerSalesId').value ? parseInt($('#createCustomerSalesId').value) : null;
 
       if (!companyName || !businessLicense || !contactName || !contactPhone || !contactEmail) {
         alert('请填写完整信息');
@@ -4097,12 +3925,108 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
         body: JSON.stringify({
           companyName,
           businessLicense,
-          contact: { name: contactName, phone: contactPhone, email: contactEmail }
+          contact: { name: contactName, phone: contactPhone, email: contactEmail },
+          address,
+          salesId
         })
       });
 
       if (res) {
         alert('客户创建成功');
+        closeModal();
+        loadCustomers();
+      }
+    }
+
+    async function showEditCustomerModal(customerId) {
+      const res = await fetchAPI('/customers/' + customerId);
+      if (!res) return;
+      const c = res;
+
+      document.body.insertAdjacentHTML('beforeend', `
+        <div id="modalOverlay" class="modal-overlay show" onclick="if(event.target===this)closeModal()">
+          <div style="background:white;padding:30px;border-radius:8px;width:500px;max-width:90%;">
+            <div class="modal-header">
+              <div class="modal-title">编辑客户</div>
+              <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-body">
+              <div class="form-group">
+                <label>公司名称</label>
+                <input type="text" id="editCustomerCompanyName" value="${c.companyName || ''}">
+              </div>
+              <div class="form-group">
+                <label>营业执照号</label>
+                <input type="text" id="editCustomerLicense" value="${c.businessLicense || ''}">
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>联系人姓名</label>
+                  <input type="text" id="editCustomerContactName" value="${c.contact?.name || ''}">
+                </div>
+                <div class="form-group">
+                  <label>联系人手机</label>
+                  <input type="text" id="editCustomerContactPhone" value="${c.contact?.phone || ''}">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>联系人邮箱</label>
+                <input type="email" id="editCustomerContactEmail" value="${c.contact?.email || ''}">
+              </div>
+              <div class="form-group">
+                <label>公司地址</label>
+                <input type="text" id="editCustomerAddress" value="${c.address || ''}">
+              </div>
+              <div class="form-group">
+                <label>关联销售</label>
+                <input type="number" id="editCustomerSalesId" value="${c.salesId || ''}">
+              </div>
+              <div class="form-group">
+                <label>状态</label>
+                <select id="editCustomerStatus" style="padding:10px;border:1px solid #d9d9d9;border-radius:4px;width:100%;">
+                  <option value="active" ${c.status === 'active' ? 'selected' : ''}>正常</option>
+                  <option value="frozen" ${c.status === 'frozen' ? 'selected' : ''}>冻结</option>
+                </select>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn" style="background:#999;" onclick="closeModal()">取消</button>
+              <button class="btn" onclick="doEditCustomer(${customerId})">保存</button>
+            </div>
+          </div>
+        </div>
+      `);
+    }
+
+    async function doEditCustomer(customerId) {
+      const companyName = $('#editCustomerCompanyName').value;
+      const businessLicense = $('#editCustomerLicense').value;
+      const contactName = $('#editCustomerContactName').value;
+      const contactPhone = $('#editCustomerContactPhone').value;
+      const contactEmail = $('#editCustomerContactEmail').value;
+      const address = $('#editCustomerAddress').value;
+      const salesId = $('#editCustomerSalesId').value ? parseInt($('#editCustomerSalesId').value) : null;
+      const status = $('#editCustomerStatus').value;
+
+      if (!companyName || !businessLicense || !contactName || !contactPhone || !contactEmail) {
+        alert('请填写完整信息');
+        return;
+      }
+
+      const res = await fetchAPI('/customers/' + customerId, {
+        method: 'PUT',
+        body: JSON.stringify({
+          companyName,
+          businessLicense,
+          contact: { name: contactName, phone: contactPhone, email: contactEmail },
+          address,
+          salesId,
+          status
+        })
+      });
+
+      if (res) {
+        alert('客户更新成功');
         closeModal();
         loadCustomers();
       }
@@ -4443,34 +4367,31 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
     let approvalPageSize = 10;
 
     async function loadBindApprovals() {
-      const bindingsRes = await fetchAPI('/account-customers?status=pending');
-      if (!bindingsRes) return;
+      const res = await fetchAPI('/admin-change-requests');
+      if (!res) return;
 
-      approvalAllData = (bindingsRes || []).map(b => {
-        const account = accountAllData.find(a => a.id === b.accountId) || {};
-        return { ...b, accountName: account.name || '-', username: account.username || '-' };
+      approvalAllData = (res.requests || []).map(r => {
+        return {
+          id: r.id,
+          customerId: r.customerId,
+          companyName: r.companyName || '-',
+          currentAdminName: r.currentAdminName || '-',
+          newAdminName: r.newAdminName || '-',
+          status: r.status,
+          createdAt: r.createdAt
+        };
       });
-
-      if (typeof loadCustomersForApproval === 'undefined') {
-        const customersRes = await fetchAPI('/customers');
-        if (customersRes) {
-          approvalAllData = approvalAllData.map(b => {
-            const customer = (customersRes || []).find(c => c.id === b.customerId);
-            return { ...b, companyName: customer?.companyName || `企业${b.customerId}` };
-          });
-        }
-      }
 
       approvalCurrentPage = 1;
       $('#tabContent').innerHTML = `
         <div class="card">
           <div class="card-header">
-            <div class="card-title">账号绑定审批</div>
+            <div class="card-title">管理员变更审批</div>
           </div>
           <div id="approvalSearchResults">共 ${approvalAllData.length} 条</div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>ID</th><th>账号</th><th>企业</th><th>申请时间</th><th>操作</th></tr></thead>
+              <thead><tr><th>ID</th><th>企业</th><th>当前管理员</th><th>新管理员</th><th>申请时间</th><th>状态</th><th>操作</th></tr></thead>
               <tbody id="approvalsTableBody"></tbody>
             </table>
           </div>
@@ -4485,25 +4406,22 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
       const start = (approvalCurrentPage - 1) * approvalPageSize;
       const paginatedData = approvalAllData.slice(start, start + approvalPageSize);
 
-      for (const item of paginatedData) {
-        if (!item.companyName) {
-          const customersRes = await fetchAPI('/customers/' + item.customerId);
-          item.companyName = customersRes?.companyName || `企业${item.customerId}`;
-        }
-      }
-
       $('#approvalsTableBody').innerHTML = paginatedData.map(a => `
         <tr>
           <td>${a.id}</td>
-          <td>${a.accountName} (${a.username})</td>
           <td>${a.companyName}</td>
+          <td>${a.currentAdminName}</td>
+          <td>${a.newAdminName}</td>
           <td>${new Date(a.createdAt).toLocaleString()}</td>
+          <td><span class="status status-${a.status === 'approved' ? 'active' : a.status === 'rejected' ? 'inactive' : 'pending'}">${a.status === 'pending' ? '待审批' : a.status === 'approved' ? '已通过' : '已拒绝'}</span></td>
           <td>
-            <button class="action-btn primary btn-small" onclick="approveBinding(${a.id})">通过</button>
-            <button class="action-btn danger btn-small" onclick="rejectBinding(${a.id})">拒绝</button>
+            ${a.status === 'pending' ? `
+              <button class="action-btn primary btn-small" onclick="approveAdminChange(${a.id})">通过</button>
+              <button class="action-btn danger btn-small" onclick="rejectAdminChange(${a.id})">拒绝</button>
+            ` : '-'}
           </td>
         </tr>
-      `).join('') || '<tr><td colspan="5" style="text-align:center;padding:20px;color:#999;">暂无待审批的申请</td></tr>';
+      `).join('') || '<tr><td colspan="7" style="text-align:center;padding:20px;color:#999;">暂无待审批的申请</td></tr>';
 
       $('#approvalSearchResults').textContent = `共 ${total} 条`;
       renderApprovalPagination(total);
@@ -4541,18 +4459,17 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
       renderApprovals();
     }
 
-    async function approveBinding(bindingId) {
-      const res = await fetchAPI('/account-customers/' + bindingId + '/approve', { method: 'POST' });
+    async function approveAdminChange(id) {
+      const res = await fetchAPI('/admin-change-requests/' + id + '/approve', { method: 'POST' });
       if (res !== null) {
-        alert('已通过');
+        alert('已通过审批');
         loadBindApprovals();
-        loadAccounts();
       }
     }
 
-    async function rejectBinding(bindingId) {
+    async function rejectAdminChange(id) {
       if (!confirm('确定要拒绝该申请吗？')) return;
-      const res = await fetchAPI('/account-customers/' + bindingId, { method: 'DELETE' });
+      const res = await fetchAPI('/admin-change-requests/' + id + '/reject', { method: 'POST' });
       if (res !== null) {
         alert('已拒绝');
         loadBindApprovals();
@@ -4562,6 +4479,100 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
     function closeModal() {
       const modal = document.getElementById('modalOverlay');
       if (modal) modal.remove();
+    }
+
+    async function loadCustomerAccount(customerId) {
+      customerAccountId = customerId;
+
+      $('#tabContent').innerHTML = '<div style="padding:40px;text-align:center;color:#999;">加载中...</div>';
+
+      const customerRes = await fetchAPI('/customers/' + customerId);
+      const accountRes = await fetchAPI('/customers/accounts/' + customerId);
+      const paymentsRes = await fetchAPI('/customers/accounts/' + customerId + '/payments');
+      const refundsRes = await fetchAPI('/customers/accounts/' + customerId + '/refunds');
+
+      if (!customerRes && !accountRes) {
+        $('#tabContent').innerHTML = '<div style="padding:40px;text-align:center;color:#ff4d4f;">加载失败，请刷新重试</div>';
+        return;
+      }
+
+      const customer = customerRes || {};
+      const account = accountRes || {};
+      const payments = paymentsRes?.payments || [];
+      const refunds = refundsRes?.refunds || [];
+
+      $('#tabContent').innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">账户信息</div>
+          </div>
+          <div style="display:flex;gap:40px;padding:20px;">
+            <div style="flex:1;">
+              <div style="display:flex;align-items:center;gap:60px;">
+                <div>
+                  <div style="color:#999;font-size:12px;margin-bottom:4px;">账户余额</div>
+                  <div style="font-size:24px;font-weight:bold;color:#52c41a;">¥${account.balance || 0}</div>
+                </div>
+                <div>
+                  <div style="color:#999;font-size:12px;margin-bottom:4px;">信用额度</div>
+                  <div style="font-size:24px;font-weight:bold;">¥${account.creditLimit || 0}</div>
+                </div>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:flex-start;">
+              <button class="btn" onclick="showRechargeModal(${customerId}, '${customer.companyName || ''}')">充值</button>
+              <button class="btn" onclick="showRefundModal(${customerId}, '${customer.companyName || ''}')">退款</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">充值记录</div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>ID</th><th>时间</th><th>金额</th><th>支付方式</th><th>备注</th><th>状态</th></tr></thead>
+              <tbody>
+                ${payments.length === 0 ? '<tr><td colspan="6" style="text-align:center;padding:20px;color:#999;">暂无充值记录</td></tr>' :
+                payments.map(p => `
+                  <tr>
+                    <td>${p.id}</td>
+                    <td>${new Date(p.createdAt).toLocaleString()}</td>
+                    <td style="color:#52c41a;">+¥${p.amount}</td>
+                    <td>${p.paymentMethod || '-'}</td>
+                    <td>${p.note || '-'}</td>
+                    <td><span class="status status-active">${p.status === 'completed' ? '成功' : p.status}</span></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">退款记录</div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>ID</th><th>时间</th><th>金额</th><th>原因</th><th>状态</th></tr></thead>
+              <tbody>
+                ${refunds.length === 0 ? '<tr><td colspan="5" style="text-align:center;padding:20px;color:#999;">暂无退款记录</td></tr>' :
+                refunds.map(r => `
+                  <tr>
+                    <td>${r.id}</td>
+                    <td>${new Date(r.createdAt).toLocaleString()}</td>
+                    <td style="color:#ff4d4f;">-¥${r.amount}</td>
+                    <td>${r.reason || '-'}</td>
+                    <td><span class="status status-${r.status === 'completed' ? 'active' : 'inactive'}">${r.status === 'completed' ? '已完成' : r.status === 'pending' ? '处理中' : '已拒绝'}</span></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
     }
   </script>
 </body>

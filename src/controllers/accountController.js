@@ -212,25 +212,90 @@ exports.applyBindCustomer = async (req, res) => {
 exports.listPendingBinds = async (req, res) => {
   try {
     const accountId = req.account.id;
-    const bindings = db.accountCustomers.findByAccountId(accountId);
+    const { customerId } = req.query;
 
-    const pendingBindings = [];
-    for (const b of bindings) {
-      if (b.status === 'pending') {
-        const customer = db.customers.findById(b.customerId);
-        pendingBindings.push({
-          bindingId: b.id,
-          customerId: customer?.id,
-          companyName: customer?.companyName,
-          status: b.status,
-          createdAt: b.createdAt
-        });
-      }
+    if (!customerId) {
+      return res.status(400).json({ message: '请提供企业ID' });
     }
 
-    res.status(200).json({ pendingBindings });
+    const adminBinding = db.accountCustomers.findOne({
+      accountId: accountId,
+      customerId: parseInt(customerId),
+      role: 'admin',
+      status: 'active'
+    });
+
+    if (!adminBinding) {
+      return res.status(403).json({ message: '无权限查看该企业的审批列表' });
+    }
+
+    const pendingBindings = db.accountCustomers.findAll().filter(b =>
+      b.customerId === parseInt(customerId) && b.status === 'pending'
+    );
+
+    const result = pendingBindings.map(b => {
+      const account = db.accounts.findById(b.accountId);
+      const customer = db.customers.findById(b.customerId);
+      return {
+        bindingId: b.id,
+        accountId: b.accountId,
+        accountName: account?.name || '-',
+        username: account?.username || '-',
+        companyName: customer?.companyName,
+        status: b.status,
+        createdAt: b.createdAt
+      };
+    });
+
+    res.status(200).json({ pendingBindings: result });
   } catch (error) {
     console.error('ListPendingBinds error:', error);
+    res.status(500).json({ message: '服务器错误' });
+  }
+};
+
+exports.getMyPendingApplications = async (req, res) => {
+  try {
+    const accountId = req.account.id;
+
+    const bindings = db.accountCustomers.findByAccountId(accountId).filter(b => b.status === 'pending');
+    const bindingApplications = bindings.map(b => {
+      const customer = db.customers.findById(b.customerId);
+      return {
+        type: 'bind',
+        id: b.id,
+        customerId: b.customerId,
+        companyName: customer?.companyName,
+        status: b.status,
+        createdAt: b.createdAt
+      };
+    });
+
+    const adminChangeRequests = db.adminChangeRequests.findByAccountId
+      ? db.adminChangeRequests.findByAccountId(accountId)
+      : db.adminChangeRequests.findAll().filter(r => r.currentAdminAccountId === accountId);
+
+    const changeApplications = adminChangeRequests
+      .filter(r => r.status === 'pending')
+      .map(r => {
+        const customer = db.customers.findById(r.customerId);
+        const newAdminAccount = db.accounts.findById(r.newAdminAccountId);
+        return {
+          type: 'changeAdmin',
+          id: r.id,
+          customerId: r.customerId,
+          companyName: customer?.companyName,
+          newAdminName: newAdminAccount?.name || '-',
+          status: r.status,
+          createdAt: r.createdAt
+        };
+      });
+
+    const allApplications = [...bindingApplications, ...changeApplications];
+
+    res.status(200).json({ applications: allApplications });
+  } catch (error) {
+    console.error('GetMyPendingApplications error:', error);
     res.status(500).json({ message: '服务器错误' });
   }
 };
@@ -371,10 +436,23 @@ exports.changeAdmin = async (req, res) => {
       return res.status(404).json({ message: '该账号未绑定到本企业' });
     }
 
-    db.accountCustomers.update(currentAdminBinding.id, { role: 'member' });
-    db.accountCustomers.update(newAdminBinding.id, { role: 'admin' });
+    const existingRequest = db.adminChangeRequests.findOne({
+      customerId: parseInt(customerId),
+      status: 'pending'
+    });
 
-    res.status(200).json({ message: '管理员已变更' });
+    if (existingRequest) {
+      return res.status(400).json({ message: '该企业已有待审批的更换管理员申请' });
+    }
+
+    db.adminChangeRequests.create({
+      customerId: parseInt(customerId),
+      currentAdminAccountId: accountId,
+      newAdminAccountId: parseInt(newAdminAccountId),
+      status: 'pending'
+    });
+
+    res.status(200).json({ message: '更换管理员申请已提交，等待平台管理员审批' });
   } catch (error) {
     console.error('ChangeAdmin error:', error);
     res.status(500).json({ message: '服务器错误' });

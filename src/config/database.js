@@ -20,7 +20,8 @@ const defaultData = {
   paymentOrders: [],
   refundOrders: [],
   customerBills: [],
-  customerBillItems: []
+  customerBillItems: [],
+  adminChangeRequests: []
 };
 
 let db = null;
@@ -723,6 +724,47 @@ const dbUtils = {
       });
       saveDb();
       return created;
+    }
+  },
+
+  adminChangeRequests: {
+    findAll: () => loadDb().adminChangeRequests || [],
+    findById: (id) => loadDb().adminChangeRequests?.find(r => r.id === id),
+    findByCustomerId: (customerId) => (loadDb().adminChangeRequests || []).filter(r => r.customerId === customerId),
+    findPending: () => (loadDb().adminChangeRequests || []).filter(r => r.status === 'pending'),
+    findOne: (where) => {
+      const data = loadDb();
+      return data.adminChangeRequests?.find(r => {
+        for (const key in where) {
+          if (r[key] !== where[key]) return false;
+        }
+        return true;
+      });
+    },
+    create: (data) => {
+      const newData = loadDb();
+      if (!newData.adminChangeRequests) newData.adminChangeRequests = [];
+      const id = getNextId('adminChangeRequests');
+      const item = { id, ...data, createdAt: new Date(), updatedAt: new Date() };
+      newData.adminChangeRequests.push(item);
+      saveDb();
+      return item;
+    },
+    update: (id, data) => {
+      const newData = loadDb();
+      const index = newData.adminChangeRequests?.findIndex(r => r.id === id);
+      if (index === -1 || index === undefined) return null;
+      newData.adminChangeRequests[index] = { ...newData.adminChangeRequests[index], ...data, updatedAt: new Date() };
+      saveDb();
+      return newData.adminChangeRequests[index];
+    },
+    delete: (id) => {
+      const newData = loadDb();
+      const index = newData.adminChangeRequests?.findIndex(r => r.id === id);
+      if (index === -1 || index === undefined) return false;
+      newData.adminChangeRequests.splice(index, 1);
+      saveDb();
+      return true;
     }
   }
 };
