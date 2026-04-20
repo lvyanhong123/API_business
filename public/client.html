@@ -354,6 +354,13 @@
           <option value="postpay">后付费（月底结算）</option>
         </select>
       </div>
+      <div class="form-group">
+        <label>支付账户</label>
+        <select id="orderPaymentMethod">
+          <option value="balance">账户余额</option>
+          <option value="credit">信用额度</option>
+        </select>
+      </div>
       <div style="padding:10px;background:#e6f7ff;border-radius:4px;margin-bottom:15px;">
         应付金额：<span id="orderAmount" style="font-size:20px;font-weight:bold;color:#1890ff;">¥0</span>
       </div>
@@ -400,6 +407,7 @@
     let enterprises = [];
     let currentProduct = null;
     let products = [];
+    let currentTab = localStorage.getItem('clientCurrentTab') || 'products';
 
     if (token) {
       showMainPage();
@@ -496,6 +504,7 @@
       document.getElementById('mainPage').classList.remove('hidden');
       document.getElementById('userName').textContent = accountName;
       await loadProfile();
+      switchTab(currentTab);
     }
 
     async function loadProfile() {
@@ -648,13 +657,13 @@
     }
 
     async function loadStats() {
-      if (!currentEnterpriseId) return;
+      if (!token) return;
 
       const headers = { 'Authorization': 'Bearer ' + token };
 
       try {
         const [accountRes, keysRes, ordersRes] = await Promise.all([
-          fetch(API_BASE + '/accounts/' + currentEnterpriseId, { headers }),
+          fetch(API_BASE + '/my/account-info', { headers }),
           fetch(API_BASE + '/keys/customer?customerId=' + currentEnterpriseId, { headers }),
           fetch(API_BASE + '/orders', { headers })
         ]);
@@ -1008,8 +1017,20 @@
     }
 
     function switchTab(tab) {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      event.target.classList.add('active');
+      currentTab = tab;
+      localStorage.setItem('clientCurrentTab', tab);
+
+      if (event && event.target) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        event.target.classList.add('active');
+      } else {
+        document.querySelectorAll('.tab').forEach(t => {
+          t.classList.remove('active');
+          if (t.getAttribute('onclick')?.includes("'" + tab + "'")) {
+            t.classList.add('active');
+          }
+        });
+      }
 
       document.getElementById('productsTab').classList.add('hidden');
       document.getElementById('ordersTab').classList.add('hidden');
@@ -1080,6 +1101,7 @@
       const quantity = parseInt(document.getElementById('orderQuantity').value) || 100;
       const months = parseInt(document.getElementById('orderMonths').value) || 1;
       const paymentType = document.getElementById('orderPaymentType').value;
+      const paymentMethod = document.getElementById('orderPaymentMethod').value;
 
       const res = await fetch(API_BASE + '/orders', {
         method: 'POST',
@@ -1091,7 +1113,8 @@
           product: currentProduct.id,
           orderType,
           quantity: orderType === 'per_call' ? quantity : months,
-          paymentType
+          paymentType,
+          paymentMethod
         })
       });
 

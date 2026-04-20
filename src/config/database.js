@@ -19,6 +19,7 @@ const defaultData = {
   apiLogs: [],
   paymentOrders: [],
   refundOrders: [],
+  withdrawOrders: [],
   customerBills: [],
   customerBillItems: [],
   adminChangeRequests: []
@@ -27,18 +28,16 @@ const defaultData = {
 let db = null;
 
 function loadDb() {
-  if (db) return db;
-
-  if (!fs.existsSync(dbPath)) {
-    db = { ...defaultData };
-    saveDb();
-  } else {
-    try {
+  try {
+    if (fs.existsSync(dbPath)) {
       const content = fs.readFileSync(dbPath, 'utf8');
       db = JSON.parse(content);
-    } catch (e) {
+    } else {
       db = { ...defaultData };
+      saveDb();
     }
+  } catch (e) {
+    db = { ...defaultData };
   }
   return db;
 }
@@ -47,9 +46,8 @@ function saveDb() {
   fs.writeFileSync(dbPath, JSON.stringify(db, null, 2));
 }
 
-function getNextId(collection) {
-  const data = loadDb();
-  if (data[collection].length === 0) return 1;
+function getNextId(data, collection) {
+  if (!data[collection] || data[collection].length === 0) return 1;
   return Math.max(...data[collection].map(item => item.id)) + 1;
 }
 
@@ -71,7 +69,7 @@ const dbUtils = {
     },
     create: (data) => {
       const newData = loadDb();
-      const id = getNextId('admins');
+      const id = getNextId(newData, 'admins');
       const item = { id, ...data, createdAt: new Date(), updatedAt: new Date() };
       newData.admins.push(item);
       saveDb();
@@ -109,7 +107,7 @@ const dbUtils = {
     },
     create: (data) => {
       const newData = loadDb();
-      const id = getNextId('suppliers');
+      const id = getNextId(newData, 'suppliers');
       const item = { id, ...data, createdAt: new Date(), updatedAt: new Date() };
       newData.suppliers.push(item);
       saveDb();
@@ -148,7 +146,7 @@ const dbUtils = {
     findBySupplier: (supplierId) => loadDb().channels.filter(c => c.supplierId === supplierId),
     create: (data) => {
       const newData = loadDb();
-      const id = getNextId('channels');
+      const id = getNextId(newData, 'channels');
       const item = { id, ...data, createdAt: new Date(), updatedAt: new Date() };
       newData.channels.push(item);
       saveDb();
@@ -187,7 +185,7 @@ const dbUtils = {
     },
     create: (data) => {
       const newData = loadDb();
-      const id = getNextId('products');
+      const id = getNextId(newData, 'products');
       const item = { id, ...data, createdAt: new Date(), updatedAt: new Date() };
       newData.products.push(item);
       saveDb();
@@ -230,7 +228,7 @@ const dbUtils = {
     create: (data) => {
       const newData = loadDb();
       if (!newData.productChannels) newData.productChannels = [];
-      const id = getNextId('productChannels');
+      const id = getNextId(newData, 'productChannels');
       const item = { id, ...data, createdAt: new Date() };
       newData.productChannels.push(item);
       saveDb();
@@ -267,7 +265,7 @@ const dbUtils = {
     create: (data) => {
       const newData = loadDb();
       if (!newData.responseCodeMappings) newData.responseCodeMappings = [];
-      const id = getNextId('responseCodeMappings');
+      const id = getNextId(newData, 'responseCodeMappings');
       const item = { id, ...data, createdAt: new Date() };
       newData.responseCodeMappings.push(item);
       saveDb();
@@ -312,7 +310,7 @@ const dbUtils = {
     create: (data) => {
       const newData = loadDb();
       if (!newData.accounts) newData.accounts = [];
-      const id = getNextId('accounts');
+      const id = getNextId(newData, 'accounts');
       const item = { id, ...data, createdAt: new Date(), updatedAt: new Date() };
       newData.accounts.push(item);
       saveDb();
@@ -356,7 +354,7 @@ const dbUtils = {
     create: (data) => {
       const newData = loadDb();
       if (!newData.accountCustomers) newData.accountCustomers = [];
-      const id = getNextId('accountCustomers');
+      const id = getNextId(newData, 'accountCustomers');
       const item = { id, ...data, createdAt: new Date(), updatedAt: new Date() };
       newData.accountCustomers.push(item);
       saveDb();
@@ -404,7 +402,7 @@ const dbUtils = {
     },
     create: (data) => {
       const newData = loadDb();
-      const id = getNextId('customers');
+      const id = getNextId(newData, 'customers');
       const item = { id, ...data, createdAt: new Date(), updatedAt: new Date() };
       newData.customers.push(item);
       saveDb();
@@ -436,7 +434,7 @@ const dbUtils = {
     create: (data) => {
       const newData = loadDb();
       if (!newData.customerAccounts) newData.customerAccounts = [];
-      const id = getNextId('customerAccounts');
+      const id = getNextId(newData, 'customerAccounts');
       const item = { id, ...data, createdAt: new Date(), updatedAt: new Date() };
       newData.customerAccounts.push(item);
       saveDb();
@@ -467,11 +465,27 @@ const dbUtils = {
     create: (data) => {
       const newData = loadDb();
       if (!newData.paymentOrders) newData.paymentOrders = [];
-      const id = getNextId('paymentOrders');
+      const id = getNextId(newData, 'paymentOrders');
       const item = { id, ...data, createdAt: new Date() };
       newData.paymentOrders.push(item);
       saveDb();
       return item;
+    },
+    update: (id, updateData) => {
+      const newData = loadDb();
+      const index = newData.paymentOrders.findIndex(p => p.id === id);
+      if (index === -1) return null;
+      newData.paymentOrders[index] = { ...newData.paymentOrders[index], ...updateData };
+      saveDb();
+      return newData.paymentOrders[index];
+    },
+    delete: (id) => {
+      const newData = loadDb();
+      const index = newData.paymentOrders.findIndex(p => p.id === id);
+      if (index === -1) return false;
+      newData.paymentOrders.splice(index, 1);
+      saveDb();
+      return true;
     }
   },
 
@@ -482,11 +496,42 @@ const dbUtils = {
     create: (data) => {
       const newData = loadDb();
       if (!newData.refundOrders) newData.refundOrders = [];
-      const id = getNextId('refundOrders');
+      const id = getNextId(newData, 'refundOrders');
       const item = { id, ...data, createdAt: new Date() };
       newData.refundOrders.push(item);
       saveDb();
       return item;
+    }
+  },
+
+  withdrawOrders: {
+    findAll: () => loadDb().withdrawOrders || [],
+    findById: (id) => loadDb().withdrawOrders?.find(r => r.id === id),
+    findByCustomerId: (customerId) => (loadDb().withdrawOrders || []).filter(r => r.customerId === customerId),
+    create: (data) => {
+      const newData = loadDb();
+      if (!newData.withdrawOrders) newData.withdrawOrders = [];
+      const id = getNextId(newData, 'withdrawOrders');
+      const item = { id, ...data, createdAt: new Date() };
+      newData.withdrawOrders.push(item);
+      saveDb();
+      return item;
+    },
+    update: (id, updateData) => {
+      const newData = loadDb();
+      const index = newData.withdrawOrders.findIndex(r => r.id === id);
+      if (index === -1) return null;
+      newData.withdrawOrders[index] = { ...newData.withdrawOrders[index], ...updateData };
+      saveDb();
+      return newData.withdrawOrders[index];
+    },
+    delete: (id) => {
+      const newData = loadDb();
+      const index = newData.withdrawOrders.findIndex(r => r.id === id);
+      if (index === -1) return false;
+      newData.withdrawOrders.splice(index, 1);
+      saveDb();
+      return true;
     }
   },
 
@@ -499,7 +544,7 @@ const dbUtils = {
     create: (data) => {
       const newData = loadDb();
       if (!newData.customerBills) newData.customerBills = [];
-      const id = getNextId('customerBills');
+      const id = getNextId(newData, 'customerBills');
       const item = { id, ...data, createdAt: new Date() };
       newData.customerBills.push(item);
       saveDb();
@@ -521,7 +566,7 @@ const dbUtils = {
     create: (data) => {
       const newData = loadDb();
       if (!newData.customerBillItems) newData.customerBillItems = [];
-      const id = getNextId('customerBillItems');
+      const id = getNextId(newData, 'customerBillItems');
       const item = { id, ...data };
       newData.customerBillItems.push(item);
       saveDb();
@@ -543,7 +588,7 @@ const dbUtils = {
     },
     create: (data) => {
       const newData = loadDb();
-      const id = getNextId('orders');
+      const id = getNextId(newData, 'orders');
       const item = { id, ...data, createdAt: new Date(), updatedAt: new Date() };
       newData.orders.push(item);
       saveDb();
@@ -578,7 +623,7 @@ const dbUtils = {
     create: (data) => {
       const newData = loadDb();
       if (!newData.apiKeys) newData.apiKeys = [];
-      const id = getNextId('apiKeys');
+      const id = getNextId(newData, 'apiKeys');
       const item = { id, ...data, createdAt: new Date() };
       newData.apiKeys.push(item);
       saveDb();
@@ -607,7 +652,7 @@ const dbUtils = {
     findById: (id) => loadDb().apiLogs.find(l => l.id === id),
     create: (data) => {
       const newData = loadDb();
-      const id = getNextId('apiLogs');
+      const id = getNextId(newData, 'apiLogs');
       const item = { id, ...data, createdAt: new Date() };
       newData.apiLogs.push(item);
       saveDb();
@@ -637,7 +682,7 @@ const dbUtils = {
     create: (data) => {
       const newData = loadDb();
       if (!newData.callLogs) newData.callLogs = [];
-      const id = getNextId('callLogs');
+      const id = getNextId(newData, 'callLogs');
       const item = { id, ...data, createdAt: new Date() };
       newData.callLogs.push(item);
       saveDb();
@@ -678,7 +723,7 @@ const dbUtils = {
     create: (data) => {
       const newData = loadDb();
       if (!newData.supplierBills) newData.supplierBills = [];
-      const id = getNextId('supplierBills');
+      const id = getNextId(newData, 'supplierBills');
       const item = { id, ...data, createdAt: new Date() };
       newData.supplierBills.push(item);
       saveDb();
@@ -707,7 +752,7 @@ const dbUtils = {
     create: (data) => {
       const newData = loadDb();
       if (!newData.billItems) newData.billItems = [];
-      const id = getNextId('billItems');
+      const id = getNextId(newData, 'billItems');
       const item = { id, ...data };
       newData.billItems.push(item);
       saveDb();
@@ -717,7 +762,7 @@ const dbUtils = {
       const newData = loadDb();
       if (!newData.billItems) newData.billItems = [];
       const created = items.map(item => {
-        const id = getNextId('billItems');
+        const id = getNextId(newData, 'billItems');
         const newItem = { id, ...item };
         newData.billItems.push(newItem);
         return newItem;
@@ -744,7 +789,7 @@ const dbUtils = {
     create: (data) => {
       const newData = loadDb();
       if (!newData.adminChangeRequests) newData.adminChangeRequests = [];
-      const id = getNextId('adminChangeRequests');
+      const id = getNextId(newData, 'adminChangeRequests');
       const item = { id, ...data, createdAt: new Date(), updatedAt: new Date() };
       newData.adminChangeRequests.push(item);
       saveDb();

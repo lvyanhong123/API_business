@@ -293,6 +293,15 @@
                   <div class="menu-sub-item ${activeTabId === 'bind-approvals' ? 'active' : ''}" data-tab-id="bind-approvals" onclick="openTab('bind-approvals', '管理员变更审批')">管理员变更审批</div>
                 </div>
               </div>
+              <div class="menu-group">
+                <div class="menu-group-title ${activeMenuGroup === 'finance' ? 'active' : ''}" onclick="toggleMenuGroup('finance')">
+                  财务管理 <span class="arrow">></span>
+                </div>
+                <div class="menu-sub ${activeMenuGroup === 'finance' ? 'open' : ''}" id="menuFinanceSub">
+                  <div class="menu-sub-item ${activeTabId === 'payment-orders' ? 'active' : ''}" data-tab-id="payment-orders" onclick="openTab('payment-orders', '充值收款')">充值收款</div>
+                  <div class="menu-sub-item ${activeTabId === 'withdraw-orders' ? 'active' : ''}" data-tab-id="withdraw-orders" onclick="openTab('withdraw-orders', '提现打款')">提现打款</div>
+                </div>
+              </div>
             </div>
           </div>
           <div class="main">
@@ -343,6 +352,12 @@
         } else if (tabId === 'customers') {
           tabs.push({ id: 'customers', name: '客户列表' });
           activeMenuGroup = 'customers';
+        } else if (tabId === 'payment-orders') {
+          tabs.push({ id: 'payment-orders', name: '充值收款' });
+          activeMenuGroup = 'finance';
+        } else if (tabId === 'withdraw-orders') {
+          tabs.push({ id: 'withdraw-orders', name: '提现打款' });
+          activeMenuGroup = 'finance';
         } else if (tabId === 'dashboard') {
           tabs.unshift({ id: 'dashboard', name: '数据概览' });
           activeMenuGroup = '';
@@ -432,6 +447,8 @@
       if (menuCustomersSub) menuCustomersSub.className = 'menu-sub ' + (activeMenuGroup === 'customers' ? 'open' : '');
       const menuBillManagementSub = document.getElementById('menuBillManagementSub');
       if (menuBillManagementSub) menuBillManagementSub.className = 'menu-sub ' + (activeMenuGroup === 'bill-management' ? 'open' : '');
+      const menuFinanceSub = document.getElementById('menuFinanceSub');
+      if (menuFinanceSub) menuFinanceSub.className = 'menu-sub ' + (activeMenuGroup === 'finance' ? 'open' : '');
       document.querySelectorAll('.menu-group').forEach(menuGroup => {
         const titleEl = menuGroup.querySelector('.menu-group-title');
         if (titleEl) {
@@ -440,6 +457,7 @@
           if (title.includes('供应商')) groupName = 'suppliers';
           else if (title.includes('客户')) groupName = 'customers';
           else if (title.includes('账单')) groupName = 'bill-management';
+          else if (title.includes('财务')) groupName = 'finance';
           titleEl.className = 'menu-group-title ' + (activeMenuGroup === groupName ? 'active' : '');
         }
       });
@@ -585,6 +603,8 @@
       else if (tabId === 'customer-bills') loadCustomerBills();
       else if (tabId === 'accounts') loadAccounts();
       else if (tabId === 'bind-approvals') loadBindApprovals();
+      else if (tabId === 'payment-orders') loadPaymentOrders();
+      else if (tabId === 'withdraw-orders') loadWithdrawOrders();
       else if (tabId.startsWith('customer-account-')) {
         const customerId = tabId.replace('customer-account-', '');
         loadCustomerAccount(customerId);
@@ -699,10 +719,6 @@
         </div>
       `;
     }
-
-    let supplierPageSize = 20;
-    let supplierAllData = [];
-    let supplierCurrentPage = 1;
 
     async function loadSuppliers() {
       const data = await fetchAPI('/admin/suppliers');
@@ -2082,6 +2098,13 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
             <input type="number" id="rechargeAmount" placeholder="请输入金额" min="0" step="0.01">
           </div>
           <div class="form-group">
+            <label>目标账户</label>
+            <select id="rechargeTarget" class="search-input" style="width:100%;">
+              <option value="balance">账户余额</option>
+              <option value="credit">信用额度</option>
+            </select>
+          </div>
+          <div class="form-group">
             <label>支付方式</label>
             <select id="rechargeMethod" class="search-input" style="width:100%;">
               <option value="bank">对公转账</option>
@@ -2108,11 +2131,12 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
         alert('请输入正确的金额');
         return;
       }
+      const targetAccount = $('#rechargeTarget').value;
       const paymentMethod = $('#rechargeMethod').value;
       const remark = $('#rechargeRemark').value;
       const res = await fetchAPI('/customers/accounts/' + customerId + '/recharge', {
         method: 'POST',
-        body: JSON.stringify({ amount, paymentMethod, remark })
+        body: JSON.stringify({ amount, paymentMethod, targetAccount, remark })
       });
       if (res) {
         alert('充值成功');
@@ -2130,6 +2154,7 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
     async function showRefundModal(customerId, customerName) {
       const accountRes = await fetchAPI('/customers/accounts/' + customerId);
       const balance = accountRes ? accountRes.balance || 0 : 0;
+      const creditLimit = accountRes ? accountRes.creditLimit || 0 : 0;
       const modal = document.createElement('div');
       modal.className = 'modal show';
       modal.id = 'refundModal';
@@ -2137,12 +2162,23 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
         <div class="modal-content" style="max-width:400px;">
           <h3>退款 - ${customerName}</h3>
           <div class="form-group">
-            <label>可退款余额</label>
+            <label>账户余额</label>
             <div style="padding:8px;background:#f5f5f5;border-radius:4px;">¥${balance}</div>
           </div>
           <div class="form-group">
+            <label>信用额度</label>
+            <div style="padding:8px;background:#f5f5f5;border-radius:4px;">¥${creditLimit}</div>
+          </div>
+          <div class="form-group">
             <label>退款金额</label>
-            <input type="number" id="refundAmount" placeholder="请输入金额" min="0" max="${balance}" step="0.01">
+            <input type="number" id="refundAmount" placeholder="请输入金额" min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>退款至</label>
+            <select id="refundTarget" class="search-input" style="width:100%;">
+              <option value="balance">账户余额</option>
+              <option value="credit">信用额度</option>
+            </select>
           </div>
           <div class="form-group">
             <label>退款原因</label>
@@ -2163,10 +2199,11 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
         alert('请输入正确的金额');
         return;
       }
+      const targetAccount = $('#refundTarget').value;
       const reason = $('#refundReason').value;
       const res = await fetchAPI('/customers/accounts/' + customerId + '/refund', {
         method: 'POST',
-        body: JSON.stringify({ amount, reason })
+        body: JSON.stringify({ amount, reason, targetAccount })
       });
       if (res) {
         alert('退款成功');
@@ -4476,6 +4513,453 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
       }
     }
 
+    let paymentCurrentPage = 1;
+    let paymentPageSize = 20;
+    let paymentAllData = [];
+    let withdrawCurrentPage = 1;
+    let withdrawPageSize = 20;
+    let withdrawAllData = [];
+
+    async function loadPaymentOrders() {
+      const res = await fetchAPI('/customers/payment-orders');
+      if (!res) return;
+      paymentAllData = (res.orders || []).map(o => ({
+        id: o.id,
+        customerId: o.customerId,
+        customerName: o.customerName || '-',
+        amount: o.amount,
+        targetAccount: o.targetAccount,
+        paymentMethod: o.paymentMethod,
+        remark: o.remark,
+        status: o.status,
+        createdAt: o.createdAt
+      }));
+      paymentCurrentPage = 1;
+      $('#tabContent').innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">充值收款</div>
+            <button class="btn" onclick="showCreatePaymentModal()">录入收款单</button>
+          </div>
+          <div id="paymentSearchResults">共 ${paymentAllData.length} 条</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>ID</th><th>企业</th><th>金额</th><th>目标账户</th><th>支付方式</th><th>备注</th><th>状态</th><th>时间</th><th>操作</th></tr></thead>
+              <tbody id="paymentTableBody"></tbody>
+            </table>
+          </div>
+          <div id="paymentPagination" class="pagination" style="justify-content:flex-end;margin-top:15px;"></div>
+        </div>
+      `;
+      renderPaymentOrders();
+    }
+
+    async function renderPaymentOrders() {
+      const total = paymentAllData.length;
+      const start = (paymentCurrentPage - 1) * paymentPageSize;
+      const paginatedData = paymentAllData.slice(start, start + paymentPageSize);
+      $('#paymentTableBody').innerHTML = paginatedData.map(o => `
+        <tr>
+          <td>${o.id}</td>
+          <td>${o.customerName}</td>
+          <td style="color:#52c41a;">+¥${o.amount}</td>
+          <td>${o.targetAccount === 'credit' ? '信用额度' : '账户余额'}</td>
+          <td>${o.paymentMethod === 'bank' ? '对公转账' : o.paymentMethod === 'alipay' ? '支付宝' : o.paymentMethod === 'wechat' ? '微信' : '-'}</td>
+          <td>${o.remark || '-'}</td>
+          <td><span class="status status-active">${o.status === 'confirmed' ? '已确认' : o.status}</span></td>
+          <td>${new Date(o.createdAt).toLocaleString()}</td>
+          <td>
+            <button class="action-btn primary btn-small" onclick="editPaymentOrder(${o.id})">编辑</button>
+            <button class="action-btn danger btn-small" onclick="deletePaymentOrder(${o.id})">删除</button>
+          </td>
+        </tr>
+      `).join('') || '<tr><td colspan="9" style="text-align:center;padding:20px;color:#999;">暂无收款记录</td></tr>';
+      $('#paymentSearchResults').textContent = `共 ${total} 条`;
+      renderPaymentPagination(total);
+    }
+
+    function renderPaymentPagination(total) {
+      const totalPages = Math.ceil(total / paymentPageSize) || 1;
+      let html = `<button ${paymentCurrentPage <= 1 ? 'disabled' : ''} onclick="goToPaymentPage(${paymentCurrentPage - 1})">上一页</button>`;
+      for (let i = 1; i <= totalPages; i++) {
+        if (totalPages > 7 && i !== 1 && i !== totalPages && Math.abs(i - paymentCurrentPage) > 1) {
+          if (i === 2 || i === totalPages - 1) html += `<span style="padding:0 5px;">...</span>`;
+          continue;
+        }
+        html += `<button class="${i === paymentCurrentPage ? 'active' : ''}" onclick="goToPaymentPage(${i})">${i}</button>`;
+      }
+      html += `<button ${paymentCurrentPage >= totalPages ? 'disabled' : ''} onclick="goToPaymentPage(${paymentCurrentPage + 1})">下一页</button>`;
+      html += `<span style="margin-left:10px;font-size:14px;color:#666;">每页</span>`;
+      html += `<select style="padding:4px 8px;border:1px solid #ddd;border-radius:4px;margin:0 5px;" onchange="changePaymentPageSize(this.value)">`;
+      html += `<option value="10" ${paymentPageSize == 10 ? 'selected' : ''}>10</option>`;
+      html += `<option value="20" ${paymentPageSize == 20 ? 'selected' : ''}>20</option>`;
+      html += `<option value="50" ${paymentPageSize == 50 ? 'selected' : ''}>50</option>`;
+      html += `</select>`;
+      html += `<span style="font-size:14px;color:#666;">条</span>`;
+      $('#paymentPagination').innerHTML = html;
+    }
+
+    function goToPaymentPage(page) {
+      paymentCurrentPage = page;
+      renderPaymentOrders();
+    }
+
+    function changePaymentPageSize(size) {
+      paymentPageSize = parseInt(size);
+      paymentCurrentPage = 1;
+      renderPaymentOrders();
+    }
+
+    async function showCreatePaymentModal() {
+      const customersRes = await fetchAPI('/admin/customers');
+      const customers = customersRes?.customers || [];
+      const modal = document.createElement('div');
+      modal.className = 'modal show';
+      modal.id = 'paymentModal';
+      modal.innerHTML = `
+        <div class="modal-content" style="max-width:450px;">
+          <h3>录入收款单</h3>
+          <div class="form-group">
+            <label>选择客户</label>
+            <select id="paymentCustomer" class="search-input" style="width:100%;">
+              <option value="">请选择客户</option>
+              ${customers.map(c => `<option value="${c.id}">${c.companyName || c.name} (ID:${c.id})</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>收款金额</label>
+            <input type="number" id="paymentAmount" placeholder="请输入金额" min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>目标账户</label>
+            <select id="paymentTarget" class="search-input" style="width:100%;">
+              <option value="balance">账户余额</option>
+              <option value="credit">信用额度</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>支付方式</label>
+            <select id="paymentMethod" class="search-input" style="width:100%;">
+              <option value="bank">对公转账</option>
+              <option value="alipay">支付宝</option>
+              <option value="wechat">微信</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>备注</label>
+            <input type="text" id="paymentRemark" placeholder="可选">
+          </div>
+          <div style="text-align:right;margin-top:20px;">
+            <button class="btn" onclick="closePaymentModal()">取消</button>
+            <button class="btn" onclick="doCreatePayment()">确定录入</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    async function doCreatePayment() {
+      const customerId = $('#paymentCustomer').value;
+      const amount = parseFloat($('#paymentAmount').value);
+      const targetAccount = $('#paymentTarget').value;
+      const paymentMethod = $('#paymentMethod').value;
+      const remark = $('#paymentRemark').value;
+      if (!customerId || !amount || amount <= 0) {
+        alert('请填写完整信息');
+        return;
+      }
+      const res = await fetchAPI('/customers/accounts/' + customerId + '/recharge', {
+        method: 'POST',
+        body: JSON.stringify({ amount, targetAccount, paymentMethod, remark })
+      });
+      if (res) {
+        alert('录入成功');
+        closePaymentModal();
+        loadPaymentOrders();
+      }
+    }
+
+    async function editPaymentOrder(id) {
+      const order = paymentAllData.find(o => o.id === id);
+      if (!order) return;
+      const customersRes = await fetchAPI('/admin/customers');
+      const customers = customersRes?.customers || [];
+      const modal = document.createElement('div');
+      modal.className = 'modal show';
+      modal.id = 'paymentModal';
+      modal.innerHTML = `
+        <div class="modal-content" style="max-width:450px;">
+          <h3>编辑收款单</h3>
+          <div class="form-group">
+            <label>企业</label>
+            <div style="padding:8px;">${order.customerName}</div>
+          </div>
+          <div class="form-group">
+            <label>收款金额</label>
+            <input type="number" id="paymentAmount" class="search-input" value="${order.amount}" min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>目标账户</label>
+            <select id="paymentTarget" class="search-input" style="width:100%;">
+              <option value="balance" ${order.targetAccount === 'balance' ? 'selected' : ''}>账户余额</option>
+              <option value="credit" ${order.targetAccount === 'credit' ? 'selected' : ''}>信用额度</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>支付方式</label>
+            <select id="paymentMethod" class="search-input" style="width:100%;">
+              <option value="bank" ${order.paymentMethod === 'bank' ? 'selected' : ''}>对公转账</option>
+              <option value="alipay" ${order.paymentMethod === 'alipay' ? 'selected' : ''}>支付宝</option>
+              <option value="wechat" ${order.paymentMethod === 'wechat' ? 'selected' : ''}>微信</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>备注</label>
+            <input type="text" id="paymentRemark" class="search-input" value="${order.remark || ''}">
+          </div>
+          <div style="text-align:right;margin-top:20px;">
+            <button class="btn" onclick="closePaymentModal()">取消</button>
+            <button class="btn" onclick="doUpdatePayment(${id})">保存</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    async function doUpdatePayment(id) {
+      const amount = parseFloat($('#paymentAmount').value);
+      const targetAccount = $('#paymentTarget').value;
+      const paymentMethod = $('#paymentMethod').value;
+      const remark = $('#paymentRemark').value;
+      if (!amount || amount <= 0) {
+        alert('请输入正确的金额');
+        return;
+      }
+      const res = await fetchAPI('/customers/payment-orders/' + id, {
+        method: 'PUT',
+        body: JSON.stringify({ amount, targetAccount, paymentMethod, remark })
+      });
+      if (res) {
+        alert('更新成功');
+        closePaymentModal();
+        loadPaymentOrders();
+      }
+    }
+
+    async function deletePaymentOrder(id) {
+      if (!confirm('确定要删除该收款单吗？')) return;
+      const res = await fetchAPI('/customers/payment-orders/' + id, { method: 'DELETE' });
+      if (res) {
+        alert('删除成功');
+        loadPaymentOrders();
+      }
+    }
+
+    function closePaymentModal() {
+      const modal = document.getElementById('paymentModal');
+      if (modal) modal.remove();
+    }
+
+    async function loadWithdrawOrders() {
+      const res = await fetchAPI('/customers/withdraw-orders');
+      if (!res) return;
+      withdrawAllData = (res.orders || []).map(o => ({
+        id: o.id,
+        customerId: o.customerId,
+        customerName: o.customerName || '-',
+        amount: o.amount,
+        remark: o.remark,
+        status: o.status,
+        createdAt: o.createdAt
+      }));
+      withdrawCurrentPage = 1;
+      $('#tabContent').innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">提现打款</div>
+            <button class="btn" onclick="showCreateWithdrawModal()">录入打款单</button>
+          </div>
+          <div id="withdrawSearchResults">共 ${withdrawAllData.length} 条</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>ID</th><th>企业</th><th>金额</th><th>备注</th><th>状态</th><th>时间</th><th>操作</th></tr></thead>
+              <tbody id="withdrawTableBody"></tbody>
+            </table>
+          </div>
+          <div id="withdrawPagination" class="pagination" style="justify-content:flex-end;margin-top:15px;"></div>
+        </div>
+      `;
+      renderWithdrawOrders();
+    }
+
+    async function renderWithdrawOrders() {
+      const total = withdrawAllData.length;
+      const start = (withdrawCurrentPage - 1) * withdrawPageSize;
+      const paginatedData = withdrawAllData.slice(start, start + withdrawPageSize);
+      $('#withdrawTableBody').innerHTML = paginatedData.map(o => `
+        <tr>
+          <td>${o.id}</td>
+          <td>${o.customerName}</td>
+          <td style="color:#ff4d4f;">-¥${o.amount}</td>
+          <td>${o.remark || '-'}</td>
+          <td><span class="status status-${o.status === 'completed' ? 'active' : 'inactive'}">${o.status === 'completed' ? '已完成' : o.status}</span></td>
+          <td>${new Date(o.createdAt).toLocaleString()}</td>
+          <td>
+            <button class="action-btn primary btn-small" onclick="editWithdrawOrder(${o.id})">编辑</button>
+            <button class="action-btn danger btn-small" onclick="deleteWithdrawOrder(${o.id})">删除</button>
+          </td>
+        </tr>
+      `).join('') || '<tr><td colspan="7" style="text-align:center;padding:20px;color:#999;">暂无打款记录</td></tr>';
+      $('#withdrawSearchResults').textContent = `共 ${total} 条`;
+      renderWithdrawPagination(total);
+    }
+
+    function renderWithdrawPagination(total) {
+      const totalPages = Math.ceil(total / withdrawPageSize) || 1;
+      let html = `<button ${withdrawCurrentPage <= 1 ? 'disabled' : ''} onclick="goToWithdrawPage(${withdrawCurrentPage - 1})">上一页</button>`;
+      for (let i = 1; i <= totalPages; i++) {
+        if (totalPages > 7 && i !== 1 && i !== totalPages && Math.abs(i - withdrawCurrentPage) > 1) {
+          if (i === 2 || i === totalPages - 1) html += `<span style="padding:0 5px;">...</span>`;
+          continue;
+        }
+        html += `<button class="${i === withdrawCurrentPage ? 'active' : ''}" onclick="goToWithdrawPage(${i})">${i}</button>`;
+      }
+      html += `<button ${withdrawCurrentPage >= totalPages ? 'disabled' : ''} onclick="goToWithdrawPage(${withdrawCurrentPage + 1})">下一页</button>`;
+      html += `<span style="margin-left:10px;font-size:14px;color:#666;">每页</span>`;
+      html += `<select style="padding:4px 8px;border:1px solid #ddd;border-radius:4px;margin:0 5px;" onchange="changeWithdrawPageSize(this.value)">`;
+      html += `<option value="10" ${withdrawPageSize == 10 ? 'selected' : ''}>10</option>`;
+      html += `<option value="20" ${withdrawPageSize == 20 ? 'selected' : ''}>20</option>`;
+      html += `<option value="50" ${withdrawPageSize == 50 ? 'selected' : ''}>50</option>`;
+      html += `</select>`;
+      html += `<span style="font-size:14px;color:#666;">条</span>`;
+      $('#withdrawPagination').innerHTML = html;
+    }
+
+    function goToWithdrawPage(page) {
+      withdrawCurrentPage = page;
+      renderWithdrawOrders();
+    }
+
+    function changeWithdrawPageSize(size) {
+      withdrawPageSize = parseInt(size);
+      withdrawCurrentPage = 1;
+      renderWithdrawOrders();
+    }
+
+    async function showCreateWithdrawModal() {
+      const customersRes = await fetchAPI('/admin/customers');
+      const customers = customersRes?.customers || [];
+      const modal = document.createElement('div');
+      modal.className = 'modal show';
+      modal.id = 'withdrawModal';
+      modal.innerHTML = `
+        <div class="modal-content" style="max-width:400px;">
+          <h3>录入打款单</h3>
+          <div class="form-group">
+            <label>选择客户</label>
+            <select id="withdrawCustomer" class="search-input" style="width:100%;">
+              <option value="">请选择客户</option>
+              ${customers.map(c => `<option value="${c.id}">${c.companyName || c.name} (ID:${c.id})</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>打款金额</label>
+            <input type="number" id="withdrawAmount" placeholder="请输入金额" min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>备注</label>
+            <input type="text" id="withdrawRemark" placeholder="请输入原因">
+          </div>
+          <div style="text-align:right;margin-top:20px;">
+            <button class="btn" onclick="closeWithdrawModal()">取消</button>
+            <button class="btn" onclick="doCreateWithdraw()">确定录入</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    async function doCreateWithdraw() {
+      const customerId = $('#withdrawCustomer').value;
+      const amount = parseFloat($('#withdrawAmount').value);
+      const remark = $('#withdrawRemark').value;
+      if (!customerId || !amount || amount <= 0) {
+        alert('请填写完整信息');
+        return;
+      }
+      const res = await fetchAPI('/customers/accounts/' + customerId + '/withdraw', {
+        method: 'POST',
+        body: JSON.stringify({ amount, remark })
+      });
+      if (res) {
+        alert('录入成功');
+        closeWithdrawModal();
+        loadWithdrawOrders();
+      }
+    }
+
+    async function editWithdrawOrder(id) {
+      const order = withdrawAllData.find(o => o.id === id);
+      if (!order) return;
+      const modal = document.createElement('div');
+      modal.className = 'modal show';
+      modal.id = 'withdrawModal';
+      modal.innerHTML = `
+        <div class="modal-content" style="max-width:400px;">
+          <h3>编辑打款单</h3>
+          <div class="form-group">
+            <label>企业</label>
+            <div style="padding:8px;">${order.customerName}</div>
+          </div>
+          <div class="form-group">
+            <label>打款金额</label>
+            <input type="number" id="withdrawAmount" class="search-input" value="${order.amount}" min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>备注</label>
+            <input type="text" id="withdrawRemark" class="search-input" value="${order.remark || ''}">
+          </div>
+          <div style="text-align:right;margin-top:20px;">
+            <button class="btn" onclick="closeWithdrawModal()">取消</button>
+            <button class="btn" onclick="doUpdateWithdraw(${id})">保存</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+
+    async function doUpdateWithdraw(id) {
+      const amount = parseFloat($('#withdrawAmount').value);
+      const remark = $('#withdrawRemark').value;
+      if (!amount || amount <= 0) {
+        alert('请输入正确的金额');
+        return;
+      }
+      const res = await fetchAPI('/customers/withdraw-orders/' + id, {
+        method: 'PUT',
+        body: JSON.stringify({ amount, remark })
+      });
+      if (res) {
+        alert('更新成功');
+        closeWithdrawModal();
+        loadWithdrawOrders();
+      }
+    }
+
+    async function deleteWithdrawOrder(id) {
+      if (!confirm('确定要删除该打款单吗？')) return;
+      const res = await fetchAPI('/customers/withdraw-orders/' + id, { method: 'DELETE' });
+      if (res) {
+        alert('删除成功');
+        loadWithdrawOrders();
+      }
+    }
+
+    function closeWithdrawModal() {
+      const modal = document.getElementById('withdrawModal');
+      if (modal) modal.remove();
+    }
+
     function closeModal() {
       const modal = document.getElementById('modalOverlay');
       if (modal) modal.remove();
@@ -4488,8 +4972,6 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
 
       const customerRes = await fetchAPI('/customers/' + customerId);
       const accountRes = await fetchAPI('/customers/accounts/' + customerId);
-      const paymentsRes = await fetchAPI('/customers/accounts/' + customerId + '/payments');
-      const refundsRes = await fetchAPI('/customers/accounts/' + customerId + '/refunds');
 
       if (!customerRes && !accountRes) {
         $('#tabContent').innerHTML = '<div style="padding:40px;text-align:center;color:#ff4d4f;">加载失败，请刷新重试</div>';
@@ -4498,8 +4980,6 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
 
       const customer = customerRes || {};
       const account = accountRes || {};
-      const payments = paymentsRes?.payments || [];
-      const refunds = refundsRes?.refunds || [];
 
       $('#tabContent').innerHTML = `
         <div class="card">
@@ -4519,60 +4999,90 @@ class ${supplierName.replace(/[^a-zA-Z0-9]/g, '')}Script {
                 </div>
               </div>
             </div>
-            <div style="display:flex;gap:10px;align-items:flex-start;">
-              <button class="btn" onclick="showRechargeModal(${customerId}, '${customer.companyName || ''}')">充值</button>
-              <button class="btn" onclick="showRefundModal(${customerId}, '${customer.companyName || ''}')">退款</button>
-            </div>
           </div>
         </div>
 
         <div class="card">
           <div class="card-header">
-            <div class="card-title">充值记录</div>
+            <div class="card-title">收支记录</div>
           </div>
+          <div id="transactionSearchResults" style="padding:10px 20px;">加载中...</div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>ID</th><th>时间</th><th>金额</th><th>支付方式</th><th>备注</th><th>状态</th></tr></thead>
-              <tbody>
-                ${payments.length === 0 ? '<tr><td colspan="6" style="text-align:center;padding:20px;color:#999;">暂无充值记录</td></tr>' :
-                payments.map(p => `
-                  <tr>
-                    <td>${p.id}</td>
-                    <td>${new Date(p.createdAt).toLocaleString()}</td>
-                    <td style="color:#52c41a;">+¥${p.amount}</td>
-                    <td>${p.paymentMethod || '-'}</td>
-                    <td>${p.note || '-'}</td>
-                    <td><span class="status status-active">${p.status === 'completed' ? '成功' : p.status}</span></td>
-                  </tr>
-                `).join('')}
-              </tbody>
+              <thead><tr><th>时间</th><th>收支类型</th><th>变动账户</th><th>变动金额</th></tr></thead>
+              <tbody id="transactionTableBody"><tr><td colspan="4" style="text-align:center;padding:20px;">加载中...</td></tr></tbody>
             </table>
           </div>
-        </div>
-
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">退款记录</div>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>ID</th><th>时间</th><th>金额</th><th>原因</th><th>状态</th></tr></thead>
-              <tbody>
-                ${refunds.length === 0 ? '<tr><td colspan="5" style="text-align:center;padding:20px;color:#999;">暂无退款记录</td></tr>' :
-                refunds.map(r => `
-                  <tr>
-                    <td>${r.id}</td>
-                    <td>${new Date(r.createdAt).toLocaleString()}</td>
-                    <td style="color:#ff4d4f;">-¥${r.amount}</td>
-                    <td>${r.reason || '-'}</td>
-                    <td><span class="status status-${r.status === 'completed' ? 'active' : 'inactive'}">${r.status === 'completed' ? '已完成' : r.status === 'pending' ? '处理中' : '已拒绝'}</span></td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
+          <div id="transactionPagination" class="pagination" style="justify-content:flex-end;margin-top:15px;"></div>
         </div>
       `;
+
+      loadTransactionRecords(customerId);
+    }
+
+    let transactionCurrentPage = 1;
+    let transactionPageSize = 20;
+    let transactionAllData = [];
+
+    async function loadTransactionRecords(customerId) {
+      const res = await fetchAPI('/customers/accounts/' + customerId + '/transactions');
+      if (!res) {
+        $('#transactionSearchResults').textContent = '加载失败';
+        return;
+      }
+      transactionAllData = res.records || [];
+      transactionCurrentPage = 1;
+      renderTransactionRecords();
+    }
+
+    function renderTransactionRecords() {
+      const total = transactionAllData.length;
+      const start = (transactionCurrentPage - 1) * transactionPageSize;
+      const paginatedData = transactionAllData.slice(start, start + transactionPageSize);
+
+      $('#transactionTableBody').innerHTML = paginatedData.map(r => `
+        <tr>
+          <td>${new Date(r.createdAt).toLocaleString()}</td>
+          <td>${r.type}${r.orderNo ? ' (' + r.orderNo + ')' : ''}</td>
+          <td>${r.account === 'credit' ? '信用额度' : '账户余额'}</td>
+          <td style="color:${r.direction === '+' ? '#52c41a' : '#ff4d4f'};">${r.direction}¥${r.amount}</td>
+        </tr>
+      `).join('') || '<tr><td colspan="4" style="text-align:center;padding:20px;color:#999;">暂无收支记录</td></tr>';
+
+      $('#transactionSearchResults').textContent = `共 ${total} 条`;
+      renderTransactionPagination(total);
+    }
+
+    function renderTransactionPagination(total) {
+      const totalPages = Math.ceil(total / transactionPageSize) || 1;
+      let html = `<button ${transactionCurrentPage <= 1 ? 'disabled' : ''} onclick="goToTransactionPage(${transactionCurrentPage - 1})">上一页</button>`;
+      for (let i = 1; i <= totalPages; i++) {
+        if (totalPages > 7 && i !== 1 && i !== totalPages && Math.abs(i - transactionCurrentPage) > 1) {
+          if (i === 2 || i === totalPages - 1) html += `<span style="padding:0 5px;">...</span>`;
+          continue;
+        }
+        html += `<button class="${i === transactionCurrentPage ? 'active' : ''}" onclick="goToTransactionPage(${i})">${i}</button>`;
+      }
+      html += `<button ${transactionCurrentPage >= totalPages ? 'disabled' : ''} onclick="goToTransactionPage(${transactionCurrentPage + 1})">下一页</button>`;
+      html += `<span style="margin-left:10px;font-size:14px;color:#666;">每页</span>`;
+      html += `<select style="padding:4px 8px;border:1px solid #ddd;border-radius:4px;margin:0 5px;" onchange="changeTransactionPageSize(this.value)">`;
+      html += `<option value="10" ${transactionPageSize == 10 ? 'selected' : ''}>10</option>`;
+      html += `<option value="20" ${transactionPageSize == 20 ? 'selected' : ''}>20</option>`;
+      html += `<option value="50" ${transactionPageSize == 50 ? 'selected' : ''}>50</option>`;
+      html += `</select>`;
+      html += `<span style="font-size:14px;color:#666;">条</span>`;
+      $('#transactionPagination').innerHTML = html;
+    }
+
+    function goToTransactionPage(page) {
+      transactionCurrentPage = page;
+      renderTransactionRecords();
+    }
+
+    function changeTransactionPageSize(size) {
+      transactionPageSize = parseInt(size);
+      transactionCurrentPage = 1;
+      renderTransactionRecords();
     }
   </script>
 </body>

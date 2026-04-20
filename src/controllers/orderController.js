@@ -6,7 +6,7 @@ function generateOrderNo() {
 }
 
 exports.createOrder = async (req, res) => {
-  const { product, orderType, quantity = 1, paymentType } = req.body;
+  const { product, orderType, quantity = 1, paymentType, paymentMethod = 'balance' } = req.body;
 
   if (!product || !orderType) {
     return res.status(400).json({ message: '请选择产品和订单类型' });
@@ -14,6 +14,10 @@ exports.createOrder = async (req, res) => {
 
   if (!paymentType || !['prepay', 'postpay'].includes(paymentType)) {
     return res.status(400).json({ message: '请选择支付类型（prepay 或 postpay）' });
+  }
+
+  if (!['balance', 'credit'].includes(paymentMethod)) {
+    return res.status(400).json({ message: '请选择支付方式（balance 或 credit）' });
   }
 
   try {
@@ -47,6 +51,7 @@ exports.createOrder = async (req, res) => {
       quantity,
       amount,
       paymentType,
+      paymentMethod,
       validFrom,
       validTo,
       reviewStatus: 'pending',
@@ -167,6 +172,26 @@ exports.approveOrder = async (req, res) => {
     if (order.orderType === 'per_call') {
       const customer = db.customers.findById(order.customerId);
       db.customers.update(order.customerId, { quota: (customer.quota || 0) + order.quantity });
+    }
+
+    if (order.paymentType === 'prepay') {
+      const account = db.customerAccounts.findByCustomerId(order.customerId);
+      if (!account) {
+        return res.status(400).json({ message: '账户不存在，请先创建账户' });
+      }
+
+      const payMethod = order.paymentMethod || 'balance';
+      if (payMethod === 'balance') {
+        if (account.balance < order.amount) {
+          return res.status(400).json({ message: '余额不足，订单审核失败' });
+        }
+        db.customerAccounts.update(account.id, { balance: account.balance - order.amount });
+      } else if (payMethod === 'credit') {
+        if (account.creditLimit < order.amount) {
+          return res.status(400).json({ message: '信用额度不足，订单审核失败' });
+        }
+        db.customerAccounts.update(account.id, { creditLimit: account.creditLimit - order.amount });
+      }
     }
 
     const updatedOrder = db.orders.findById(parseInt(id));

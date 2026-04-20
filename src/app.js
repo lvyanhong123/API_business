@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
+const db = require('./config/database');
 
 dotenv.config();
 
@@ -19,6 +20,29 @@ app.get('/', (req, res) => {
 
 const adminRoutes = require('./routes/adminRoutes');
 app.use('/api/admin/auth', adminRoutes);
+
+const { accountAuth } = require('./middleware/accountAuth');
+
+app.get('/api/my/account-info', accountAuth, async (req, res) => {
+  try {
+    const accountCustomers = db.accountCustomers.findByAccountId(req.account.id);
+    if (!accountCustomers || accountCustomers.length === 0) {
+      return res.status(404).json({ message: '该账号未绑定企业' });
+    }
+    const customerId = accountCustomers[0].customerId;
+    let account = db.customerAccounts.findByCustomerId(customerId);
+    if (!account) {
+      account = db.customerAccounts.create({
+        customerId,
+        balance: 0,
+        creditLimit: 0
+      });
+    }
+    res.status(200).json(account);
+  } catch (error) {
+    res.status(500).json({ message: '服务器错误' });
+  }
+});
 
 const supplierRoutes = require('./routes/supplierRoutes');
 app.use('/api/admin/suppliers', supplierRoutes);
@@ -59,7 +83,6 @@ app.use('/api/admin/bills', billRoutes);
 const customerBillRoutes = require('./routes/customerBillRoutes');
 app.use('/api/admin/customer-bills', customerBillRoutes);
 
-const db = require('./config/database');
 const adminAuth = require('./middleware/auth');
 
 app.get('/api/customers', adminAuth, (req, res) => {

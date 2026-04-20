@@ -3,6 +3,7 @@ const path = require('path');
 require('dotenv').config();
 const customerController = require('./controllers/customerController');
 const customerAuth = require('./middleware/customerAuth');
+const { accountAuth } = require('./middleware/accountAuth');
 const db = require('./config/database');
 const accountRoutes = require('./routes/accountRoutes');
 
@@ -31,9 +32,14 @@ customerApp.get('/api/products', async (req, res) => {
   }
 });
 
-customerApp.get('/api/orders', customerAuth, async (req, res) => {
+customerApp.get('/api/orders', accountAuth, async (req, res) => {
   try {
-    let orders = db.orders.findAll().filter(o => o.customerId === req.customer.id);
+    const accountCustomers = db.accountCustomers.findByAccountId(req.account.id);
+    if (!accountCustomers || accountCustomers.length === 0) {
+      return res.status(200).json({ orders: [] });
+    }
+    const customerId = accountCustomers[0].customerId;
+    let orders = db.orders.findAll().filter(o => o.customerId === customerId);
     orders = orders.map(o => {
       const p = db.products.findById(o.productId);
       return { ...o, product: p ? { id: p.id, code: p.code, name: p.name, pricingType: p.pricingType } : null };
@@ -45,8 +51,8 @@ customerApp.get('/api/orders', customerAuth, async (req, res) => {
   }
 });
 
-customerApp.post('/api/orders', customerAuth, async (req, res) => {
-  const { product, orderType, quantity = 1, paymentType } = req.body;
+customerApp.post('/api/orders', accountAuth, async (req, res) => {
+  const { product, orderType, quantity = 1, paymentType, paymentMethod = 'balance' } = req.body;
 
   if (!product || !orderType) {
     return res.status(400).json({ message: '请选择产品和订单类型' });
@@ -56,7 +62,17 @@ customerApp.post('/api/orders', customerAuth, async (req, res) => {
     return res.status(400).json({ message: '请选择支付类型（prepay 或 postpay）' });
   }
 
+  if (!['balance', 'credit'].includes(paymentMethod)) {
+    return res.status(400).json({ message: '请选择支付账户（balance 或 credit）' });
+  }
+
   try {
+    const accountCustomers = db.accountCustomers.findByAccountId(req.account.id);
+    if (!accountCustomers || accountCustomers.length === 0) {
+      return res.status(403).json({ message: '该账号未绑定企业' });
+    }
+    const customerId = accountCustomers[0].customerId;
+
     const productInfo = db.products.findById(product);
     if (!productInfo) {
       return res.status(404).json({ message: '产品不存在' });
@@ -76,12 +92,13 @@ customerApp.post('/api/orders', customerAuth, async (req, res) => {
     const orderNo = 'ORD' + Date.now() + Math.floor(Math.random() * 10000).toString().padStart(4, '0');
     const order = db.orders.create({
       orderNo,
-      customerId: req.customer.id,
+      customerId,
       productId: product,
       orderType,
       quantity,
       amount,
       paymentType,
+      paymentMethod,
       reviewStatus: 'pending',
       paymentStatus: 'pending'
     });
@@ -104,6 +121,27 @@ customerApp.get('/api/call-logs', customerAuth, async (req, res) => {
     const limit = 50;
     const paginatedLogs = logs.slice(0, limit);
     res.status(200).json({ total, logs: paginatedLogs });
+  } catch (error) {
+    res.status(500).json({ message: '服务器错误' });
+  }
+});
+
+customerApp.get('/api/my/account-info', accountAuth, async (req, res) => {
+  try {
+    const accountCustomers = db.accountCustomers.findByAccountId(req.account.id);
+    if (!accountCustomers || accountCustomers.length === 0) {
+      return res.status(404).json({ message: '该账号未绑定企业' });
+    }
+    const customerId = accountCustomers[0].customerId;
+    let account = db.customerAccounts.findByCustomerId(customerId);
+    if (!account) {
+      account = db.customerAccounts.create({
+        customerId,
+        balance: 0,
+        creditLimit: 0
+      });
+    }
+    res.status(200).json(account);
   } catch (error) {
     res.status(500).json({ message: '服务器错误' });
   }

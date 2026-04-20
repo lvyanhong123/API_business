@@ -223,7 +223,8 @@
       "salesId": null,
       "status": "active",
       "createdAt": "2026-04-13T06:33:19.074Z",
-      "updatedAt": "2026-04-13T06:34:02.806Z"
+      "updatedAt": "2026-04-20T15:32:54.951Z",
+      "quota": 2500
     },
     {
       "id": 2,
@@ -290,6 +291,127 @@
       "reviewedAt": "2026-04-15T09:51:48.455Z",
       "reviewedBy": 1,
       "paidAt": "2026-04-15T09:51:48.455Z"
+    },
+    {
+      "id": 3,
+      "orderNo": "ORD17766942912435735",
+      "productId": 1,
+      "orderType": "per_call",
+      "quantity": 100,
+      "amount": 10,
+      "paymentType": "prepay",
+      "reviewStatus": "pending",
+      "paymentStatus": "pending",
+      "createdAt": "2026-04-20T14:11:31.244Z",
+      "updatedAt": "2026-04-20T14:11:31.244Z"
+    },
+    {
+      "id": 4,
+      "orderNo": "ORD17766944862360516",
+      "productId": 1,
+      "orderType": "per_call",
+      "quantity": 100,
+      "amount": 10,
+      "paymentType": "prepay",
+      "paymentMethod": "balance",
+      "reviewStatus": "pending",
+      "paymentStatus": "pending",
+      "createdAt": "2026-04-20T14:14:46.236Z",
+      "updatedAt": "2026-04-20T14:14:46.236Z"
+    },
+    {
+      "id": 5,
+      "orderNo": "ORD17766946983118471",
+      "customerId": 1,
+      "productId": 1,
+      "orderType": "per_call",
+      "quantity": 100,
+      "amount": 10,
+      "paymentType": "prepay",
+      "paymentMethod": "balance",
+      "reviewStatus": "approved",
+      "paymentStatus": "paid",
+      "createdAt": "2026-04-20T14:18:18.311Z",
+      "updatedAt": "2026-04-20T14:21:58.530Z",
+      "reviewedAt": "2026-04-20T14:21:58.530Z",
+      "reviewedBy": 1,
+      "paidAt": "2026-04-20T14:21:58.530Z"
+    },
+    {
+      "id": 6,
+      "orderNo": "ORD17766951487441184",
+      "customerId": 1,
+      "productId": 1,
+      "orderType": "per_call",
+      "quantity": 1000,
+      "amount": 100,
+      "paymentType": "postpay",
+      "paymentMethod": "balance",
+      "reviewStatus": "approved",
+      "paymentStatus": "paid",
+      "createdAt": "2026-04-20T14:25:48.744Z",
+      "updatedAt": "2026-04-20T14:30:21.528Z",
+      "reviewedAt": "2026-04-20T14:30:21.528Z",
+      "reviewedBy": 1,
+      "paidAt": "2026-04-20T14:30:21.528Z"
+    },
+    {
+      "id": 7,
+      "customerId": 1
+    },
+    {
+      "id": 8,
+      "orderNo": "ORD17766986010457355",
+      "customerId": 1,
+      "productId": 1,
+      "orderType": "per_call",
+      "quantity": 300,
+      "amount": 30,
+      "paymentType": "prepay",
+      "paymentMethod": "balance",
+      "reviewStatus": "approved",
+      "paymentStatus": "paid",
+      "createdAt": "2026-04-20T15:23:21.047Z",
+      "updatedAt": "2026-04-20T15:24:08.802Z",
+      "reviewedAt": "2026-04-20T15:24:08.801Z",
+      "reviewedBy": 1,
+      "paidAt": "2026-04-20T15:24:08.801Z"
+    },
+    {
+      "id": 9,
+      "orderNo": "ORD17766986690100442",
+      "customerId": 1,
+      "productId": 1,
+      "orderType": "per_call",
+      "quantity": 1000,
+      "amount": 100,
+      "paymentType": "prepay",
+      "paymentMethod": "balance",
+      "reviewStatus": "approved",
+      "paymentStatus": "paid",
+      "createdAt": "2026-04-20T15:24:29.011Z",
+      "updatedAt": "2026-04-20T15:24:36.893Z",
+      "reviewedAt": "2026-04-20T15:24:36.892Z",
+      "reviewedBy": 1,
+      "paidAt": "2026-04-20T15:24:36.892Z"
+    },
+    {
+      "id": 10,
+      "orderNo": "ORD17766991679377200",
+      "customerId": 1,
+      "productId": 1,
+      "orderType": "per_call",
+      "quantity": 100,
+      "amount": 10,
+      "paymentType": "prepay",
+      "paymentMethod": "balance",
+      "reviewStatus": "approved",
+      "paymentStatus": "paid",
+      "createdAt": "2026-04-20T15:32:47.938Z",
+      "updatedAt": "2026-04-20T15:32:54.946Z",
+      "reviewedAt": "2026-04-20T15:32:54.945Z",
+      "reviewedBy": 1,
+      "paidAt": "2026-04-20T15:32:54.945Z"
     }
   ],
   "apiLogs": [],
@@ -1556,11 +1678,11 @@
     {
       "id": 1,
       "customerId": 1,
-      "balance": 0,
+      "balance": 650,
       "creditLimit": 0,
       "paymentType": "prepay",
       "createdAt": "2026-04-15T08:56:28.949Z",
-      "updatedAt": "2026-04-15T08:56:28.949Z"
+      "updatedAt": "2026-04-20T15:32:54.955Z"
     },
     {
       "id": 2,
@@ -1589,6 +1711,23 @@
       "apiKey": "ak_1776246708457xbwebf5m26j",
       "status": "active",
       "createdAt": "2026-04-15T09:51:48.457Z"
+    },
+    {
+      "id": 2,
+      "customerId": 1,
+      "productId": 1,
+      "apiKey": "ak_1776694918531obby7x5q0j",
+      "status": "active",
+      "createdAt": "2026-04-20T14:21:58.531Z"
+    },
+    {
+      "id": 3,
+      "customerId": 1,
+      "productId": null,
+      "apiKey": "AK1776695119418axg2iihfwr8",
+      "apiSecret": "wef0xf2o74",
+      "status": "active",
+      "createdAt": "2026-04-20T14:25:19.419Z"
     }
   ],
   "customerBills": [
@@ -1612,6 +1751,28 @@
       "callCount": 4,
       "pricePerCall": 0.1,
       "amount": 0.4
+    }
+  ],
+  "paymentOrders": [
+    {
+      "id": 1,
+      "customerId": 1,
+      "amount": 1000,
+      "paymentMethod": "bank",
+      "targetAccount": "balance",
+      "status": "confirmed",
+      "remark": "",
+      "createdAt": "2026-04-20T13:34:45.779Z"
+    }
+  ],
+  "withdrawOrders": [
+    {
+      "id": 1,
+      "customerId": 1,
+      "amount": 200,
+      "remark": "赔偿",
+      "status": "completed",
+      "createdAt": "2026-04-20T13:48:25.162Z"
     }
   ]
 }
