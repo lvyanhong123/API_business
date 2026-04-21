@@ -1,0 +1,197 @@
+meta:
+  name: billing-charge-flow-v2
+  title: API业务计费扣费业务流程图
+  description: 简化版计费扣费业务流程图，清晰展示主流程
+  profile: engineering-review
+  figureType: workflow
+  theme: tech-blue
+  layout: horizontal
+nodes:
+  - id: start
+    label: 开始
+    type: terminal
+    position:
+      x: 40
+      'y': 200
+  - id: select_product
+    label: 选购产品
+    type: process
+    position:
+      x: 200
+      'y': 200
+  - id: create_order
+    label: 下单
+    type: process
+    position:
+      x: 360
+      'y': 200
+  - id: approval
+    label: 审批
+    type: process
+    position:
+      x: 520
+      'y': 200
+  - id: payment
+    label: 支付
+    type: process
+    position:
+      x: 680
+      'y': 200
+  - id: init_quota
+    label: 初始化配额
+    type: process
+    position:
+      x: 840
+      'y': 200
+  - id: call_api
+    label: API调用
+    type: process
+    position:
+      x: 1000
+      'y': 200
+  - id: deduct
+    label: 扣减配额
+    type: process
+    position:
+      x: 1160
+      'y': 200
+  - id: api_loop
+    label: 继续调用?
+    type: decision
+    position:
+      x: 1320
+      'y': 200
+  - id: recharge
+    label: 充值
+    type: process
+    position:
+      x: 360
+      'y': 380
+  - id: refund
+    label: 退款
+    type: process
+    position:
+      x: 520
+      'y': 380
+  - id: monthly_summary
+    label: 月底汇总
+    type: process
+    position:
+      x: 840
+      'y': 380
+  - id: generate_bill
+    label: 生成账单
+    type: process
+    position:
+      x: 1000
+      'y': 380
+  - id: t1_deduct
+    label: T+1扣款
+    type: process
+    position:
+      x: 1160
+      'y': 380
+  - id: customer_bill
+    label: 客户账单
+    type: process
+    position:
+      x: 1320
+      'y': 380
+  - id: enterprise_pay
+    label: 企业付款
+    type: process
+    position:
+      x: 1480
+      'y': 380
+  - id: supplier_bill
+    label: 供应商账单
+    type: process
+    position:
+      x: 1320
+      'y': 520
+  - id: settle_supplier
+    label: 结算供应商
+    type: process
+    position:
+      x: 1480
+      'y': 520
+  - id: end
+    label: 结束
+    type: terminal
+    position:
+      x: 1620
+      'y': 200
+edges:
+  - from: start
+    to: select_product
+  - from: select_product
+    to: create_order
+  - from: create_order
+    to: approval
+  - from: approval
+    to: payment
+  - from: payment
+    to: init_quota
+  - from: init_quota
+    to: call_api
+  - from: call_api
+    to: deduct
+  - from: deduct
+    to: api_loop
+  - from: api_loop
+    to: call_api
+    label: 继续
+    style: dashed
+  - from: api_loop
+    to: monthly_summary
+    label: 结束
+    style: dashed
+  - from: recharge
+    to: end
+  - from: refund
+    to: end
+  - from: monthly_summary
+    to: generate_bill
+  - from: generate_bill
+    to: t1_deduct
+  - from: t1_deduct
+    to: customer_bill
+  - from: customer_bill
+    to: enterprise_pay
+  - from: enterprise_pay
+    to: end
+  - from: supplier_bill
+    to: settle_supplier
+  - from: settle_supplier
+    to: end
+regions:
+  - name: 产品订购流程
+    color: '#E3F2FD'
+    x: 160
+    'y': 140
+    width: 720
+    height: 120
+  - name: API配额扣减
+    color: '#E8F5E9'
+    x: 960
+    'y': 140
+    width: 400
+    height: 120
+  - name: 资金账户
+    x: 320
+    'y': 320
+    width: 240
+    height: 80
+  - name: 后付费结算
+    color: '#FCE4EC'
+    x: 800
+    'y': 320
+    width: 400
+    height: 80
+  - name: 账单付款
+    color: '#F3E5F5'
+    x: 1280
+    'y': 320
+    width: 280
+    height: 260
+modules: []

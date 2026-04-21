@@ -1,0 +1,208 @@
+<mxfile>
+  <diagram name="API Business ER">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- 第一行：核心主体 -->
+        <mxCell id="accounts" value="accounts&#xa;账号" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="customers" value="customers&#xa;企业客户" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="200" y="40" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="customer_accounts" value="customer_accounts&#xa;资金账户" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="40" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- 第二行：订单和财务单据 -->
+        <mxCell id="orders" value="orders&#xa;订单" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="520" y="40" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="payment_orders" value="payment_orders&#xa;收款单" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="680" y="40" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="withdraw_orders" value="withdraw_orders&#xa;打款单" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="840" y="40" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="refund_orders" value="refund_orders&#xa;退款单" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="40" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="customer_bills" value="customer_bills&#xa;客户账单" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="40" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- 第三行：供应体系 -->
+        <mxCell id="suppliers" value="suppliers&#xa;供应商" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="160" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="channels" value="channels&#xa;通道" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="200" y="160" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="scripts" value="scripts&#xa;脚本" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="160" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="products" value="products&#xa;产品" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="520" y="160" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="supplier_bills" value="supplier_bills&#xa;供应商账单" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="680" y="160" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- 第四行：交易和调用 -->
+        <mxCell id="api_keys" value="api_keys&#xa;API密钥" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="280" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="quotas" value="account_product_quotas&#xa;配额" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="200" y="280" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="call_logs" value="call_logs&#xa;调用明细" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="280" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- 第五行：配置 -->
+        <mxCell id="auto_renewal" value="auto_renewal_configs&#xa;自动续订配置" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="400" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="admin_change" value="admin_change_requests&#xa;变更申请" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="200" y="400" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- 待新增实体 -->
+        <mxCell id="customer_channel_configs" value="customer_channel_configs&#xa;客户通道配置&#xa;🔴待新增" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontStyle=1;fontSize=12;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="520" y="280" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="routing_policies" value="routing_policies&#xa;路由策略&#xa;🔴待新增" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontStyle=1;fontSize=12;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="700" y="280" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- 连线关系 -->
+
+        <!-- 账号 N:M 企业客户 -->
+        <mxCell id="e1" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;endArrow=ERmany;endFill=0;startArrow=ERmany;startFill=0;" edge="1" parent="1" source="accounts" target="customers">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 企业客户 1:1 资金账户 -->
+        <mxCell id="e2" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;endArrow=ERone;endFill=0;startArrow=ERone;startFill=0;" edge="1" parent="1" source="customers" target="customer_accounts">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 账号 1:N 订单 -->
+        <mxCell id="e3" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;" edge="1" parent="1" source="accounts" target="orders">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 企业客户 1:N 订单 -->
+        <mxCell id="e4" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;" edge="1" parent="1" source="customers" target="orders">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 订单 N:1 产品 -->
+        <mxCell id="e5" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;endArrow=ERone;endFill=0;startArrow=ERmany;startFill=0;" edge="1" parent="1" source="orders" target="products">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 供应商 1:N 通道 -->
+        <mxCell id="e6" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;" edge="1" parent="1" source="suppliers" target="channels">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 脚本 1:N 通道 -->
+        <mxCell id="e7" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;" edge="1" parent="1" source="scripts" target="channels">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 产品 N:M 通道 -->
+        <mxCell id="e8" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;endArrow=ERmany;endFill=0;startArrow=ERmany;startFill=0;" edge="1" parent="1" source="products" target="channels">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 账号 1:N API密钥 -->
+        <mxCell id="e9" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;" edge="1" parent="1" source="accounts" target="api_keys">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 账号 1:N 配额 -->
+        <mxCell id="e10" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;" edge="1" parent="1" source="accounts" target="quotas">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 订单 1:1 配额 -->
+        <mxCell id="e11" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;endArrow=ERone;endFill=0;startArrow=ERone;startFill=0;" edge="1" parent="1" source="orders" target="quotas">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 通道 1:N 调用明细 -->
+        <mxCell id="e12" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;" edge="1" parent="1" source="channels" target="call_logs">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 企业客户 1:N 收款单 -->
+        <mxCell id="e13" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;" edge="1" parent="1" source="customers" target="payment_orders">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 企业客户 1:N 打款单 -->
+        <mxCell id="e14" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;" edge="1" parent="1" source="customers" target="withdraw_orders">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 企业客户 1:N 退款单 -->
+        <mxCell id="e15" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;" edge="1" parent="1" source="customers" target="refund_orders">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 企业客户 1:N 客户账单 -->
+        <mxCell id="e16" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;" edge="1" parent="1" source="customers" target="customer_bills">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 供应商 1:N 供应商账单 -->
+        <mxCell id="e17" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;" edge="1" parent="1" source="suppliers" target="supplier_bills">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 账号 1:N 自动续订 -->
+        <mxCell id="e18" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;" edge="1" parent="1" source="accounts" target="auto_renewal">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 企业客户 1:N 变更申请 -->
+        <mxCell id="e19" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;" edge="1" parent="1" source="customers" target="admin_change">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 企业客户 N:M 通道 (待新增) -->
+        <mxCell id="e20" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#d79b00;endArrow=ERmany;endFill=0;startArrow=ERmany;startFill=0;dashed=1;" edge="1" parent="1" source="customers" target="customer_channel_configs">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e21" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#d79b00;endArrow=ERmany;endFill=0;startArrow=ERmany;startFill=0;dashed=1;" edge="1" parent="1" source="customer_channel_configs" target="channels">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 企业客户 1:N 路由策略 (待新增) -->
+        <mxCell id="e22" style="edgeStyle=entityRelationEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#d79b00;endArrow=ERmany;endFill=0;startArrow=ERone;startFill=0;dashed=1;" edge="1" parent="1" source="customers" target="routing_policies">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
