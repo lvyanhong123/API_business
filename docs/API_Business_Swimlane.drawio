@@ -1,0 +1,154 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/28.1.2 Chrome/138.0.7204.243 Electron/37.4.0 Safari/537.36" version="28.1.2">
+  <diagram name="API业务泳道图" id="api-business-flow">
+    <mxGraphModel dx="1310" dy="937" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- 标题 -->
+        <mxCell id="title" value="API业务平台 - 核心业务流程泳道图" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=20;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="400" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- 角色泳道容器 -->
+        <mxCell id="lane-container" value="角色" style="swimlane;childLayout=stackLayout;resizeParent=1;resizeParentMax=0;startSize=20;html=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="1200" height="720" as="geometry" />
+        </mxCell>
+
+        <!-- 客户泳道 -->
+        <mxCell id="lane-customer" value="客户" style="swimlane;startSize=50;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;fontSize=14;fontStyle=1" vertex="1" parent="lane-container">
+          <mxGeometry y="50" width="240" height="670" as="geometry" />
+        </mxCell>
+        <!-- 客户活动 -->
+        <mxCell id="step-1" value="商务洽谈" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;fontColor=#FFFFFF;fontSize=12" vertex="1" parent="lane-customer">
+          <mxGeometry x="70" y="30" width="100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="step-5" value="打款" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;fontColor=#FFFFFF;fontSize=12" vertex="1" parent="lane-customer">
+          <mxGeometry x="70" y="130" width="100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="step-7" value="选购产品" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;fontColor=#FFFFFF;fontSize=12" vertex="1" parent="lane-customer">
+          <mxGeometry x="70" y="230" width="100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="step-8" value="下单" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;fontColor=#FFFFFF;fontSize=12" vertex="1" parent="lane-customer">
+          <mxGeometry x="70" y="290" width="100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="step-13" value="对账确认" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2196F3;fontColor=#FFFFFF;fontSize=12" vertex="1" parent="lane-customer">
+          <mxGeometry x="70" y="580" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- 商务泳道 -->
+        <mxCell id="lane-sales" value="商务/销售" style="swimlane;startSize=50;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontSize=14;fontStyle=1" vertex="1" parent="lane-container">
+          <mxGeometry x="240" y="50" width="240" height="670" as="geometry" />
+        </mxCell>
+        <!-- 商务活动 -->
+        <mxCell id="step-2" value="签订合同" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4CAF50;fontColor=#FFFFFF;fontSize=12" vertex="1" parent="lane-sales">
+          <mxGeometry x="70" y="30" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- 财务泳道 -->
+        <mxCell id="lane-finance" value="财务" style="swimlane;startSize=50;html=1;fillColor=#FFF3E0;strokeColor=#EF6C00;fontSize=14;fontStyle=1" vertex="1" parent="lane-container">
+          <mxGeometry x="480" y="50" width="240" height="670" as="geometry" />
+        </mxCell>
+        <!-- 财务活动 -->
+        <mxCell id="step-6" value="录入收款" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;fontColor=#FFFFFF;fontSize=12" vertex="1" parent="lane-finance">
+          <mxGeometry x="70" y="130" width="100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="step-12" value="对账确认" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF9800;fontColor=#FFFFFF;fontSize=12" vertex="1" parent="lane-finance">
+          <mxGeometry x="70" y="580" width="100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="step-14" value="退款处理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F44336;fontColor=#FFFFFF;fontSize=12" vertex="1" parent="lane-finance">
+          <mxGeometry x="70" y="650" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- 平台运营泳道 -->
+        <mxCell id="lane-ops" value="平台运营" style="swimlane;startSize=50;html=1;fillColor=#F3E5F5;strokeColor=#7B1FA2;fontSize=14;fontStyle=1" vertex="1" parent="lane-container">
+          <mxGeometry x="720" y="50" width="240" height="670" as="geometry" />
+        </mxCell>
+        <!-- 平台运营活动 -->
+        <mxCell id="step-9" value="审核订单" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9C27B0;fontColor=#FFFFFF;fontSize=12" vertex="1" parent="lane-ops">
+          <mxGeometry x="70" y="350" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- 系统泳道 -->
+        <mxCell id="lane-system" value="系统" style="swimlane;startSize=50;html=1;fillColor=#ECEFF1;strokeColor=#455A64;fontSize=14;fontStyle=1" vertex="1" parent="lane-container">
+          <mxGeometry x="960" y="50" width="240" height="670" as="geometry" />
+        </mxCell>
+        <!-- 系统活动 -->
+        <mxCell id="step-10" value="获得配额" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#607D8B;fontColor=#FFFFFF;fontSize=12" vertex="1" parent="lane-system">
+          <mxGeometry x="70" y="410" width="100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="step-11" value="使用API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#607D8B;fontColor=#FFFFFF;fontSize=12" vertex="1" parent="lane-system">
+          <mxGeometry x="70" y="470" width="100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="end-1" value="结束" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F44336;fontColor=#FFFFFF;fontSize=12" vertex="1" parent="lane-system">
+          <mxGeometry x="70" y="650" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- 连接线：阶段1 商务洽谈 → 签订合同 -->
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=2" edge="1" parent="lane-container" source="step-1" target="step-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 连接线：阶段2 打款 → 录入收款 -->
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=2" edge="1" parent="lane-container" source="step-5" target="step-6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 连接线：阶段3 选购产品 → 下单 -->
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=2" edge="1" parent="lane-container" source="step-7" target="step-8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 连接线：下单 → 审核订单 -->
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=2" edge="1" parent="lane-container" source="step-8" target="step-9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 连接线：审核订单 → 获得配额 -->
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#4CAF50;strokeWidth=2" edge="1" parent="lane-container" source="step-9" target="step-10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 连接线：获得配额 → 使用API -->
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=2" edge="1" parent="lane-container" source="step-10" target="step-11">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 连接线：使用API → 对账确认（财务） -->
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=2" edge="1" parent="lane-container" source="step-11" target="step-12">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 连接线：对账确认 财务 ↔ 客户 -->
+        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;strokeWidth=2" edge="1" parent="lane-container" source="step-12" target="step-13">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 续订循环：客户对账确认 → 选购产品 -->
+        <mxCell id="loop-renew" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#2196F3;strokeWidth=2;dashed=1" edge="1" parent="lane-container" source="step-13" target="step-7">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="-60" y="605" />
+              <mxPoint x="-60" y="255" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-renew" value="续订" style="text;html=1;align=center;verticalAlign=middle;fontColor=#2196F3;fontSize=12;fontStyle=1" vertex="1" parent="lane-container">
+          <mxGeometry x="-110" y="420" width="50" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- 退款：客户对账确认 → 退款处理 → 结束 -->
+        <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#F44336;strokeWidth=2" edge="1" parent="lane-container" source="step-13" target="step-14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#F44336;strokeWidth=2" edge="1" parent="lane-container" source="step-14" target="end-1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="label-refund" value="退款" style="text;html=1;align=center;verticalAlign=middle;fontColor=#F44336;fontSize=12" vertex="1" parent="lane-container">
+          <mxGeometry x="260" y="660" width="50" height="30" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
