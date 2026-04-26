@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>计费规则配置 - 多接口赠送计费</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+        .header {
+            background: #fff;
+            padding: 16px 24px;
+            border-bottom: 1px solid #e8e8e8;
+        }
+        .header h1 { font-size: 18px; font-weight: 600; }
+        .container { padding: 24px; max-width: 1200px; margin: 0 auto; }
+
+        .info-box {
+            background: #fff7e6;
+            border: 1px solid #ffd591;
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+        .info-box h4 { color: #fa8c16; margin-bottom: 12px; font-size: 14px; }
+        .info-box ul { color: #666; font-size: 13px; line-height: 2; padding-left: 20px; }
+
+        .card { background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 16px; }
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e8e8e8;
+            font-weight: 600;
+            font-size: 15px;
+        }
+        .card-body { padding: 20px; }
+
+        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .form-group label { font-size: 14px; color: #666; font-weight: 500; }
+        .form-group input, .form-group select {
+            padding: 10px 12px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .api-group-box {
+            border: 2px solid #fa8c16;
+            border-radius: 8px;
+            padding: 20px;
+            background: #fffbf0;
+        }
+        .api-group-title {
+            font-weight: 600;
+            font-size: 15px;
+            color: #fa8c16;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .api-group-title::before { content: "🔗"; font-size: 18px; }
+
+        .api-row {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px dashed #ffe7b3;
+        }
+        .api-row:last-child { border-bottom: none; }
+        .api-row input[type="checkbox"] { width: 18px; height: 18px; margin-right: 12px; }
+        .api-info { flex: 1; }
+        .api-name { font-weight: 500; font-size: 14px; }
+        .api-id { font-size: 12px; color: #999; margin-left: 8px; }
+        .api-role {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .role-primary { background: #fff7e6; color: #fa8c16; }
+        .role-bonus { background: #f6ffed; color: #52c41a; }
+        .api-price { font-size: 13px; color: #666; margin-left: 12px; }
+
+        .billing-rule-box {
+            background: #f9f9f9;
+            border: 1px solid #e8e8e8;
+            border-radius: 6px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+        .billing-rule-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 12px;
+        }
+        .rule-line {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            font-size: 14px;
+        }
+        .rule-line .icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-size: 12px;
+        }
+        .rule-line .icon.main { background: #fff7e6; color: #fa8c16; }
+        .rule-line .icon.bonus { background: #f6ffed; color: #52c41a; }
+        .rule-line .icon.total { background: #e6f7ff; color: #1890ff; }
+        .rule-line .calculation {
+            margin-left: auto;
+            font-weight: 500;
+            color: #1890ff;
+        }
+
+        .formula-preview {
+            background: #2f2f2f;
+            color: #a5d6ff;
+            padding: 16px;
+            border-radius: 6px;
+            font-family: "Consolas", "Monaco", monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            line-height: 1.8;
+        }
+
+        .example-box {
+            background: #f0f9ff;
+            border: 1px solid #91d5ff;
+            border-radius: 6px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+        .example-title {
+            font-weight: 600;
+            font-size: 13px;
+            color: #1890ff;
+            margin-bottom: 10px;
+        }
+        .example-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 13px;
+            border-bottom: 1px dashed #d9eaf7;
+        }
+        .example-row:last-child { border-bottom: none; }
+        .example-row .label { color: #666; }
+        .example-row .value { font-weight: 500; color: #333; }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .btn { padding: 10px 20px; border-radius: 4px; border: none; cursor: pointer; font-size: 14px; }
+        .btn-primary { background: #1890ff; color: #fff; }
+        .btn-success { background: #52c41a; color: #fff; }
+        .btn-cancel { background: #fff; border: 1px solid #d9d9d9; }
+        .action-bar { display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e8e8e8; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>规则5详解：多接口次数赠送计费</h1>
+    </div>
+
+    <div class="container">
+        <div class="info-box">
+            <h4>📌 规则5：多接口次数赠送计费 - 逻辑说明</h4>
+            <ul>
+                <li><strong>主接口</strong>：正常计费，按单价收费（如 0.1元/条）</li>
+                <li><strong>赠送接口</strong>：免费额度 = 主接口调用次数（即主接口每调用1次，赠送接口免费1次）</li>
+                <li><strong>超出部分</strong>：赠送接口如果调用超过免费额度，超出部分按单独单价收费（如 0.2元/条）</li>
+            </ul>
+        </div>
+
+        <div class="two-column">
+            <!-- 左侧：接口组配置 -->
+            <div class="card">
+                <div class="card-header">接口组配置</div>
+                <div class="card-body">
+                    <div class="api-group-box">
+                        <div class="api-group-title">接口组成员</div>
+
+                        <div class="api-row">
+                            <input type="checkbox" checked disabled>
+                            <div class="api-info">
+                                <span class="api-name">车辆信息查询</span>
+                                <span class="api-id">API-001</span>
+                            </div>
+                            <span class="api-role role-primary">主接口</span>
+                            <span class="api-price">¥0.10/条</span>
+                        </div>
+
+                        <div class="api-row">
+                            <input type="checkbox" checked>
+                            <div class="api-info">
+                                <span class="api-name">车辆违章查询</span>
+                                <span class="api-id">API-002</span>
+                            </div>
+                            <span class="api-role role-bonus">赠送接口</span>
+                            <span class="api-price">超量 ¥0.20/条</span>
+                        </div>
+
+                        <div class="api-row">
+                            <input type="checkbox" checked>
+                            <div class="api-info">
+                                <span class="api-name">高速通行记录</span>
+                                <span class="api-id">API-003</span>
+                            </div>
+                            <span class="api-role role-bonus">赠送接口</span>
+                            <span class="api-price">超量 ¥0.15/条</span>
+                        </div>
+                    </div>
+
+                    <div class="billing-rule-box">
+                        <div class="billing-rule-title">计费规则</div>
+                        <div class="rule-line">
+                            <span class="icon main">主</span>
+                            <span>主接口调用次数 × 单价</span>
+                            <span class="calculation">API-001 × ¥0.10</span>
+                        </div>
+                        <div class="rule-line">
+                            <span class="icon bonus">赠</span>
+                            <span>min(赠送接口调用, 主接口调用) 免费</span>
+                            <span class="calculation">= 免费额度</span>
+                        </div>
+                        <div class="rule-line">
+                            <span class="icon bonus">赠</span>
+                            <span>max(0, 赠送调用 - 免费额度) × 超量单价</span>
+                            <span class="calculation">= 超量费用</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧：计算示例 -->
+            <div class="card">
+                <div class="card-header">计算示例</div>
+                <div class="card-body">
+                    <div class="example-box">
+                        <div class="example-title">假设当月调用情况</div>
+                        <div class="example-row"><span class="label">主接口（API-001）调用次数</span><span class="value">1000 次</span></div>
+                        <div class="example-row"><span class="label">赠送接口（API-002）调用次数</span><span class="value">800 次</span></div>
+                        <div class="example-row"><span class="label">赠送接口（API-003）调用次数</span><span class="value">1200 次</span></div>
+                    </div>
+
+                    <div class="formula-preview">计算过程：
+
+① 主接口费用
+   1000 次 × ¥0.10 = ¥100.00
+
+② API-002（违章查询）费用
+   免费额度 = min(800, 1000) = 800 次
+   超量 = max(0, 800 - 800) = 0 次
+   费用 = 0 × ¥0.20 = ¥0.00
+
+③ API-003（高速通行）费用
+   免费额度 = min(1200, 1000) = 1000 次
+   超量 = max(0, 1200 - 1000) = 200 次
+   费用 = 200 × ¥0.15 = ¥30.00
+
+─────────────────────────────
+合计费用：¥100.00 + ¥0.00 + ¥30.00 = ¥130.00</div>
+
+                    <div class="example-box" style="margin-top: 16px;">
+                        <div class="example-title">再举一例</div>
+                        <div class="example-row"><span class="label">主接口（API-001）调用次数</span><span class="value">500 次</span></div>
+                        <div class="example-row"><span class="label">赠送接口（API-002）调用次数</span><span class="value">600 次</span></div>
+                        <div class="example-row"><span class="label">赠送接口（API-003）调用次数</span><span class="value">300 次</span></div>
+                    </div>
+
+                    <div class="formula-preview" style="margin-top: 12px; font-size: 12px;">
+① 主接口费用
+   500 × ¥0.10 = ¥50.00
+
+② API-002 费用
+   免费额度 = min(600, 500) = 500 次
+   超量 = 100 次
+   费用 = 100 × ¥0.20 = ¥20.00
+
+③ API-003 费用
+   免费额度 = min(300, 500) = 300 次
+   超量 = 0 次
+   费用 = ¥0.00
+
+─────────────────────────────
+合计：¥50 + ¥20 + ¥0 = ¥70.00</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 核心公式总结 -->
+        <div class="card">
+            <div class="card-header">核心公式</div>
+            <div class="card-body">
+                <div class="formula-preview">┌─────────────────────────────────────────────────────────────┐
+│  费用 = 主接口次数 × 主接口单价                                 │
+│       + Σ( max(0, 赠送接口调用次数 - 主接口调用次数) × 赠送超量单价 )  │
+│                                                              │
+│  即：每个赠送接口的费用 = max(0, 赠送调用 - 主接口调用) × 超量单价     │
+└─────────────────────────────────────────────────────────────┘</div>
+
+                <div style="margin-top: 16px; padding: 12px; background: #f5f5f5; border-radius: 4px; font-size: 14px;">
+                    <strong>简化理解：</strong>
+                    赠送接口的免费额度 = 主接口调用次数<br>
+                    赠送接口超出免费额度 = max(0, 赠送调用 - 主接口调用)
+                </div>
+            </div>
+        </div>
+
+        <!-- 页面配置部分 -->
+        <div class="card">
+            <div class="card-header">客户定价配置</div>
+            <div class="card-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>选择客户</label>
+                        <select>
+                            <option selected>深圳市XX物流有限公司</option>
+                            <option>广州市YY运输有限公司</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>规则模板</label>
+                        <select>
+                            <option selected>多接口次数赠送计费（规则5）</option>
+                            <option>多接口合计阶梯计费（规则6）</option>
+                            <option>多接口最大计费（规则7）</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="api-group-box">
+                    <div class="api-group-title">接口组配置（主接口 + 赠送接口）</div>
+
+                    <div class="form-row" style="margin-bottom: 16px;">
+                        <div class="form-group">
+                            <label>主接口</label>
+                            <select>
+                                <option selected>API-001 车辆信息查询</option>
+                                <option>API-002 车辆违章查询</option>
+                            </select>
+                            <span style="font-size: 12px; color: #666;">主接口正常计费</span>
+                        </div>
+                        <div class="form-group">
+                            <label>主接口单价</label>
+                            <input type="number" value="0.1" step="0.01" style="width: 100px;">
+                        </div>
+                    </div>
+
+                    <div style="border-top: 1px dashed #ffe7b3; padding-top: 16px;">
+                        <div style="font-weight: 500; margin-bottom: 12px; color: #52c41a;">赠送接口配置</div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>赠送接口 1</label>
+                                <select>
+                                    <option selected>API-002 车辆违章查询</option>
+                                    <option>API-003 高速通行记录</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>超量单价（元/条）</label>
+                                <input type="number" value="0.2" step="0.01" style="width: 100px;">
+                                <span style="font-size: 12px; color: #666;">超出主接口调用次数后按此价收费</span>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>赠送接口 2</label>
+                                <select>
+                                    <option selected>API-003 高速通行记录</option>
+                                    <option>API-004 停车场记录</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>超量单价（元/条）</label>
+                                <input type="number" value="0.15" step="0.01" style="width: 100px;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-bar">
+                    <button class="btn btn-cancel">取消</button>
+                    <button class="btn btn-success">保存客户定价</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
